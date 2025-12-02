@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Rental, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
+import SignatureModal from '@/components/SignatureModal';
 
 export default function AfterPage() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function AfterPage() {
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [signature, setSignature] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +54,7 @@ export default function AfterPage() {
         const data = { id: docSnap.id, ...docSnap.data() } as Rental;
         setRental(data);
         setPhotos(data.checkOut.photos || []);
+        setSignature(data.checkOut.signature || '');
       } else {
         alert('렌탈을 찾을 수 없습니다.');
         router.push('/dashboard');
@@ -184,6 +188,23 @@ export default function AfterPage() {
     }
   };
 
+  const handleSaveSignature = async (signatureData: string) => {
+    try {
+      setSignature(signatureData);
+      
+      const rentalRef = doc(db, 'rentals', rentalId);
+      await updateDoc(rentalRef, {
+        'checkOut.signature': signatureData,
+      });
+      
+      setShowSignatureModal(false);
+      alert('서명이 저장되었습니다!');
+    } catch (error) {
+      console.error('서명 저장 실패:', error);
+      alert('서명 저장에 실패했습니다.');
+    }
+  };
+
   const handleComplete = async () => {
     const requiredAreas = areas.filter(a => a.required);
     const uploadedAreas = photos.map(p => p.area);
@@ -194,10 +215,17 @@ export default function AfterPage() {
       return;
     }
 
+    if (!signature) {
+      alert('서명이 필요합니다.');
+      setShowSignatureModal(true);
+      return;
+    }
+
     try {
       const rentalRef = doc(db, 'rentals', rentalId);
       await updateDoc(rentalRef, {
         'checkOut.completedAt': Date.now(),
+        'checkOut.signature': signature,
         'status': 'completed',
       });
 
@@ -418,6 +446,30 @@ export default function AfterPage() {
           <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
         </div>
 
+        {signature && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-gray-900">✍️ 서명</h3>
+              <button
+                onClick={() => setShowSignatureModal(true)}
+                className="text-sm text-orange-500 hover:text-orange-700"
+              >
+                다시 서명
+              </button>
+            </div>
+            <img src={signature} alt="서명" className="border rounded-lg max-h-24" />
+          </div>
+        )}
+
+        {!signature && (
+          <button
+            onClick={() => setShowSignatureModal(true)}
+            className="w-full py-3 mt-6 border-2 border-dashed border-orange-300 text-orange-500 rounded-lg font-medium hover:bg-orange-50"
+          >
+            ✍️ 서명하기
+          </button>
+        )}
+
         <div className="flex gap-4 mt-6">
           <button onClick={() => setCurrentAreaIndex(Math.max(0, currentAreaIndex - 1))} disabled={currentAreaIndex === 0} className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 disabled:opacity-50">
             ← 이전
@@ -443,6 +495,13 @@ export default function AfterPage() {
           </ul>
         </div>
       </main>
+
+      <SignatureModal
+        isOpen={showSignatureModal}
+        onClose={() => setShowSignatureModal(false)}
+        onSave={handleSaveSignature}
+        title="After 촬영 서명"
+      />
     </div>
   );
 }

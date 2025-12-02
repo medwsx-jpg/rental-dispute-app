@@ -10,21 +10,23 @@ export interface Photo {
   }
   
   export interface Rental {
-    id: string;
+    id?: string;
     userId: string;
     type: 'car' | 'house';
     title: string;
     startDate: number;
     endDate: number;
-    status: 'pending' | 'active' | 'completed' | 'expired';
     checkIn: {
       photos: Photo[];
       completedAt: number | null;
+      signature?: string;
     };
     checkOut: {
       photos: Photo[];
       completedAt: number | null;
+      signature?: string;
     };
+    status: 'active' | 'completed';
     createdAt: number;
   }
   
