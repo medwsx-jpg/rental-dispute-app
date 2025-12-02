@@ -33,7 +33,6 @@ export default function DashboardPage() {
     if (rentals.length > 0 && notificationEnabled) {
       checkExpirationsDaily(rentals);
       
-      // 매일 체크 (24시간마다)
       const interval = setInterval(() => {
         checkExpirationsDaily(rentals);
       }, 24 * 60 * 60 * 1000);
@@ -70,7 +69,10 @@ export default function DashboardPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const rentalList: Rental[] = [];
       snapshot.forEach((doc) => {
-        rentalList.push({ id: doc.id, ...doc.data() } as Rental);
+        const data = doc.data();
+        if (data.status !== 'deleted') {
+          rentalList.push({ id: doc.id, ...data } as Rental);
+        }
       });
       setRentals(rentalList);
       setLoading(false);
@@ -230,9 +232,9 @@ export default function DashboardPage() {
               return (
                 <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                       <span className="text-3xl">{rental.type === 'car' ? '🚗' : '🏠'}</span>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-medium text-gray-900">{rental.title}</h3>
                         <p className="text-sm text-gray-500">
                           {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
@@ -240,7 +242,16 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    {getStatusBadge(rental)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(rental)}
+                      <button
+                        onClick={() => router.push(`/rental/${rental.id}/edit`)}
+                        className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+                        title="수정"
+                      >
+                        ✏️
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between mb-3">
