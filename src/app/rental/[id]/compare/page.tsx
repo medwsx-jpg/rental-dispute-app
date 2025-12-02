@@ -6,6 +6,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
+import { generatePDF } from '@/lib/pdfGenerator';
 
 export default function ComparePage() {
   const router = useRouter();
@@ -80,6 +81,17 @@ export default function ComparePage() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!rental) return;
+    
+    try {
+      await generatePDF(rental, rental.checkIn.photos, rental.checkOut.photos, areas);
+    } catch (error) {
+      console.error('PDF 생성 실패:', error);
+      alert('PDF 생성에 실패했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -114,9 +126,14 @@ export default function ComparePage() {
                 <p className="text-sm text-gray-500">{rental.title}</p>
               </div>
             </div>
-            <button onClick={handleShare} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-              📤 공유
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleDownloadPDF} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+                📄 PDF
+              </button>
+              <button onClick={handleShare} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                📤 공유
+              </button>
+            </div>
           </div>
         </div>
       </header>
