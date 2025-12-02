@@ -6,18 +6,21 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
+import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationEnabled, setNotificationEnabled] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         loadRentals(currentUser.uid);
+        checkNotificationPermission();
       } else {
         router.push('/login');
       }
@@ -25,6 +28,37 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (rentals.length > 0 && notificationEnabled) {
+      checkExpirationsDaily(rentals);
+      
+      // 매일 체크 (24시간마다)
+      const interval = setInterval(() => {
+        checkExpirationsDaily(rentals);
+      }, 24 * 60 * 60 * 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [rentals, notificationEnabled]);
+
+  const checkNotificationPermission = async () => {
+    if ('Notification' in window) {
+      setNotificationEnabled(Notification.permission === 'granted');
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    const granted = await requestNotificationPermission();
+    setNotificationEnabled(granted);
+    
+    if (granted) {
+      alert('알림이 활성화되었습니다! 계약 만료 3일 전부터 알림을 받을 수 있습니다.');
+      checkExpirationsDaily(rentals);
+    } else {
+      alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+    }
+  };
 
   const loadRentals = (userId: string) => {
     const q = query(
@@ -143,6 +177,25 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
+        {!notificationEnabled && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
+                <p className="text-sm text-yellow-700">
+                  계약 만료 3일 전부터 알림을 받으려면 알림을 활성화하세요.
+                </p>
+              </div>
+              <button
+                onClick={handleEnableNotifications}
+                className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
+              >
+                알림 켜기
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-blue-50 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
