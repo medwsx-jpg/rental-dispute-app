@@ -6,7 +6,6 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
-import { generatePDF } from '@/lib/pdfGenerator';
 
 export default function ComparePage() {
   const router = useRouter();
@@ -85,6 +84,8 @@ export default function ComparePage() {
     if (!rental) return;
     
     try {
+      // Dynamic import로 클라이언트에서만 로드
+      const { generatePDF } = await import('@/lib/pdfGenerator');
       await generatePDF(rental, rental.checkIn.photos, rental.checkOut.photos, areas);
     } catch (error) {
       console.error('PDF 생성 실패:', error);
