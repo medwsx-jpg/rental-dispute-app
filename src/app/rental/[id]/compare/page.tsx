@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
+import { useReactToPrint } from 'react-to-print';
+import { PrintableReport } from '@/components/PrintableReport';
 
 export default function ComparePage() {
   const router = useRouter();
@@ -19,7 +21,14 @@ export default function ComparePage() {
   const [viewMode, setViewMode] = useState<'side' | 'overlay'>('side');
   const [overlayOpacity, setOverlayOpacity] = useState(50);
 
+  const printRef = useRef<HTMLDivElement | null>(null);
+
   const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Record365_${rental?.title}_${new Date().toISOString().split('T')[0]}`,
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -80,17 +89,9 @@ export default function ComparePage() {
     }
   };
 
-  const handleDownloadPDF = async () => {
+  const handlePrintPDF = () => {
     if (!rental) return;
-    
-    try {
-      // Dynamic import로 클라이언트에서만 로드
-      const { generatePDF } = await import('@/lib/pdfGenerator');
-      await generatePDF(rental, rental.checkIn.photos, rental.checkOut.photos, areas);
-    } catch (error) {
-      console.error('PDF 생성 실패:', error);
-      alert('PDF 생성에 실패했습니다.');
-    }
+    handlePrint();
   };
 
   if (loading) {
@@ -128,7 +129,7 @@ export default function ComparePage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleDownloadPDF} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+              <button onClick={handlePrintPDF} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
                 📄 PDF
               </button>
               <button onClick={handleShare} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
@@ -167,7 +168,7 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <main id="compare-container" className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex overflow-x-auto gap-2 pb-4 mb-6">
           {areas.map((area, index) => {
             const hasBefore = getBeforePhoto(area.id);
@@ -334,6 +335,11 @@ export default function ComparePage() {
           </div>
         )}
       </main>
+
+      {/* 프린트용 숨겨진 컴포넌트 */}
+      <div className="hidden">
+        <PrintableReport ref={printRef} rental={rental} areas={areas} />
+      </div>
     </div>
   );
 }
