@@ -21,6 +21,7 @@ export default function AfterPage() {
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
   const [memo, setMemo] = useState('');
   const [showMemoInput, setShowMemoInput] = useState(false);
+  const [editingMemo, setEditingMemo] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +85,9 @@ export default function AfterPage() {
     const file = e.target.files?.[0];
     if (!file || !currentArea) return;
 
+    const currentPhoto = getPhotoForArea(currentArea.id);
     setPendingFile(file);
+    setMemo(currentPhoto?.notes || '');
     setShowMemoInput(true);
   };
 
@@ -146,6 +149,38 @@ export default function AfterPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleEditMemo = () => {
+    const currentPhoto = getPhotoForArea(currentArea.id);
+    if (currentPhoto) {
+      setMemo(currentPhoto.notes);
+      setEditingMemo(true);
+    }
+  };
+
+  const handleSaveMemo = async () => {
+    if (!currentArea) return;
+
+    try {
+      const updatedPhotos = photos.map(p => 
+        p.area === currentArea.id ? { ...p, notes: memo.trim() } : p
+      );
+
+      setPhotos(updatedPhotos);
+
+      const rentalRef = doc(db, 'rentals', rentalId);
+      await updateDoc(rentalRef, {
+        'checkOut.photos': updatedPhotos,
+      });
+
+      setEditingMemo(false);
+      setMemo('');
+      alert('메모가 수정되었습니다!');
+    } catch (error) {
+      console.error('메모 수정 실패:', error);
+      alert('메모 수정에 실패했습니다.');
     }
   };
 
@@ -251,7 +286,6 @@ export default function AfterPage() {
           })}
         </div>
 
-        {/* Before 사진 미리보기 */}
         {beforePhoto && (
           <div className="bg-blue-50 rounded-lg p-4 mb-4">
             <p className="text-sm font-medium text-blue-800 mb-2">📥 Before 사진</p>
@@ -306,6 +340,35 @@ export default function AfterPage() {
                 </button>
               </div>
             </div>
+          ) : editingMemo ? (
+            <div className="space-y-4">
+              <div className="bg-gray-100 rounded-lg p-4">
+                <p className="text-sm text-gray-600 mb-2">📝 메모 수정</p>
+                <textarea
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setEditingMemo(false);
+                    setMemo('');
+                  }}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveMemo}
+                  className="flex-1 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600"
+                >
+                  메모 저장
+                </button>
+              </div>
+            </div>
           ) : currentPhoto ? (
             <div className="space-y-4">
               <img src={currentPhoto.url} alt={currentArea.name} className="w-full h-64 object-cover rounded-lg" />
@@ -313,9 +376,23 @@ export default function AfterPage() {
                 📍 {currentPhoto.location ? '위치 기록됨' : '위치 정보 없음'} • 🕐 {new Date(currentPhoto.timestamp).toLocaleString('ko-KR')}
               </div>
               {currentPhoto.notes && (
-                <div className="bg-yellow-50 rounded-lg p-3">
+                <div className="bg-yellow-50 rounded-lg p-3 flex items-start justify-between">
                   <p className="text-sm text-yellow-800">📝 {currentPhoto.notes}</p>
+                  <button
+                    onClick={handleEditMemo}
+                    className="ml-2 text-yellow-600 hover:text-yellow-800 text-sm whitespace-nowrap"
+                  >
+                    ✏️ 수정
+                  </button>
                 </div>
+              )}
+              {!currentPhoto.notes && (
+                <button
+                  onClick={handleEditMemo}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg font-medium hover:border-gray-400 transition"
+                >
+                  📝 메모 추가
+                </button>
               )}
               <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full py-3 border-2 border-orange-500 text-orange-500 rounded-lg font-medium hover:bg-orange-50 transition">
                 📸 다시 촬영
@@ -361,6 +438,7 @@ export default function AfterPage() {
           <ul className="text-sm text-orange-700 space-y-1">
             <li>• Before와 <strong>같은 위치, 같은 구도</strong>로 촬영하세요</li>
             <li>• 새로운 흠집이나 손상이 있다면 메모를 남기세요</li>
+            <li>• 촬영 후에도 메모를 추가/수정할 수 있습니다</li>
             <li>• 비교가 쉽도록 비슷한 조명에서 촬영하세요</li>
           </ul>
         </div>
