@@ -73,6 +73,45 @@ export const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportP
           </div>
         </div>
 
+        {/* 서명 섹션 */}
+        {(rental.checkIn.signature || rental.checkOut.signature) && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">✍️ 전자서명</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {rental.checkIn.signature && (
+                <div>
+                  <p className="text-sm font-medium text-blue-600 mb-2">Before 서명</p>
+                  <img 
+                    src={rental.checkIn.signature} 
+                    alt="Before 서명" 
+                    className="border rounded-lg max-h-24"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {rental.checkIn.completedAt 
+                      ? new Date(rental.checkIn.completedAt).toLocaleString('ko-KR')
+                      : '-'}
+                  </p>
+                </div>
+              )}
+              {rental.checkOut.signature && (
+                <div>
+                  <p className="text-sm font-medium text-orange-500 mb-2">After 서명</p>
+                  <img 
+                    src={rental.checkOut.signature} 
+                    alt="After 서명" 
+                    className="border rounded-lg max-h-24"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {rental.checkOut.completedAt 
+                      ? new Date(rental.checkOut.completedAt).toLocaleString('ko-KR')
+                      : '-'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Before/After 비교 */}
         <div>
           <h2 className="text-xl font-bold mb-4 text-gray-800">📸 Before / After 비교</h2>
@@ -149,7 +188,7 @@ export const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportP
         {/* 푸터 */}
         <div className="mt-8 pt-4 border-t text-center text-xs text-gray-500">
           <p>이 리포트는 Record 365에서 생성되었습니다.</p>
-          <p>{window.location.origin}</p>
+          <p>{typeof window !== 'undefined' ? window.location.origin : 'https://rental-dispute-app.vercel.app'}</p>
         </div>
       </div>
     );
