@@ -166,7 +166,7 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main id="compare-container" className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex overflow-x-auto gap-2 pb-4 mb-6">
           {areas.map((area, index) => {
             const hasBefore = getBeforePhoto(area.id);
