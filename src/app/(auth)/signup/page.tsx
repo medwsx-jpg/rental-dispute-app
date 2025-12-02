@@ -55,7 +55,7 @@ export default function SignupPage() {
       <div className="max-w-md w-full">
         {/* 로고 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">📸 렌탈체크</h1>
+          <h1 className="text-3xl font-bold text-gray-900">📸 Record 365</h1>
           <p className="mt-2 text-gray-600">렌탈 분쟁, 사진으로 해결하세요</p>
         </div>
 

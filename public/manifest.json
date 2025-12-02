@@ -1,6 +1,6 @@
 {
-    "name": "렌탈체크 - 렌탈 분쟁 해결",
-    "short_name": "렌탈체크",
+    "name": "Record 365 - 렌탈 분쟁 해결",
+    "short_name": "Record 365",
     "description": "렌터카, 월세 계약 시 사진 기록으로 분쟁 예방",
     "start_url": "/",
     "display": "standalone",
