@@ -430,20 +430,41 @@ export default function BeforePage() {
               </button>
             </div>
           ) : (
-            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center cursor-pointer hover:border-blue-500 transition">
-              {uploading ? (
-                <div>
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
-                </div>
-              ) : (
-                <div>
-                  <div className="text-5xl mb-4">📸</div>
-                  <p className="text-lg font-medium text-gray-700">탭하여 {currentArea.name} 촬영</p>
-                  <p className="text-sm text-gray-500 mt-2">자동으로 압축되어 저장됩니다</p>
-                </div>
-              )}
-            </div>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+  {uploading ? (
+    <div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
+    </div>
+  ) : (
+    <div>
+      <div className="text-5xl mb-4">📸</div>
+      <p className="text-lg font-medium text-gray-700 mb-6">{currentArea.name}</p>
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = (e) => handleFileSelect(e as any);
+            input.click();
+          }}
+          className="flex-1 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+        >
+          📷 촬영
+        </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+        >
+          📂 갤러리
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 mt-4">자동으로 압축되어 저장됩니다</p>
+    </div>
+  )}
+</div>
           )}
 
 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
