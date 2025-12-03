@@ -474,7 +474,7 @@ export default function AfterPage() {
             </div>
           )}
 
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
+<input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
         </div>
 
         {signature && (
