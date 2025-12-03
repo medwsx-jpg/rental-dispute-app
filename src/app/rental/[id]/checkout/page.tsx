@@ -8,6 +8,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Rental, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
 import SignatureModal from '@/components/SignatureModal';
+import { compressImage } from '@/lib/imageCompression';
+import ImageViewer from '@/components/ImageViewer';
 
 export default function AfterPage() {
   const router = useRouter();
@@ -26,6 +28,9 @@ export default function AfterPage() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [signature, setSignature] = useState<string>('');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerImage, setViewerImage] = useState('');
+  const [viewerTitle, setViewerTitle] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,8 +94,11 @@ export default function AfterPage() {
     const file = e.target.files?.[0];
     if (!file || !currentArea) return;
 
+    // 이미지 압축
+    const compressedFile = await compressImage(file);
+
     const currentPhoto = getPhotoForArea(currentArea.id);
-    setPendingFile(file);
+    setPendingFile(compressedFile);
     setMemo(currentPhoto?.notes || '');
     setShowMemoInput(true);
   };
@@ -317,7 +325,16 @@ export default function AfterPage() {
         {beforePhoto && (
           <div className="bg-blue-50 rounded-lg p-4 mb-4">
             <p className="text-sm font-medium text-blue-800 mb-2">📥 Before 사진</p>
-            <img src={beforePhoto.url} alt="Before 사진" className="w-full h-32 object-cover rounded-lg" />
+            <img 
+              src={beforePhoto.url} 
+              alt="Before 사진" 
+              className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+              onClick={() => {
+                setViewerImage(beforePhoto.url);
+                setViewerTitle(`${currentArea.name} - Before (참고용)`);
+                setViewerOpen(true);
+              }}
+            />
             {beforePhoto.notes && (
               <p className="text-xs text-blue-600 mt-2">📝 {beforePhoto.notes}</p>
             )}
@@ -399,7 +416,21 @@ export default function AfterPage() {
             </div>
           ) : currentPhoto ? (
             <div className="space-y-4">
-              <img src={currentPhoto.url} alt={currentArea.name} className="w-full h-64 object-cover rounded-lg" />
+              <div className="relative">
+                <img 
+                  src={currentPhoto.url} 
+                  alt={currentArea.name} 
+                  className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                  onClick={() => {
+                    setViewerImage(currentPhoto.url);
+                    setViewerTitle(`${currentArea.name} - After`);
+                    setViewerOpen(true);
+                  }}
+                />
+                <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                  탭하여 확대
+                </div>
+              </div>
               <div className="text-sm text-gray-500 text-center">
                 📍 {currentPhoto.location ? '위치 기록됨' : '위치 정보 없음'} • 🕐 {new Date(currentPhoto.timestamp).toLocaleString('ko-KR')}
               </div>
@@ -431,7 +462,7 @@ export default function AfterPage() {
               {uploading ? (
                 <div>
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">업로드 중...</p>
+                  <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
                 </div>
               ) : (
                 <div>
@@ -490,7 +521,7 @@ export default function AfterPage() {
           <ul className="text-sm text-orange-700 space-y-1">
             <li>• Before와 <strong>같은 위치, 같은 구도</strong>로 촬영하세요</li>
             <li>• 새로운 흠집이나 손상이 있다면 메모를 남기세요</li>
-            <li>• 촬영 후에도 메모를 추가/수정할 수 있습니다</li>
+            <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
             <li>• 비교가 쉽도록 비슷한 조명에서 촬영하세요</li>
           </ul>
         </div>
@@ -501,6 +532,13 @@ export default function AfterPage() {
         onClose={() => setShowSignatureModal(false)}
         onSave={handleSaveSignature}
         title="After 촬영 서명"
+      />
+
+      <ImageViewer
+        isOpen={viewerOpen}
+        imageUrl={viewerImage}
+        onClose={() => setViewerOpen(false)}
+        title={viewerTitle}
       />
     </div>
   );

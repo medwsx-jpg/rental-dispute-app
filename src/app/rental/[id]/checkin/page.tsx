@@ -8,6 +8,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Rental, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
 import SignatureModal from '@/components/SignatureModal';
+import { compressImage } from '@/lib/imageCompression';
+import ImageViewer from '@/components/ImageViewer';
 
 export default function BeforePage() {
   const router = useRouter();
@@ -26,6 +28,9 @@ export default function BeforePage() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [signature, setSignature] = useState<string>('');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerImage, setViewerImage] = useState('');
+  const [viewerTitle, setViewerTitle] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,8 +94,11 @@ export default function BeforePage() {
     const file = e.target.files?.[0];
     if (!file || !currentArea) return;
 
+    // 이미지 압축
+    const compressedFile = await compressImage(file);
+
     const currentPhoto = getPhotoForArea(currentArea.id);
-    setPendingFile(file);
+    setPendingFile(compressedFile);
     setMemo(currentPhoto?.notes || '');
     setShowMemoInput(true);
   };
@@ -380,7 +388,21 @@ export default function BeforePage() {
             </div>
           ) : currentPhoto ? (
             <div className="space-y-4">
-              <img src={currentPhoto.url} alt={currentArea.name} className="w-full h-64 object-cover rounded-lg" />
+              <div className="relative">
+                <img 
+                  src={currentPhoto.url} 
+                  alt={currentArea.name} 
+                  className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                  onClick={() => {
+                    setViewerImage(currentPhoto.url);
+                    setViewerTitle(`${currentArea.name} - Before`);
+                    setViewerOpen(true);
+                  }}
+                />
+                <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                  탭하여 확대
+                </div>
+              </div>
               <div className="text-sm text-gray-500 text-center">
                 📍 {currentPhoto.location ? '위치 기록됨' : '위치 정보 없음'} • 🕐 {new Date(currentPhoto.timestamp).toLocaleString('ko-KR')}
               </div>
@@ -412,13 +434,13 @@ export default function BeforePage() {
               {uploading ? (
                 <div>
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">업로드 중...</p>
+                  <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
                 </div>
               ) : (
                 <div>
                   <div className="text-5xl mb-4">📸</div>
                   <p className="text-lg font-medium text-gray-700">탭하여 {currentArea.name} 촬영</p>
-                  <p className="text-sm text-gray-500 mt-2">카메라가 열리면 사진을 촬영하세요</p>
+                  <p className="text-sm text-gray-500 mt-2">자동으로 압축되어 저장됩니다</p>
                 </div>
               )}
             </div>
@@ -471,7 +493,7 @@ export default function BeforePage() {
           <ul className="text-sm text-yellow-700 space-y-1">
             <li>• 밝은 곳에서 촬영하세요</li>
             <li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
-            <li>• 촬영 후에도 메모를 추가/수정할 수 있습니다</li>
+            <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
             <li>• GPS가 켜져 있으면 위치가 자동 기록됩니다</li>
           </ul>
         </div>
@@ -482,6 +504,13 @@ export default function BeforePage() {
         onClose={() => setShowSignatureModal(false)}
         onSave={handleSaveSignature}
         title="Before 촬영 서명"
+      />
+
+      <ImageViewer
+        isOpen={viewerOpen}
+        imageUrl={viewerImage}
+        onClose={() => setViewerOpen(false)}
+        title={viewerTitle}
       />
     </div>
   );

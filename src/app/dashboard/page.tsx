@@ -267,6 +267,17 @@ export default function DashboardPage() {
             })}
           </div>
         )}
+
+<div className="mt-8 bg-white rounded-lg shadow-sm p-6 text-center">
+          <h3 className="font-medium text-gray-900 mb-2">💬 문의하기</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            앱 사용 중 문제가 있거나 제안사항이 있으신가요?
+          </p>
+          <a href="mailto:medws@naver.com?subject=Record%20365%20문의" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+            📧 개발자에게 이메일 보내기
+          </a>
+          <p className="text-xs text-gray-500 mt-3">medws@naver.com</p>
+        </div>
       </main>
     </div>
   );
