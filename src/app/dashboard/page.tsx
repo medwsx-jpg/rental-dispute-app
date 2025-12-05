@@ -183,12 +183,20 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button 
-            onClick={() => router.push('/community')}
-            className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-          >
-            📋 게시판
-          </button>
+        <div className="flex items-center gap-4">
+  <button 
+    onClick={() => router.push('/guide')}
+    className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+  >
+    📖 가이드
+  </button>
+  <button 
+    onClick={() => router.push('/community')}
+    className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+  >
+    📋 게시판
+  </button>
+</div>
           <div className="relative user-menu-container">
             <button 
               onClick={(e) => {
