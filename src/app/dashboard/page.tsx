@@ -187,7 +187,7 @@ export default function DashboardPage() {
             onClick={() => router.push('/community')}
             className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
           >
-            💬 게시판
+            📋 게시판
           </button>
           <div className="relative user-menu-container">
             <button 
@@ -273,16 +273,26 @@ export default function DashboardPage() {
                 <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3 flex-1">
-                      <span className="text-3xl">{rental.type === 'car' ? '🚗' : '🏠'}</span>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{rental.title}</h3>
+                      {rental.checkIn.photos.length > 0 ? (
+                        <img 
+                          src={rental.checkIn.photos[0].url} 
+                          alt={rental.title}
+                          className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-3xl">{rental.type === 'car' ? '🚗' : '🏠'}</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
                         <p className="text-sm text-gray-500">
                           {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
                           {new Date(rental.endDate).toLocaleDateString('ko-KR')}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {getStatusBadge(rental)}
                       <button
                         onClick={() => router.push(`/rental/${rental.id}/edit`)}
@@ -308,13 +318,13 @@ export default function DashboardPage() {
           </div>
         )}
 
-<div className="mt-8 bg-white rounded-lg shadow-sm p-6 text-center">
+        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 text-center">
           <h3 className="font-medium text-gray-900 mb-2">💬 문의하기</h3>
           <p className="text-sm text-gray-600 mb-4">
             앱 사용 중 문제가 있거나 제안사항이 있으신가요?
           </p>
           
-            <a href="mailto:medws@naver.com?subject=Record%20365%20문의"
+           <a href="mailto:medws@naver.com?subject=Record%20365%20문의"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
           >
             📧 개발자에게 이메일 보내기
