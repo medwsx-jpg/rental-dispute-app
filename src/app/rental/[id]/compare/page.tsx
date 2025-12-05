@@ -124,7 +124,9 @@ export default function ComparePage() {
                 ← 뒤로
               </button>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">🔍 Before / After 비교</h1>
+              <h1 className="font-bold text-gray-900 whitespace-nowrap" style={{ fontSize: 'clamp(1rem, 4vw, 1.25rem)' }}>
+  🔍 Before / After 비교
+</h1>
                 <p className="text-sm text-gray-500">{rental.title}</p>
               </div>
             </div>
