@@ -198,16 +198,16 @@ export default function DashboardPage() {
   </button>
 </div>
           <div className="relative user-menu-container">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowUserMenu(!showUserMenu);
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
-            >
-              <span className="text-sm text-gray-700">내정보</span>
-              <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
-            </button>
+          <button 
+  onClick={(e) => {
+    e.stopPropagation();
+    setShowUserMenu(!showUserMenu);
+  }}
+  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
+>
+  <span className="text-lg text-gray-700">내정보</span>
+  <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
+</button>
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
                 <div className="px-4 py-2 border-b border-gray-100">
