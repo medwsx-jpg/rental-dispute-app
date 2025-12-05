@@ -158,7 +158,7 @@ export default function CommunityPage() {
           <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
             ← 뒤로
           </button>
-          <h1 className="text-xl font-bold text-gray-900">📋 게시판</h1>
+          <h1 className="text-xl font-bold text-gray-900">📋 게시판 </h1>
           <button 
             onClick={() => router.push('/profile')}
             className="text-sm text-blue-600 hover:text-blue-800"
