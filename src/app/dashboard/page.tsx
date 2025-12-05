@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -40,6 +41,20 @@ export default function DashboardPage() {
       return () => clearInterval(interval);
     }
   }, [rentals, notificationEnabled]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showUserMenu) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.user-menu-container')) {
+          setShowUserMenu(false);
+        }
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showUserMenu]);
 
   const checkNotificationPermission = async () => {
     if ('Notification' in window) {
@@ -168,12 +183,37 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">🏠 내 렌탈</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">{user?.email}</span>
-            <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-gray-900">
-              로그아웃
+          <button 
+            onClick={() => router.push('/community')}
+            className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+          >
+            💬 커뮤니티
+          </button>
+          <div className="relative user-menu-container">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowUserMenu(!showUserMenu);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
+            >
+              <span className="text-sm text-gray-700">내정보</span>
+              <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
             </button>
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-xs text-gray-500">로그인 계정</p>
+                  <p className="text-sm text-gray-900 truncate">{user?.email}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                >
+                  🚪 로그아웃
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -273,7 +313,10 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-600 mb-4">
             앱 사용 중 문제가 있거나 제안사항이 있으신가요?
           </p>
-          <a href="mailto:medws@naver.com?subject=Record%20365%20문의" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+          
+            <a href="mailto:medws@naver.com?subject=Record%20365%20문의"
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+          >
             📧 개발자에게 이메일 보내기
           </a>
           <p className="text-xs text-gray-500 mt-3">medws@naver.com</p>
