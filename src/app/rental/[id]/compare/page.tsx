@@ -6,6 +6,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
+import ImageViewer from '@/components/ImageViewer';
 
 export default function ComparePage() {
   const router = useRouter();
@@ -18,6 +19,9 @@ export default function ComparePage() {
   const [viewMode, setViewMode] = useState<'side-by-side' | 'overlay'>('side-by-side');
   const [selectedAreaIndex, setSelectedAreaIndex] = useState(0);
   const [overlayOpacity, setOverlayOpacity] = useState(50);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerImage, setViewerImage] = useState('');
+  const [viewerTitle, setViewerTitle] = useState('');
 
   const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
   const currentArea = areas?.[selectedAreaIndex];
@@ -81,6 +85,12 @@ export default function ComparePage() {
     if (!rental) return null;
     const photos = type === 'before' ? rental.checkIn.photos : rental.checkOut.photos;
     return photos.find(p => p.area === areaId);
+  };
+
+  const handleImageClick = (imageUrl: string, title: string) => {
+    setViewerImage(imageUrl);
+    setViewerTitle(title);
+    setViewerOpen(true);
   };
 
   if (loading) {
@@ -191,7 +201,17 @@ export default function ComparePage() {
                 <h3 className="text-sm font-medium text-blue-600 mb-2">📥 Before</h3>
                 {beforePhoto ? (
                   <div>
-                    <img src={beforePhoto.url} alt="Before" className="w-full h-64 object-cover rounded-lg" />
+                    <div className="relative">
+                      <img 
+                        src={beforePhoto.url} 
+                        alt="Before" 
+                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                        onClick={() => handleImageClick(beforePhoto.url, `${currentArea.name} - Before`)}
+                      />
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        탭하여 확대
+                      </div>
+                    </div>
                     <p className="text-xs text-gray-500 mt-2">
                       {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
                     </p>
@@ -210,7 +230,17 @@ export default function ComparePage() {
                 <h3 className="text-sm font-medium text-orange-600 mb-2">📤 After</h3>
                 {afterPhoto ? (
                   <div>
-                    <img src={afterPhoto.url} alt="After" className="w-full h-64 object-cover rounded-lg" />
+                    <div className="relative">
+                      <img 
+                        src={afterPhoto.url} 
+                        alt="After" 
+                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                        onClick={() => handleImageClick(afterPhoto.url, `${currentArea.name} - After`)}
+                      />
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        탭하여 확대
+                      </div>
+                    </div>
                     <p className="text-xs text-gray-500 mt-2">
                       {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
                     </p>
@@ -232,15 +262,17 @@ export default function ComparePage() {
                   <img
                     src={beforePhoto.url}
                     alt="Before"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover cursor-pointer"
+                    onClick={() => handleImageClick(beforePhoto.url, `${currentArea.name} - Before`)}
                   />
                 )}
                 {afterPhoto && (
                   <img
                     src={afterPhoto.url}
                     alt="After"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                     style={{ opacity: overlayOpacity / 100 }}
+                    onClick={() => handleImageClick(afterPhoto.url, `${currentArea.name} - After`)}
                   />
                 )}
                 {!beforePhoto && !afterPhoto && (
@@ -248,6 +280,9 @@ export default function ComparePage() {
                     <p className="text-gray-400">사진 없음</p>
                   </div>
                 )}
+                <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded pointer-events-none">
+                  탭하여 확대
+                </div>
               </div>
 
               <div className="mt-4">
@@ -285,6 +320,13 @@ export default function ComparePage() {
           </button>
         </div>
       </main>
+
+      <ImageViewer
+        isOpen={viewerOpen}
+        imageUrl={viewerImage}
+        onClose={() => setViewerOpen(false)}
+        title={viewerTitle}
+      />
     </div>
   );
 }
