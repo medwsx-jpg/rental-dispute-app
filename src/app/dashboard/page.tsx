@@ -187,7 +187,7 @@ export default function DashboardPage() {
             onClick={() => router.push('/community')}
             className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
           >
-            💬 채팅
+            💬 게시판
           </button>
           <div className="relative user-menu-container">
             <button 
