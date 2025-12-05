@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 
 interface Comment {
   userId: string;
@@ -21,6 +21,7 @@ interface Post {
   content: string;
   timestamp: any;
   comments: Comment[];
+  views: number;
 }
 
 export default function CommunityPage() {
@@ -77,7 +78,12 @@ export default function CommunityPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const postList: Post[] = [];
       snapshot.forEach((doc) => {
-        postList.push({ id: doc.id, ...doc.data(), comments: doc.data().comments || [] } as Post);
+        postList.push({ 
+          id: doc.id, 
+          ...doc.data(), 
+          comments: doc.data().comments || [],
+          views: doc.data().views || 0
+        } as Post);
       });
       setPosts(postList);
       setLoading(false);
@@ -101,6 +107,7 @@ export default function CommunityPage() {
         content: newPostContent.trim(),
         timestamp: serverTimestamp(),
         comments: [],
+        views: 0,
       });
 
       setNewPostTitle('');
@@ -113,6 +120,20 @@ export default function CommunityPage() {
     } finally {
       setPosting(false);
     }
+  };
+
+  const handlePostClick = async (post: Post) => {
+    // 조회수 증가
+    try {
+      const postRef = doc(db, 'posts', post.id);
+      await updateDoc(postRef, {
+        views: increment(1)
+      });
+    } catch (error) {
+      console.error('조회수 증가 실패:', error);
+    }
+
+    setSelectedPost(selectedPost?.id === post.id ? null : post);
   };
 
   const handleAddComment = async (postId: string) => {
@@ -143,6 +164,27 @@ export default function CommunityPage() {
     }
   };
 
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 60) return `${minutes}분 전`;
+    if (hours < 24) return `${hours}시간 전`;
+    if (days < 30) return `${days}일 전`;
+    
+    return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+  };
+
+  const truncateContent = (content: string, maxLength: number = 50) => {
+    if (content.length <= maxLength) return content;
+    return content.substring(0, maxLength) + '...';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -158,7 +200,10 @@ export default function CommunityPage() {
           <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
             ← 뒤로
           </button>
-          <h1 className="text-xl font-bold text-gray-900">📋 게시판 </h1>
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-gray-900">게시판</h1>
+            <p className="text-xs text-gray-500">하고 싶은 이야기, 자유롭게 나눠요</p>
+          </div>
           <button 
             onClick={() => router.push('/profile')}
             className="text-sm text-blue-600 hover:text-blue-800"
@@ -171,9 +216,9 @@ export default function CommunityPage() {
       <main className="max-w-4xl mx-auto px-4 py-6">
         <button
           onClick={() => setShowNewPostModal(true)}
-          className="w-full py-4 bg-blue-600 text-white rounded-lg font-medium text-lg mb-6 hover:bg-blue-700 transition"
+          className="fixed right-6 bottom-6 w-14 h-14 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition flex items-center justify-center text-2xl z-10"
         >
-          + 새 게시글 작성
+          +
         </button>
 
         {posts.length === 0 ? (
@@ -183,86 +228,78 @@ export default function CommunityPage() {
             <p className="text-gray-400 text-sm mt-2">첫 게시글을 작성해보세요!</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <div key={post.id} className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{post.title}</h3>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{post.content}</p>
+          <div className="space-y-0">
+            {posts.map((post, index) => (
+              <div key={post.id}>
+                <div 
+                  onClick={() => handlePostClick(post)}
+                  className="bg-white p-4 cursor-pointer hover:bg-gray-50 transition"
+                >
+                  <h3 className="font-medium text-gray-900 mb-2">{post.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-1">
+                    {truncateContent(post.content)}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{post.userNickname} · {formatDate(post.timestamp)} · 조회 {post.views}</span>
+                    {post.comments.length > 0 && (
+                      <span className="text-orange-500">💬 {post.comments.length}</span>
+                    )}
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                  <span className="font-medium text-blue-600">{post.userNickname}</span>
-                  <span>
-                    {post.timestamp?.toDate().toLocaleString('ko-KR', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
 
-                <div className="border-t pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-700">
-                      💬 댓글 {post.comments.length}개
-                    </span>
-                    <button
-                      onClick={() => setSelectedPost(selectedPost?.id === post.id ? null : post)}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      {selectedPost?.id === post.id ? '접기' : '펼치기'}
-                    </button>
-                  </div>
-
-                  {selectedPost?.id === post.id && (
-                    <div className="space-y-3">
-                      {post.comments.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                          {post.comments.map((comment, index) => (
-                            <div key={index} className="bg-gray-50 rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium text-gray-900">{comment.userNickname}</span>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(comment.timestamp).toLocaleString('ko-KR', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-700">{comment.comment}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                          placeholder="댓글을 입력하세요..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                          disabled={commenting}
-                        />
-                        <button
-                          onClick={() => handleAddComment(post.id)}
-                          disabled={!newComment.trim() || commenting}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                          {commenting ? '등록 중...' : '등록'}
-                        </button>
+                {selectedPost?.id === post.id && (
+                  <div className="bg-gray-50 border-t border-b border-gray-200 p-4">
+                    <div className="bg-white rounded-lg p-4 mb-4">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap mb-3">{post.content}</p>
+                      <div className="text-xs text-gray-500">
+                        {post.timestamp?.toDate().toLocaleString('ko-KR')}
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    {post.comments.length > 0 && (
+                      <div className="space-y-2 mb-4">
+                        <p className="text-sm font-medium text-gray-700">댓글 {post.comments.length}개</p>
+                        {post.comments.map((comment, index) => (
+                          <div key={index} className="bg-white rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900">{comment.userNickname}</span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(comment.timestamp).toLocaleString('ko-KR', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">{comment.comment}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                        placeholder="댓글을 입력하세요..."
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        disabled={commenting}
+                      />
+                      <button
+                        onClick={() => handleAddComment(post.id)}
+                        disabled={!newComment.trim() || commenting}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      >
+                        등록
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {index < posts.length - 1 && <div className="h-px bg-gray-200"></div>}
               </div>
             ))}
           </div>
@@ -285,7 +322,7 @@ export default function CommunityPage() {
                   value={newPostTitle}
                   onChange={(e) => setNewPostTitle(e.target.value)}
                   placeholder="제목을 입력하세요"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   disabled={posting}
                 />
               </div>
@@ -299,7 +336,7 @@ export default function CommunityPage() {
                   onChange={(e) => setNewPostContent(e.target.value)}
                   placeholder="내용을 입력하세요"
                   rows={8}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                   disabled={posting}
                 />
               </div>
@@ -320,7 +357,7 @@ export default function CommunityPage() {
               <button
                 onClick={handleCreatePost}
                 disabled={posting || !newPostTitle.trim() || !newPostContent.trim()}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="flex-1 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {posting ? '등록 중...' : '등록하기'}
               </button>
