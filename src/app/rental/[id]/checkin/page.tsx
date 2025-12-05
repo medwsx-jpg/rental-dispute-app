@@ -31,6 +31,8 @@ export default function BeforePage() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,10 +99,31 @@ export default function BeforePage() {
     // 이미지 압축
     const compressedFile = await compressImage(file);
 
+    // 미리보기 이미지 생성
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result as string);
+      setShowPreview(true);
+    };
+    reader.readAsDataURL(compressedFile);
+
     const currentPhoto = getPhotoForArea(currentArea.id);
     setPendingFile(compressedFile);
     setMemo(currentPhoto?.notes || '');
+  };
+
+  const handleConfirmPreview = () => {
+    setShowPreview(false);
     setShowMemoInput(true);
+  };
+
+  const handleRetakePhoto = () => {
+    setShowPreview(false);
+    setPreviewImage(null);
+    setPendingFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleUploadWithMemo = async () => {
@@ -147,6 +170,7 @@ export default function BeforePage() {
 
       setMemo('');
       setPendingFile(null);
+      setPreviewImage(null);
 
       if (currentAreaIndex < areas.length - 1) {
         setCurrentAreaIndex(currentAreaIndex + 1);
@@ -342,6 +366,7 @@ export default function BeforePage() {
                   onClick={() => {
                     setShowMemoInput(false);
                     setPendingFile(null);
+                    setPreviewImage(null);
                     setMemo('');
                   }}
                   className="flex-1 py-3 border border-gray-300 rounded-lg font-medium"
@@ -431,41 +456,41 @@ export default function BeforePage() {
             </div>
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-            {uploading ? (
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
-              </div>
-            ) : (
-              <div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.capture = 'environment';
-                      input.onchange = (e) => handleFileSelect(e as any);
-                      input.click();
-                    }}
-                    className="flex-1 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-                  >
-                    📷 촬영
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
-                  >
-                    📂 갤러리
-                  </button>
+              {uploading ? (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-3 text-center">자동으로 압축되어 저장됩니다</p>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.capture = 'environment';
+                        input.onchange = (e) => handleFileSelect(e as any);
+                        input.click();
+                      }}
+                      className="flex-1 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                    >
+                      📷 촬영
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+                    >
+                      📂 갤러리
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3 text-center">자동으로 압축되어 저장됩니다</p>
+                </div>
+              )}
+            </div>
           )}
 
-<input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
         </div>
 
         {signature && (
@@ -517,6 +542,42 @@ export default function BeforePage() {
           </ul>
         </div>
       </main>
+
+      {/* 이미지 미리보기 모달 */}
+      {showPreview && previewImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+          <div className="flex-1 flex items-center justify-center p-4">
+            <img 
+              src={previewImage} 
+              alt="미리보기" 
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+          
+          <div className="bg-white p-6 space-y-3">
+            <p className="text-center font-medium text-gray-900">
+              {currentArea?.icon} {currentArea?.name}
+            </p>
+            <p className="text-center text-sm text-gray-600">
+              사진이 선명한가요?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRetakePhoto}
+                className="flex-1 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+              >
+                📸 다시 촬영
+              </button>
+              <button
+                onClick={handleConfirmPreview}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              >
+                ✓ 이 사진 사용
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SignatureModal
         isOpen={showSignatureModal}
