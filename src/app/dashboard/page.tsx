@@ -184,12 +184,12 @@ export default function DashboardPage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-  <button 
-    onClick={() => router.push('/guide')}
-    className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-  >
-    📖 가이드
-  </button>
+        <button 
+  onClick={() => router.push('/guide')}
+  className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+>
+  📖 사용가이드
+</button>
   <button 
     onClick={() => router.push('/community')}
     className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
