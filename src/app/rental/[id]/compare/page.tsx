@@ -16,9 +16,7 @@ export default function ComparePage() {
   const [user, setUser] = useState<any>(null);
   const [rental, setRental] = useState<Rental | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'side-by-side' | 'overlay'>('side-by-side');
   const [selectedAreaIndex, setSelectedAreaIndex] = useState(0);
-  const [overlayOpacity, setOverlayOpacity] = useState(50);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
@@ -172,135 +170,65 @@ export default function ComparePage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setViewMode('side-by-side')}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${
-                viewMode === 'side-by-side'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              좌우 비교
-            </button>
-            <button
-              onClick={() => setViewMode('overlay')}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${
-                viewMode === 'overlay'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              오버레이 비교
-            </button>
-          </div>
-
-          {viewMode === 'side-by-side' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-blue-600 mb-2">📥 Before</h3>
-                {beforePhoto ? (
-                  <div>
-                    <div className="relative">
-                      <img 
-                        src={beforePhoto.url} 
-                        alt="Before" 
-                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
-                        onClick={() => handleImageClick(beforePhoto.url, `${currentArea.name} - Before`)}
-                      />
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        탭하여 확대
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
-                    </p>
-                    {beforePhoto.notes && (
-                      <p className="text-sm text-gray-700 mt-1">📝 {beforePhoto.notes}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-400">사진 없음</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-orange-600 mb-2">📤 After</h3>
-                {afterPhoto ? (
-                  <div>
-                    <div className="relative">
-                      <img 
-                        src={afterPhoto.url} 
-                        alt="After" 
-                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
-                        onClick={() => handleImageClick(afterPhoto.url, `${currentArea.name} - After`)}
-                      />
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        탭하여 확대
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
-                    </p>
-                    {afterPhoto.notes && (
-                      <p className="text-sm text-gray-700 mt-1">📝 {afterPhoto.notes}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-400">사진 없음</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <div className="relative h-96 bg-gray-100 rounded-lg overflow-hidden">
-                {beforePhoto && (
-                  <img
-                    src={beforePhoto.url}
-                    alt="Before"
-                    className="absolute inset-0 w-full h-full object-cover cursor-pointer"
-                    onClick={() => handleImageClick(beforePhoto.url, `${currentArea.name} - Before`)}
-                  />
-                )}
-                {afterPhoto && (
-                  <img
-                    src={afterPhoto.url}
-                    alt="After"
-                    className="absolute inset-0 w-full h-full object-cover cursor-pointer"
-                    style={{ opacity: overlayOpacity / 100 }}
-                    onClick={() => handleImageClick(afterPhoto.url, `${currentArea.name} - After`)}
-                  />
-                )}
-                {!beforePhoto && !afterPhoto && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-gray-400">사진 없음</p>
+              <h3 className="text-sm font-medium text-blue-600 mb-2">📥 Before</h3>
+              {beforePhoto ? (
+                <div>
+                  <div className="relative">
+                    <img 
+                      src={beforePhoto.url} 
+                      alt="Before" 
+                      className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                      onClick={() => handleImageClick(beforePhoto.url, `${currentArea.name} - Before`)}
+                    />
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      탭하여 확대
+                    </div>
                   </div>
-                )}
-                <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded pointer-events-none">
-                  탭하여 확대
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
+                  </p>
+                  {beforePhoto.notes && (
+                    <p className="text-sm text-gray-700 mt-1">📝 {beforePhoto.notes}</p>
+                  )}
                 </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Before</span>
-                  <span className="text-sm text-gray-600">After</span>
+              ) : (
+                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-400">사진 없음</p>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={overlayOpacity}
-                  onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+              )}
             </div>
-          )}
+
+            <div>
+              <h3 className="text-sm font-medium text-orange-600 mb-2">📤 After</h3>
+              {afterPhoto ? (
+                <div>
+                  <div className="relative">
+                    <img 
+                      src={afterPhoto.url} 
+                      alt="After" 
+                      className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                      onClick={() => handleImageClick(afterPhoto.url, `${currentArea.name} - After`)}
+                    />
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      탭하여 확대
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
+                  </p>
+                  {afterPhoto.notes && (
+                    <p className="text-sm text-gray-700 mt-1">📝 {afterPhoto.notes}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-400">사진 없음</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-4">
