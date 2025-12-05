@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
 import ImageViewer from '@/components/ImageViewer';
+import { PDFReport } from '@/components/PDFReport';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function ComparePage() {
   const router = useRouter();
@@ -20,6 +23,9 @@ export default function ComparePage() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
   const currentArea = areas?.[selectedAreaIndex];
@@ -56,8 +62,59 @@ export default function ComparePage() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    window.print();
+  const handleDownloadPDF = async () => {
+    if (!pdfRef.current || !rental) return;
+
+    setGenerating(true);
+    try {
+      const element = pdfRef.current;
+      
+      // html2canvas로 이미지 생성
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      // PDF 생성
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+
+      // 페이지 분할
+      let heightLeft = imgHeight * ratio;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', imgX, position, imgWidth * ratio, imgHeight * ratio);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight * ratio;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', imgX, position, imgWidth * ratio, imgHeight * ratio);
+        heightLeft -= pdfHeight;
+      }
+
+      // PDF 저장
+      pdf.save(`${rental.title}_비교리포트_${new Date().toLocaleDateString('ko-KR')}.pdf`);
+      alert('PDF가 다운로드되었습니다!');
+    } catch (error) {
+      console.error('PDF 생성 실패:', error);
+      alert('PDF 생성에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleShare = async () => {
@@ -132,9 +189,10 @@ export default function ComparePage() {
           <div className="flex gap-2 flex-shrink-0">
             <button
               onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+              disabled={generating}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
-              PDF
+              {generating ? 'PDF 생성 중...' : 'PDF'}
             </button>
             <button
               onClick={handleShare}
@@ -248,6 +306,11 @@ export default function ComparePage() {
           </button>
         </div>
       </main>
+
+      {/* PDF 생성용 숨겨진 컴포넌트 */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        {rental && <PDFReport ref={pdfRef} rental={rental} />}
+      </div>
 
       <ImageViewer
         isOpen={viewerOpen}
