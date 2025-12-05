@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 
 interface Message {
   id: string;
   userId: string;
-  userEmail: string;
+  userNickname: string;
   message: string;
   timestamp: any;
 }
@@ -17,15 +17,17 @@ interface Message {
 export default function CommunityPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [nickname, setNickname] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        await checkNickname(currentUser.uid);
         loadMessages();
       } else {
         router.push('/login');
@@ -34,6 +36,24 @@ export default function CommunityPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  const checkNickname = async (userId: string) => {
+    try {
+      const docRef = doc(db, 'users', userId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists() && docSnap.data().nickname) {
+        setNickname(docSnap.data().nickname);
+      } else {
+        // 닉네임 없으면 (기존 사용자) 프로필 페이지로
+        alert('닉네임을 먼저 설정해주세요.');
+        router.push('/profile');
+        return;
+      }
+    } catch (error) {
+      console.error('닉네임 확인 실패:', error);
+    }
+  };
 
   const loadMessages = () => {
     const q = query(
@@ -54,13 +74,13 @@ export default function CommunityPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || !nickname) return;
 
     setSending(true);
     try {
       await addDoc(collection(db, 'community'), {
         userId: user.uid,
-        userEmail: user.email,
+        userNickname: nickname,
         message: newMessage.trim(),
         timestamp: serverTimestamp(),
       });
@@ -87,10 +107,15 @@ export default function CommunityPage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
-            ← 내 렌탈
+            ← 뒤로
           </button>
-          <h1 className="text-xl font-bold text-gray-900">💬 커뮤니티</h1>
-          <div className="w-16"></div>
+          <h1 className="text-xl font-bold text-gray-900">💬 채팅</h1>
+          <button 
+            onClick={() => router.push('/profile')}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            {nickname}
+          </button>
         </div>
       </header>
 
@@ -117,7 +142,7 @@ export default function CommunityPage() {
                     }`}
                   >
                     {msg.userId !== user?.uid && (
-                      <p className="text-xs opacity-70 mb-1">{msg.userEmail}</p>
+                      <p className="text-xs opacity-70 mb-1 font-medium">{msg.userNickname}</p>
                     )}
                     <p className="text-sm">{msg.message}</p>
                     <p className={`text-xs mt-1 ${msg.userId === user?.uid ? 'text-blue-100' : 'text-gray-500'}`}>
