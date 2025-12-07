@@ -63,50 +63,165 @@ export default function ComparePage() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!pdfRef.current || !rental) return;
-
+    if (!rental) return;
+  
     setGenerating(true);
     try {
-      const element = pdfRef.current;
-      
-      // html2canvas로 이미지 생성
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-
-      // PDF 생성
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-
-      // 페이지 분할
-      let heightLeft = imgHeight * ratio;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', imgX, position, imgWidth * ratio, imgHeight * ratio);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight * ratio;
+  
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPosition = margin;
+  
+      // 표지
+      pdf.setFontSize(24);
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('🏠 Record 365', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 15;
+      pdf.setFontSize(20);
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Before / After 비교 리포트', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 15;
+      pdf.setFontSize(14);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(rental.title, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 10;
+      pdf.setFontSize(12);
+      pdf.text(
+        `${new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ ${new Date(rental.endDate).toLocaleDateString('ko-KR')}`,
+        pageWidth / 2,
+        yPosition,
+        { align: 'center' }
+      );
+  
+      yPosition += 10;
+      pdf.setFontSize(10);
+      pdf.text(`생성일: ${new Date().toLocaleDateString('ko-KR')}`, pageWidth / 2, yPosition, { align: 'center' });
+  
+      // 각 영역별 비교
+      for (const area of areas) {
+        const beforePhoto = getPhotoForArea(area.id, 'before');
+        const afterPhoto = getPhotoForArea(area.id, 'after');
+  
+        if (!beforePhoto && !afterPhoto) continue;
+  
+        // 새 페이지
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', imgX, position, imgWidth * ratio, imgHeight * ratio);
-        heightLeft -= pdfHeight;
+        yPosition = margin;
+  
+        // 영역 제목
+        pdf.setFontSize(16);
+        pdf.setTextColor(31, 41, 55);
+        pdf.setFillColor(243, 244, 246);
+        pdf.rect(margin, yPosition - 5, pageWidth - 2 * margin, 10, 'F');
+        pdf.text(`${area.icon} ${area.name}`, margin + 5, yPosition + 2);
+  
+        yPosition += 15;
+  
+        const imgWidth = (pageWidth - 3 * margin) / 2;
+        const imgHeight = 80;
+  
+        // Before
+        if (beforePhoto) {
+          try {
+            pdf.setFontSize(10);
+            pdf.setTextColor(30, 64, 175);
+            pdf.text('📥 Before', margin, yPosition);
+            
+            pdf.addImage(beforePhoto.url, 'JPEG', margin, yPosition + 5, imgWidth, imgHeight);
+            
+            pdf.setFontSize(8);
+            pdf.setTextColor(107, 114, 128);
+            pdf.text(
+              new Date(beforePhoto.timestamp).toLocaleString('ko-KR'),
+              margin,
+              yPosition + imgHeight + 10
+            );
+  
+            if (beforePhoto.notes) {
+              pdf.text(`📝 ${beforePhoto.notes}`, margin, yPosition + imgHeight + 15);
+            }
+          } catch (error) {
+            console.error('Before 이미지 추가 실패:', error);
+          }
+        }
+  
+        // After
+        if (afterPhoto) {
+          try {
+            pdf.setFontSize(10);
+            pdf.setTextColor(194, 65, 12);
+            pdf.text('📤 After', margin + imgWidth + margin, yPosition);
+            
+            pdf.addImage(afterPhoto.url, 'JPEG', margin + imgWidth + margin, yPosition + 5, imgWidth, imgHeight);
+            
+            pdf.setFontSize(8);
+            pdf.setTextColor(107, 114, 128);
+            pdf.text(
+              new Date(afterPhoto.timestamp).toLocaleString('ko-KR'),
+              margin + imgWidth + margin,
+              yPosition + imgHeight + 10
+            );
+  
+            if (afterPhoto.notes) {
+              pdf.text(`📝 ${afterPhoto.notes}`, margin + imgWidth + margin, yPosition + imgHeight + 15);
+            }
+          } catch (error) {
+            console.error('After 이미지 추가 실패:', error);
+          }
+        }
       }
-
-      // PDF 저장
+  
+      // 서명 페이지
+      if (rental.checkIn.signature || rental.checkOut.signature) {
+        pdf.addPage();
+        yPosition = margin;
+  
+        pdf.setFontSize(16);
+        pdf.setTextColor(31, 41, 55);
+        pdf.text('✍️ 서명', margin, yPosition);
+        yPosition += 15;
+  
+        const sigWidth = (pageWidth - 3 * margin) / 2;
+        const sigHeight = 40;
+  
+        if (rental.checkIn.signature) {
+          pdf.setFontSize(10);
+          pdf.setTextColor(37, 99, 235);
+          pdf.text('Before 서명', margin, yPosition);
+          pdf.addImage(rental.checkIn.signature, 'PNG', margin, yPosition + 5, sigWidth, sigHeight);
+        }
+  
+        if (rental.checkOut.signature) {
+          pdf.setFontSize(10);
+          pdf.setTextColor(234, 88, 12);
+          pdf.text('After 서명', margin + sigWidth + margin, yPosition);
+          pdf.addImage(rental.checkOut.signature, 'PNG', margin + sigWidth + margin, yPosition + 5, sigWidth, sigHeight);
+        }
+      }
+  
+      // 푸터
+      const pageCount = pdf.internal.pages.length - 1;
+      pdf.setFontSize(8);
+      pdf.setTextColor(156, 163, 175);
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.text(
+          `본 문서는 Record 365에서 생성되었습니다. © ${new Date().getFullYear()} Record 365`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
+  
       pdf.save(`${rental.title}_비교리포트_${new Date().toLocaleDateString('ko-KR')}.pdf`);
       alert('PDF가 다운로드되었습니다!');
     } catch (error) {
