@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -21,8 +21,6 @@ export default function ComparePage() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
-
-  const pdfRef = useRef<HTMLDivElement>(null);
 
   const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
   const currentArea = areas?.[selectedAreaIndex];
@@ -112,7 +110,7 @@ export default function ComparePage() {
   return (
     <>
       {/* 화면 표시용 */}
-      <div className="min-h-screen bg-gray-50 print:hidden">
+      <div className="screen-view">
         <header className="bg-white shadow-sm sticky top-0 z-10">
           <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
             <button 
@@ -262,24 +260,32 @@ export default function ComparePage() {
         />
       </div>
 
-      {/* 인쇄용 (PDF용) - 화면에는 숨김 */}
-<div style={{ display: 'none' }} className="print:block">
-  <div ref={pdfRef}>
-    {rental && <PDFReport rental={rental} />}
-  </div>
-</div>
+      {/* 인쇄용 (PDF용) */}
+      <div className="print-view">
+        {rental && <PDFReport rental={rental} />}
+      </div>
 
-{/* 인쇄 스타일 */}
-<style jsx global>{`
-  @media print {
-    .print\\:hidden {
-      display: none !important;
-    }
-    .print\\:block {
-      display: block !important;
-    }
-  }
-`}</style>
+      {/* 인쇄 스타일 */}
+      <style jsx global>{`
+        @media screen {
+          .print-view {
+            display: none;
+          }
+        }
+
+        @media print {
+          .screen-view {
+            display: none !important;
+          }
+          .print-view {
+            display: block !important;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+          }
+        }
+      `}</style>
     </>
   );
 }
