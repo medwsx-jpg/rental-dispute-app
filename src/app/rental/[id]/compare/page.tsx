@@ -262,10 +262,24 @@ export default function ComparePage() {
         />
       </div>
 
-      {/* 인쇄용 (PDF용) */}
-      <div className="hidden print:block">
-        {rental && <PDFReport ref={pdfRef} rental={rental} />}
-      </div>
+      {/* 인쇄용 (PDF용) - 화면에는 숨김 */}
+<div style={{ display: 'none' }} className="print:block">
+  <div ref={pdfRef}>
+    {rental && <PDFReport rental={rental} />}
+  </div>
+</div>
+
+{/* 인쇄 스타일 */}
+<style jsx global>{`
+  @media print {
+    .print\\:hidden {
+      display: none !important;
+    }
+    .print\\:block {
+      display: block !important;
+    }
+  }
+`}</style>
     </>
   );
 }
