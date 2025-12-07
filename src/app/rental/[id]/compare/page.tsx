@@ -65,6 +65,26 @@ export default function ComparePage() {
   const handleDownloadPDF = async () => {
     if (!rental) return;
   
+    // 이미지를 Base64로 변환하는 함수 추가
+    const getBase64Image = async (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        
+        img.onerror = () => reject(new Error('이미지 로드 실패'));
+        img.src = url;
+      });
+    };
+  
     setGenerating(true);
     try {
       const pdf = new jsPDF({
@@ -136,7 +156,8 @@ export default function ComparePage() {
             pdf.setTextColor(30, 64, 175);
             pdf.text('📥 Before', margin, yPosition);
             
-            pdf.addImage(beforePhoto.url, 'JPEG', margin, yPosition + 5, imgWidth, imgHeight);
+            const beforeBase64 = await getBase64Image(beforePhoto.url);
+pdf.addImage(beforeBase64, 'JPEG', margin, yPosition + 5, imgWidth, imgHeight);
             
             pdf.setFontSize(8);
             pdf.setTextColor(107, 114, 128);
@@ -161,7 +182,8 @@ export default function ComparePage() {
             pdf.setTextColor(194, 65, 12);
             pdf.text('📤 After', margin + imgWidth + margin, yPosition);
             
-            pdf.addImage(afterPhoto.url, 'JPEG', margin + imgWidth + margin, yPosition + 5, imgWidth, imgHeight);
+            const afterBase64 = await getBase64Image(afterPhoto.url);
+            pdf.addImage(afterBase64, 'JPEG', margin + imgWidth + margin, yPosition + 5, imgWidth, imgHeight);
             
             pdf.setFontSize(8);
             pdf.setTextColor(107, 114, 128);
