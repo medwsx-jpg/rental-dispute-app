@@ -23,7 +23,7 @@ export default function ComparePage() {
   const [viewerTitle, setViewerTitle] = useState('');
 
   const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
-  const currentArea = areas?.[selectedAreaIndex];
+  const currentArea = selectedAreaIndex >= 0 ? areas?.[selectedAreaIndex] : null;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -55,10 +55,6 @@ export default function ComparePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDownloadPDF = () => {
-    window.print();
   };
 
   const handleShare = async () => {
@@ -100,12 +96,12 @@ export default function ComparePage() {
     );
   }
 
-  if (!rental || !currentArea) {
+  if (!rental || !areas) {
     return null;
   }
 
-  const beforePhoto = getPhotoForArea(currentArea.id, 'before');
-  const afterPhoto = getPhotoForArea(currentArea.id, 'after');
+  const beforePhoto = currentArea ? getPhotoForArea(currentArea.id, 'before') : null;
+  const afterPhoto = currentArea ? getPhotoForArea(currentArea.id, 'after') : null;
 
   return (
     <>
@@ -134,10 +130,10 @@ export default function ComparePage() {
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button
-                onClick={handleDownloadPDF}
+                onClick={() => setSelectedAreaIndex(-1)}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
               >
-                PDF
+                📋 전체보기
               </button>
               <button
                 onClick={handleShare}
@@ -172,84 +168,100 @@ export default function ComparePage() {
             })}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-blue-600 mb-2">📥 Before</h3>
-                {beforePhoto ? (
-                  <div>
-                    <div className="relative">
-                      <img 
-                        src={beforePhoto.url} 
-                        alt="Before" 
-                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
-                        onClick={() => handleImageClick(beforePhoto.url, `${currentArea.name} - Before`)}
-                      />
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        탭하여 확대
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
-                    </p>
-                    {beforePhoto.notes && (
-                      <p className="text-sm text-gray-700 mt-1">📝 {beforePhoto.notes}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-400">사진 없음</p>
-                  </div>
-                )}
+          {selectedAreaIndex === -1 ? (
+            /* 전체 보기 */
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  💡 <strong>PDF 저장 방법:</strong> 브라우저 우측 상단의 <strong>인쇄 아이콘(⋮)</strong>을 클릭하거나 <strong>Ctrl + P</strong>를 누른 후, 
+                  대상을 <strong>"PDF로 저장"</strong>으로 선택하세요.
+                </p>
               </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-orange-600 mb-2">📤 After</h3>
-                {afterPhoto ? (
-                  <div>
-                    <div className="relative">
-                      <img 
-                        src={afterPhoto.url} 
-                        alt="After" 
-                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
-                        onClick={() => handleImageClick(afterPhoto.url, `${currentArea.name} - After`)}
-                      />
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        탭하여 확대
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
-                    </p>
-                    {afterPhoto.notes && (
-                      <p className="text-sm text-gray-700 mt-1">📝 {afterPhoto.notes}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-400">사진 없음</p>
-                  </div>
-                )}
-              </div>
+              <PDFReport rental={rental} />
             </div>
-          </div>
+          ) : (
+            /* 개별 영역 보기 */
+            <>
+              <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-blue-600 mb-2">📥 Before</h3>
+                    {beforePhoto ? (
+                      <div>
+                        <div className="relative">
+                          <img 
+                            src={beforePhoto.url} 
+                            alt="Before" 
+                            className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                            onClick={() => handleImageClick(beforePhoto.url, `${currentArea?.name} - Before`)}
+                          />
+                          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                            탭하여 확대
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
+                        </p>
+                        {beforePhoto.notes && (
+                          <p className="text-sm text-gray-700 mt-1">📝 {beforePhoto.notes}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <p className="text-gray-400">사진 없음</p>
+                      </div>
+                    )}
+                  </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={() => setSelectedAreaIndex(Math.max(0, selectedAreaIndex - 1))}
-              disabled={selectedAreaIndex === 0}
-              className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 disabled:opacity-50"
-            >
-              ← 이전
-            </button>
-            <button
-              onClick={() => setSelectedAreaIndex(Math.min(areas.length - 1, selectedAreaIndex + 1))}
-              disabled={selectedAreaIndex === areas.length - 1}
-              className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-medium disabled:opacity-50"
-            >
-              다음 →
-            </button>
-          </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-orange-600 mb-2">📤 After</h3>
+                    {afterPhoto ? (
+                      <div>
+                        <div className="relative">
+                          <img 
+                            src={afterPhoto.url} 
+                            alt="After" 
+                            className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                            onClick={() => handleImageClick(afterPhoto.url, `${currentArea?.name} - After`)}
+                          />
+                          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                            탭하여 확대
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
+                        </p>
+                        {afterPhoto.notes && (
+                          <p className="text-sm text-gray-700 mt-1">📝 {afterPhoto.notes}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <p className="text-gray-400">사진 없음</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setSelectedAreaIndex(Math.max(0, selectedAreaIndex - 1))}
+                  disabled={selectedAreaIndex === 0}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 disabled:opacity-50"
+                >
+                  ← 이전
+                </button>
+                <button
+                  onClick={() => setSelectedAreaIndex(Math.min(areas.length - 1, selectedAreaIndex + 1))}
+                  disabled={selectedAreaIndex === areas.length - 1}
+                  className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-medium disabled:opacity-50"
+                >
+                  다음 →
+                </button>
+              </div>
+            </>
+          )}
         </main>
 
         <ImageViewer
@@ -267,36 +279,36 @@ export default function ComparePage() {
 
       {/* 인쇄 스타일 */}
       <style jsx global>{`
-  @media screen {
-    .print-view {
-      display: none;
-    }
-  }
+        @media screen {
+          .print-view {
+            display: none;
+          }
+        }
 
-  @media print {
-    .screen-view {
-      display: none !important;
-    }
-    .print-view {
-      display: block !important;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-    }
-    
-    /* 페이지 설정 */
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
-    
-    * {
-      print-color-adjust: exact;
-      -webkit-print-color-adjust: exact;
-    }
-  }
-`}</style>
+        @media print {
+          .screen-view {
+            display: none !important;
+          }
+          .print-view {
+            display: block !important;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          
+          /* 페이지 설정 */
+          @page {
+            size: A4;
+            margin: 20mm;
+          }
+          
+          * {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      `}</style>
     </>
   );
 }
