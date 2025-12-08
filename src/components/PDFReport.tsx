@@ -76,17 +76,17 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                   {beforePhoto ? (
                     <div>
                       <img 
-  src={beforePhoto.url} 
-  alt="Before" 
-  style={{ 
-    width: '100%',
-    height: '300px',
-    objectFit: 'contain',
-    backgroundColor: '#f9fafb',
-    borderRadius: '8px',
-    border: '2px solid #e5e7eb'
-  }} 
-/>
+                        src={beforePhoto.url} 
+                        alt="Before" 
+                        style={{ 
+                          width: '100%',
+                          height: '300px',
+                          objectFit: 'contain',
+                          backgroundColor: '#f9fafb',
+                          borderRadius: '8px',
+                          border: '2px solid #e5e7eb'
+                        }} 
+                      />
                       <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
                         {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
                       </div>
@@ -138,29 +138,18 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                   </div>
                   {afterPhoto ? (
                     <div>
-                      <div style={{ 
-                        width: '100%',
-                        height: '300px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '8px',
-                        border: '2px solid #e5e7eb',
-                        overflow: 'hidden'
-                      }}>
-                        <img 
-                          src={afterPhoto.url} 
-                          alt="After" 
-                          style={{ 
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: 'auto',
-                            height: 'auto',
-                            objectFit: 'contain'
-                          }} 
-                        />
-                      </div>
+                      <img 
+                        src={afterPhoto.url} 
+                        alt="After" 
+                        style={{ 
+                          width: '100%',
+                          height: '300px',
+                          objectFit: 'contain',
+                          backgroundColor: '#f9fafb',
+                          borderRadius: '8px',
+                          border: '2px solid #e5e7eb'
+                        }} 
+                      />
                       <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
                         {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
                       </div>
