@@ -267,25 +267,40 @@ export default function ComparePage() {
 
       {/* 인쇄 스타일 */}
       <style jsx global>{`
-        @media screen {
-          .print-view {
-            display: none;
-          }
-        }
+  @media screen {
+    .print-view {
+      display: none;
+    }
+  }
 
-        @media print {
-          .screen-view {
-            display: none !important;
-          }
-          .print-view {
-            display: block !important;
-          }
-          body {
-            margin: 0;
-            padding: 0;
-          }
-        }
-      `}</style>
+  @media print {
+    .screen-view {
+      display: none !important;
+    }
+    .print-view {
+      display: block !important;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* 페이지 브레이크 강제 */
+    [style*="pageBreakAfter: 'always'"],
+    [style*='pageBreakAfter: "always"'],
+    [style*="pageBreakAfter: always"] {
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    
+    [style*="pageBreakInside: 'avoid'"],
+    [style*='pageBreakInside: "avoid"'],
+    [style*="pageBreakInside: avoid"] {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  }
+`}</style>
     </>
   );
 }
