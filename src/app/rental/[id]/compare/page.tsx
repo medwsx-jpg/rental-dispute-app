@@ -285,18 +285,15 @@ export default function ComparePage() {
       padding: 0;
     }
     
-    /* 페이지 브레이크 */
-    .pdf-page-break {
-      page-break-after: always !important;
-      break-after: page !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
+    /* 페이지 설정 */
+    @page {
+      size: A4;
+      margin: 20mm;
     }
     
-    /* 마지막 영역은 페이지 브레이크 없음 */
-    .pdf-page-break:last-of-type {
-      page-break-after: auto !important;
-      break-after: auto !important;
+    * {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
     }
   }
 `}</style>

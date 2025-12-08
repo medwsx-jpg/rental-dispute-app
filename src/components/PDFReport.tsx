@@ -44,10 +44,13 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
 
           return (
             <div 
-  key={area.id} 
-  className="pdf-page-break"
-  style={{ marginBottom: '60px' }}
->
+            key={area.id} 
+            style={{ 
+              marginBottom: '60px', 
+              pageBreakInside: 'avoid',
+              pageBreakAfter: index < areas.length - 1 ? 'always' : 'auto'
+            }}
+          >
               <div style={{ 
                 backgroundColor: '#f3f4f6', 
                 padding: '15px 20px', 
