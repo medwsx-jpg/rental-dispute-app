@@ -79,9 +79,11 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                         src={beforePhoto.url} 
                         alt="Before" 
                         style={{ 
+                          display: 'block',
                           width: '100%',
-                          height: '300px',
-                          objectFit: 'contain',
+                          height: 'auto',
+                          maxHeight: '300px',
+                          margin: '0 auto',
                           backgroundColor: '#f9fafb',
                           borderRadius: '8px',
                           border: '2px solid #e5e7eb'
@@ -142,9 +144,11 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                         src={afterPhoto.url} 
                         alt="After" 
                         style={{ 
+                          display: 'block',
                           width: '100%',
-                          height: '300px',
-                          objectFit: 'contain',
+                          height: 'auto',
+                          maxHeight: '300px',
+                          margin: '0 auto',
                           backgroundColor: '#f9fafb',
                           borderRadius: '8px',
                           border: '2px solid #e5e7eb'
@@ -217,7 +221,8 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     borderRadius: '8px',
                     maxHeight: '120px',
                     maxWidth: '100%',
-                    objectFit: 'contain',
+                    height: 'auto',
+                    display: 'block',
                     backgroundColor: 'white'
                   }} 
                 />
@@ -236,7 +241,8 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     borderRadius: '8px',
                     maxHeight: '120px',
                     maxWidth: '100%',
-                    objectFit: 'contain',
+                    height: 'auto',
+                    display: 'block',
                     backgroundColor: 'white'
                   }} 
                 />
