@@ -44,13 +44,13 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
 
           return (
             <div 
-            key={area.id} 
-            style={{ 
-              marginBottom: '60px', 
-              pageBreakInside: 'avoid',
-              pageBreakAfter: index < areas.length - 1 ? 'always' : 'auto'
-            }}
-          >
+              key={area.id} 
+              style={{ 
+                marginBottom: '60px', 
+                pageBreakInside: 'avoid',
+                pageBreakAfter: index < areas.length - 1 ? 'always' : 'auto'
+              }}
+            >
               <div style={{ 
                 backgroundColor: '#f3f4f6', 
                 padding: '15px 20px', 
@@ -82,20 +82,29 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                   </div>
                   {beforePhoto ? (
                     <div>
-                      <img 
-                        src={beforePhoto.url} 
-                        alt="Before" 
-                        style={{ 
-                          display: 'block',
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '300px',
-                          margin: '0 auto',
-                          backgroundColor: '#f9fafb',
-                          borderRadius: '8px',
-                          border: '2px solid #e5e7eb'
-                        }} 
-                      />
+                      <div style={{
+                        width: '100%',
+                        minHeight: '300px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '2px solid #e5e7eb',
+                        padding: '10px'
+                      }}>
+                        <img 
+                          src={beforePhoto.url} 
+                          alt="Before" 
+                          style={{ 
+                            maxWidth: '100%',
+                            maxHeight: '300px',
+                            width: 'auto',
+                            height: 'auto',
+                            display: 'block'
+                          }} 
+                        />
+                      </div>
                       <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
                         {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
                       </div>
@@ -147,20 +156,29 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                   </div>
                   {afterPhoto ? (
                     <div>
-                      <img 
-                        src={afterPhoto.url} 
-                        alt="After" 
-                        style={{ 
-                          display: 'block',
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '300px',
-                          margin: '0 auto',
-                          backgroundColor: '#f9fafb',
-                          borderRadius: '8px',
-                          border: '2px solid #e5e7eb'
-                        }} 
-                      />
+                      <div style={{
+                        width: '100%',
+                        minHeight: '300px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '2px solid #e5e7eb',
+                        padding: '10px'
+                      }}>
+                        <img 
+                          src={afterPhoto.url} 
+                          alt="After" 
+                          style={{ 
+                            maxWidth: '100%',
+                            maxHeight: '300px',
+                            width: 'auto',
+                            height: 'auto',
+                            display: 'block'
+                          }} 
+                        />
+                      </div>
                       <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
                         {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
                       </div>
