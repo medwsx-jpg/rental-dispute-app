@@ -17,7 +17,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
     return (
       <div ref={ref} style={{ padding: '20px', backgroundColor: 'white' }}>
         {/* 표지 */}
-        <div style={{ textAlign: 'center', marginBottom: '40px', paddingBottom: '30px', borderBottom: '3px solid #2563eb' }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px', paddingBottom: '20px', borderBottom: '3px solid #2563eb' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937', marginBottom: '15px' }}>
             🏠 Record 365
           </h1>
@@ -46,27 +46,26 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
             <div 
               key={area.id} 
               style={{ 
-                marginBottom: '40px', 
-                pageBreakInside: 'avoid',
-                pageBreakAfter: index < areas.length - 1 ? 'always' : 'auto'
+                marginBottom: '30px', 
+                pageBreakInside: 'avoid'
               }}
             >
               <div style={{ 
                 backgroundColor: '#f3f4f6', 
-                padding: '12px 16px', 
+                padding: '10px 16px', 
                 borderRadius: '8px', 
-                marginBottom: '16px',
+                marginBottom: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <span style={{ fontSize: '20px' }}>{area.icon}</span>
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                <span style={{ fontSize: '18px' }}>{area.icon}</span>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
                   {area.name}
                 </h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {/* Before */}
                 <div>
                   <div style={{ 
@@ -84,7 +83,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     <div>
                       <div style={{
                         width: '100%',
-                        height: '250px',
+                        height: '200px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -130,7 +129,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     </div>
                   ) : (
                     <div style={{ 
-                      height: '250px', 
+                      height: '200px', 
                       backgroundColor: '#f3f4f6', 
                       borderRadius: '6px',
                       display: 'flex',
@@ -161,7 +160,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     <div>
                       <div style={{
                         width: '100%',
-                        height: '250px',
+                        height: '200px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -207,7 +206,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     </div>
                   ) : (
                     <div style={{ 
-                      height: '250px', 
+                      height: '200px', 
                       backgroundColor: '#f3f4f6', 
                       borderRadius: '6px',
                       display: 'flex',
@@ -226,7 +225,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                 <div style={{ 
                   height: '1px', 
                   backgroundColor: '#e5e7eb', 
-                  marginTop: '30px' 
+                  marginTop: '20px' 
                 }} />
               )}
             </div>
@@ -234,11 +233,11 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
         })}
 
         {/* 서명 */}
-        <div style={{ marginTop: '40px', pageBreakInside: 'avoid' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px' }}>
+        <div style={{ marginTop: '30px', pageBreakInside: 'avoid' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1f2937', marginBottom: '12px' }}>
             ✍️ 서명
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {rental.checkIn.signature && (
               <div>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#2563eb', marginBottom: '8px' }}>
@@ -250,7 +249,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                   style={{ 
                     border: '1px solid #e5e7eb', 
                     borderRadius: '6px',
-                    maxHeight: '100px',
+                    maxHeight: '80px',
                     maxWidth: '100%',
                     height: 'auto',
                     display: 'block',
@@ -270,7 +269,7 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                   style={{ 
                     border: '1px solid #e5e7eb', 
                     borderRadius: '6px',
-                    maxHeight: '100px',
+                    maxHeight: '80px',
                     maxWidth: '100%',
                     height: 'auto',
                     display: 'block',
@@ -284,8 +283,8 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
 
         {/* 푸터 */}
         <div style={{ 
-          marginTop: '40px', 
-          paddingTop: '16px', 
+          marginTop: '30px', 
+          paddingTop: '12px', 
           borderTop: '2px solid #e5e7eb',
           textAlign: 'center',
           fontSize: '10px',
