@@ -43,7 +43,11 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
           if (!beforePhoto && !afterPhoto) return null;
 
           return (
-            <div key={area.id} style={{ marginBottom: '60px', pageBreakInside: 'avoid' }}>
+            <div key={area.id} style={{ 
+              marginBottom: '60px', 
+              pageBreakInside: 'avoid',
+              pageBreakAfter: 'always'  // 이 줄 추가!
+            }}>
               <div style={{ 
                 backgroundColor: '#f3f4f6', 
                 padding: '15px 20px', 
