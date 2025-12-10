@@ -100,6 +100,76 @@ export default function SignupPage() {
     }
   };
 
+  const handleKakaoSignup = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!window.Kakao) {
+        setError('카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      window.Kakao.Auth.login({
+        success: async (authObj: any) => {
+          try {
+            // 카카오 사용자 정보 가져오기
+            window.Kakao.API.request({
+              url: '/v2/user/me',
+              success: async (res: any) => {
+                const kakaoAccount = res.kakao_account;
+                const kakaoId = res.id;
+                
+                // 카카오 ID를 사용해서 Firebase 이메일 생성
+                const email = kakaoAccount.email || `kakao_${kakaoId}@record365.app`;
+                const nickname = kakaoAccount.profile?.nickname || '카카오 사용자';
+
+                const userId = `kakao_${kakaoId}`;
+                
+                // Firestore에 사용자 정보 저장
+                await setDoc(doc(db, 'users', userId), {
+                  email: email,
+                  nickname: nickname,
+                  kakaoId: kakaoId,
+                  provider: 'kakao',
+                  createdAt: Date.now(),
+                }, { merge: true });
+
+                // 세션 스토리지에 저장
+                sessionStorage.setItem('kakao_user', JSON.stringify({
+                  userId,
+                  email,
+                  nickname,
+                }));
+
+                router.push('/dashboard');
+              },
+              fail: (error: any) => {
+                console.error(error);
+                setError('카카오 사용자 정보를 가져오는데 실패했습니다.');
+                setLoading(false);
+              },
+            });
+          } catch (err) {
+            console.error(err);
+            setError('카카오 회원가입 처리 중 오류가 발생했습니다.');
+            setLoading(false);
+          }
+        },
+        fail: (err: any) => {
+          console.error(err);
+          setError('카카오 회원가입에 실패했습니다.');
+          setLoading(false);
+        },
+      });
+    } catch (err: any) {
+      console.error(err);
+      setError('카카오 회원가입에 실패했습니다.');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
@@ -125,7 +195,7 @@ export default function SignupPage() {
           </button>
 
           <button
-            onClick={() => setError('카카오 로그인은 곧 추가될 예정입니다.')}
+            onClick={handleKakaoSignup}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#000000] py-3 rounded-lg font-medium hover:bg-[#FDD835] transition disabled:opacity-50"
           >

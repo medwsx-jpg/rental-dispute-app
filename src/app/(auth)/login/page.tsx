@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { 
   signInWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider,
   sendPasswordResetEmail 
 } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,12 +50,108 @@ export default function LoginPage() {
 
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      
+      // 사용자 문서가 이미 있는지 확인
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      
+      if (!userDoc.exists()) {
+        // 새 사용자면 Firestore에 정보 저장
+        const emailNickname = result.user.email?.split('@')[0] || 'User';
+        await setDoc(doc(db, 'users', result.user.uid), {
+          email: result.user.email,
+          nickname: emailNickname,
+          createdAt: Date.now(),
+        });
+      }
+
       router.push('/dashboard');
     } catch (err: any) {
       console.error(err);
       setError('Google 로그인에 실패했습니다.');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    setError('');
+    setLoading(true);
+  
+    try {
+      // Kakao SDK 로드 확인
+      if (!window.Kakao) {
+        setError('카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+        setLoading(false);
+        return;
+      }
+  
+      // Kakao 초기화 확인
+      if (!window.Kakao.isInitialized()) {
+        window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
+      }
+  
+      // Auth.login 존재 확인
+      if (!window.Kakao.Auth || typeof window.Kakao.Auth.login !== 'function') {
+        setError('카카오 로그인 기능을 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+        setLoading(false);
+        return;
+      }
+  
+      window.Kakao.Auth.login({
+        success: async (authObj: any) => {
+          try {
+            // 카카오 사용자 정보 가져오기
+            window.Kakao.API.request({
+              url: '/v2/user/me',
+              success: async (res: any) => {
+                const kakaoAccount = res.kakao_account;
+                const kakaoId = res.id;
+                
+                const email = kakaoAccount.email || `kakao_${kakaoId}@record365.app`;
+                const nickname = kakaoAccount.profile?.nickname || '카카오 사용자';
+  
+                const userId = `kakao_${kakaoId}`;
+                
+                // Firestore에 사용자 정보 저장
+                await setDoc(doc(db, 'users', userId), {
+                  email: email,
+                  nickname: nickname,
+                  kakaoId: kakaoId,
+                  provider: 'kakao',
+                  createdAt: Date.now(),
+                }, { merge: true });
+  
+                // 세션 스토리지에 저장
+                sessionStorage.setItem('kakao_user', JSON.stringify({
+                  userId,
+                  email,
+                  nickname,
+                }));
+  
+                router.push('/dashboard');
+              },
+              fail: (error: any) => {
+                console.error(error);
+                setError('카카오 사용자 정보를 가져오는데 실패했습니다.');
+                setLoading(false);
+              },
+            });
+          } catch (err) {
+            console.error(err);
+            setError('카카오 로그인 처리 중 오류가 발생했습니다.');
+            setLoading(false);
+          }
+        },
+        fail: (err: any) => {
+          console.error(err);
+          setError('카카오 로그인에 실패했습니다.');
+          setLoading(false);
+        },
+      });
+    } catch (err: any) {
+      console.error(err);
+      setError('카카오 로그인에 실패했습니다.');
       setLoading(false);
     }
   };
@@ -105,7 +202,7 @@ export default function LoginPage() {
             </button>
 
             <button
-              onClick={() => setError('카카오 로그인은 곧 추가될 예정입니다.')}
+              onClick={handleKakaoLogin}
               disabled={loading}
               className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#000000] py-3 rounded-lg font-medium hover:bg-[#FDD835] transition disabled:opacity-50"
             >
