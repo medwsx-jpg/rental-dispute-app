@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false); // 이메일 폼 표시 여부
 
   // Kakao SDK 초기화 확인
   useEffect(() => {
@@ -35,7 +36,6 @@ export default function LoginPage() {
         }
         setKakaoReady(true);
       } else {
-        // SDK가 아직 로드 안 됐으면 재시도
         setTimeout(initKakao, 500);
       }
     };
@@ -75,11 +75,9 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // 사용자 문서가 이미 있는지 확인
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
       
       if (!userDoc.exists()) {
-        // 새 사용자면 Firestore에 정보 저장
         const emailNickname = result.user.email?.split('@')[0] || 'User';
         await setDoc(doc(db, 'users', result.user.uid), {
           email: result.user.email,
@@ -221,82 +219,88 @@ export default function LoginPage() {
               카카오톡으로 계속 진행
             </button>
 
-            <Link
-              href="/email-login"
-              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition shadow-md"
+            <button
+              onClick={() => setShowEmailForm(!showEmailForm)}
+              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white py-3 rounded-lg font-medium hover:from-gray-600 hover:to-gray-700 transition shadow-md"
             >
               <span className="text-xl">📧</span>
-              이메일 링크로 간편 로그인
-            </Link>
-          </div>
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">또는 이메일/비밀번호로</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                이메일
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                비밀번호
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            {resetEmailSent && (
-              <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg text-sm">
-                비밀번호 재설정 이메일이 전송되었습니다. 이메일을 확인해주세요.
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '로그인 중...' : '로그인'}
-            </button>
-          </form>
-
-          <div className="mt-4 text-center">
-            <button
-              onClick={handlePasswordReset}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              비밀번호를 잊으셨나요?
+              이메일로 로그인
             </button>
           </div>
+
+          {/* 이메일/비밀번호 폼 (토글) */}
+          {showEmailForm && (
+            <>
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">이메일/비밀번호 입력</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    이메일
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    비밀번호
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  />
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {resetEmailSent && (
+                  <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg text-sm">
+                    비밀번호 재설정 이메일이 전송되었습니다. 이메일을 확인해주세요.
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? '로그인 중...' : '로그인'}
+                </button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    비밀번호를 잊으셨나요?
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
