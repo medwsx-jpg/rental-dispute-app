@@ -51,17 +51,23 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Record 365" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <script
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
+          async
+        ></script>
       </head>
       <body className="antialiased">
-      <Script
-  src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
-  strategy="beforeInteractive"
-/>
         <Script id="kakao-init" strategy="afterInteractive">
           {`
-            if (window.Kakao && !window.Kakao.isInitialized()) {
-              window.Kakao.init('4ac79b7258b6701d7900c727d81ea2c5');
+            function initKakao() {
+              if (window.Kakao && !window.Kakao.isInitialized()) {
+                window.Kakao.init('4ac79b7258b6701d7900c727d81ea2c5');
+                console.log('Kakao initialized');
+              } else if (!window.Kakao) {
+                setTimeout(initKakao, 100);
+              }
             }
+            initKakao();
           `}
         </Script>
         {children}
