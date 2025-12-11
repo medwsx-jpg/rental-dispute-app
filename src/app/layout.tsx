@@ -61,7 +61,7 @@ export default function RootLayout({
           {`
             function initKakao() {
               if (window.Kakao && !window.Kakao.isInitialized()) {
-                window.Kakao.init('4ac79b7258b6701d7900c727d81ea2c5');
+                window.Kakao.init('f2bc10f532d5ea14883a44ce3fe509ea');
                 console.log('Kakao SDK v1 initialized:', window.Kakao);
               } else if (!window.Kakao) {
                 setTimeout(initKakao, 100);
