@@ -52,7 +52,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Record 365" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <script
-          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
+          src="https://developers.kakao.com/sdk/js/kakao.min.js"
           async
         ></script>
       </head>
@@ -62,7 +62,7 @@ export default function RootLayout({
             function initKakao() {
               if (window.Kakao && !window.Kakao.isInitialized()) {
                 window.Kakao.init('4ac79b7258b6701d7900c727d81ea2c5');
-                console.log('Kakao initialized');
+                console.log('Kakao SDK v1 initialized:', window.Kakao);
               } else if (!window.Kakao) {
                 setTimeout(initKakao, 100);
               }
