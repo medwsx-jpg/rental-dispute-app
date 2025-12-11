@@ -85,6 +85,8 @@ export default function LoginPage() {
           email: result.user.email,
           nickname: emailNickname,
           createdAt: Date.now(),
+          freeRentalsUsed: 0,
+          isPremium: false,
         });
       }
 
@@ -128,6 +130,8 @@ export default function LoginPage() {
                   kakaoId: kakaoId,
                   provider: 'kakao',
                   createdAt: Date.now(),
+                  freeRentalsUsed: 0,
+                  isPremium: false,
                 }, { merge: true });
 
                 sessionStorage.setItem('kakao_user', JSON.stringify({
@@ -216,6 +220,14 @@ export default function LoginPage() {
               <span className="text-xl">💬</span>
               카카오톡으로 계속 진행
             </button>
+
+            <Link
+              href="/email-login"
+              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition shadow-md"
+            >
+              <span className="text-xl">📧</span>
+              이메일 링크로 간편 로그인
+            </Link>
           </div>
 
           <div className="relative mb-6">
@@ -223,7 +235,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">또는 이메일로 가입</span>
+              <span className="px-2 bg-white text-gray-500">또는 이메일/비밀번호로</span>
             </div>
           </div>
 
