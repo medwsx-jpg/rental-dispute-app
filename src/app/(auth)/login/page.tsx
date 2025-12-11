@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
@@ -19,6 +19,29 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [kakaoReady, setKakaoReady] = useState(false);
+
+  // Kakao SDK 초기화 확인
+  useEffect(() => {
+    const initKakao = () => {
+      if (window.Kakao) {
+        if (!window.Kakao.isInitialized()) {
+          try {
+            window.Kakao.init('4ac79b7258b6701d7900c727d81ea2c5');
+            console.log('Kakao SDK initialized');
+          } catch (error) {
+            console.error('Kakao init error:', error);
+          }
+        }
+        setKakaoReady(true);
+      } else {
+        // SDK가 아직 로드 안 됐으면 재시도
+        setTimeout(initKakao, 500);
+      }
+    };
+
+    initKakao();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,31 +100,17 @@ export default function LoginPage() {
   const handleKakaoLogin = async () => {
     setError('');
     setLoading(true);
-  
+
     try {
-      // Kakao SDK 로드 확인
-      if (!window.Kakao) {
+      if (!window.Kakao || !kakaoReady) {
         setError('카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
         setLoading(false);
         return;
       }
-  
-      // Kakao 초기화 확인
-      if (!window.Kakao.isInitialized()) {
-        window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
-      }
-  
-      // Auth.login 존재 확인
-      if (!window.Kakao.Auth || typeof window.Kakao.Auth.login !== 'function') {
-        setError('카카오 로그인 기능을 불러올 수 없습니다. 페이지를 새로고침해주세요.');
-        setLoading(false);
-        return;
-      }
-  
+
       window.Kakao.Auth.login({
         success: async (authObj: any) => {
           try {
-            // 카카오 사용자 정보 가져오기
             window.Kakao.API.request({
               url: '/v2/user/me',
               success: async (res: any) => {
@@ -110,10 +119,9 @@ export default function LoginPage() {
                 
                 const email = kakaoAccount.email || `kakao_${kakaoId}@record365.app`;
                 const nickname = kakaoAccount.profile?.nickname || '카카오 사용자';
-  
+
                 const userId = `kakao_${kakaoId}`;
                 
-                // Firestore에 사용자 정보 저장
                 await setDoc(doc(db, 'users', userId), {
                   email: email,
                   nickname: nickname,
@@ -121,14 +129,13 @@ export default function LoginPage() {
                   provider: 'kakao',
                   createdAt: Date.now(),
                 }, { merge: true });
-  
-                // 세션 스토리지에 저장
+
                 sessionStorage.setItem('kakao_user', JSON.stringify({
                   userId,
                   email,
                   nickname,
                 }));
-  
+
                 router.push('/dashboard');
               },
               fail: (error: any) => {
@@ -203,7 +210,7 @@ export default function LoginPage() {
 
             <button
               onClick={handleKakaoLogin}
-              disabled={loading}
+              disabled={loading || !kakaoReady}
               className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#000000] py-3 rounded-lg font-medium hover:bg-[#FDD835] transition disabled:opacity-50"
             >
               <span className="text-xl">💬</span>
