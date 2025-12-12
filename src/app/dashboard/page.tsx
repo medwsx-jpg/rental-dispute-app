@@ -4,22 +4,32 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
+
+interface UserData {
+  email: string;
+  nickname: string;
+  freeRentalsUsed: number;
+  isPremium: boolean;
+  createdAt: number;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        await loadUserData(currentUser.uid);
         loadRentals(currentUser.uid);
         checkNotificationPermission();
       } else {
@@ -55,6 +65,17 @@ export default function DashboardPage() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showUserMenu]);
+
+  const loadUserData = async (userId: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data() as UserData);
+      }
+    } catch (error) {
+      console.error('사용자 정보 로드 실패:', error);
+    }
+  };
 
   const checkNotificationPermission = async () => {
     if ('Notification' in window) {
@@ -102,11 +123,16 @@ export default function DashboardPage() {
   };
 
   const handleNewRental = () => {
-    if (rentals.length >= FREE_RENTAL_LIMIT) {
+    // 무료 사용자: 1건 제한
+    if (!userData?.isPremium && userData && userData.freeRentalsUsed >= FREE_RENTAL_LIMIT) {
+      // 무료 1건 초과 시 결제 안내
       const confirmed = confirm(
-        `무료 사용량(${FREE_RENTAL_LIMIT}개)을 초과했습니다.\n\n추가 렌탈은 건당 ${PRICE_PER_RENTAL.toLocaleString()}원이 부과됩니다.\n계속하시겠습니까?`
+        `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 추가 렌탈: 건당 ${PRICE_PER_RENTAL.toLocaleString()}원\n📅 보관 기간: 렌탈 종료 후 1개월\n\n결제 페이지로 이동하시겠습니까?`
       );
-      if (!confirmed) return;
+      if (confirmed) {
+        router.push('/upgrade');
+      }
+      return;
     }
     router.push('/rental/new');
   };
@@ -171,7 +197,7 @@ export default function DashboardPage() {
     );
   };
 
-  if (loading) {
+  if (loading || !userData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -179,35 +205,38 @@ export default function DashboardPage() {
     );
   }
 
+  const isPremium = userData.isPremium;
+  const freeUsed = userData.freeRentalsUsed;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-        <button 
-  onClick={() => router.push('/guide')}
-  className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
->
-  📖 사용가이드
-</button>
-  <button 
-    onClick={() => router.push('/community')}
-    className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-  >
-    📋 게시판
-  </button>
-</div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.push('/guide')}
+              className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+            >
+              📖 사용가이드
+            </button>
+            <button 
+              onClick={() => router.push('/community')}
+              className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+            >
+              📋 게시판
+            </button>
+          </div>
           <div className="relative user-menu-container">
-          <button 
-  onClick={(e) => {
-    e.stopPropagation();
-    setShowUserMenu(!showUserMenu);
-  }}
-  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
->
-  <span className="text-lg text-gray-700">내정보</span>
-  <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
-</button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowUserMenu(!showUserMenu);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
+            >
+              <span className="text-lg text-gray-700">내정보</span>
+              <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
+            </button>
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
                 <div className="px-4 py-2 border-b border-gray-100">
@@ -246,19 +275,53 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-blue-800">무료 사용량</p>
-              <p className="text-2xl font-bold text-blue-900">
-                {Math.min(rentals.length, FREE_RENTAL_LIMIT)} / {FREE_RENTAL_LIMIT}개
-              </p>
+        {/* 무료/유료 상태 표시 */}
+        {isPremium ? (
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
+                <p className="text-2xl font-bold text-purple-900">무제한 사용 중</p>
+                <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
+              </div>
+              <span className="text-4xl">⭐</span>
             </div>
-            {rentals.length >= FREE_RENTAL_LIMIT && (
-              <span className="text-xs text-blue-600">추가 건당 {PRICE_PER_RENTAL.toLocaleString()}원</span>
+          </div>
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm text-blue-800">🆓 무료 사용량</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  {freeUsed} / {FREE_RENTAL_LIMIT}건 사용
+                </p>
+                <p className="text-xs text-blue-600 mt-1">📅 데이터 보관: 렌탈 종료 후 6일</p>
+              </div>
+              {freeUsed >= FREE_RENTAL_LIMIT && (
+                <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                  무료 1건 완료
+                </span>
+              )}
+            </div>
+            
+            {freeUsed >= FREE_RENTAL_LIMIT && (
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  💰 추가 렌탈이 필요하신가요?
+                </p>
+                <p className="text-xs text-gray-600 mb-2">
+                  건당 {PRICE_PER_RENTAL.toLocaleString()}원 • 렌탈 종료 후 1개월 보관
+                </p>
+                <button
+                  onClick={() => router.push('/upgrade')}
+                  className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                >
+                  유료 구매하기
+                </button>
+              </div>
             )}
           </div>
-        </div>
+        )}
 
         <button
           onClick={handleNewRental}
@@ -332,7 +395,7 @@ export default function DashboardPage() {
             앱 사용 중 문제가 있거나 제안사항이 있으신가요?
           </p>
           
-           <a href="mailto:medws@naver.com?subject=Record%20365%20문의"
+          <a href="mailto:medws@naver.com?subject=Record%20365%20문의"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
           >
             📧 개발자에게 이메일 보내기
