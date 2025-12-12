@@ -8,7 +8,8 @@ import {
   signInWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider,
-  sendPasswordResetEmail 
+  sendPasswordResetEmail,
+  signInAnonymously
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
@@ -128,11 +129,15 @@ export default function LoginPage() {
                 const email = kakaoAccount.email || `kakao_${kakaoId}@record365.app`;
                 const nickname = kakaoAccount.profile?.nickname || '카카오 사용자';
 
-                const userId = `kakao_${kakaoId}`;
+                console.log('🔵 Firebase 익명 로그인 시작');
                 
-                console.log('🔵 Firestore 저장 시작:', { userId, email, nickname });
+                // Firebase Anonymous Auth로 로그인
+                const firebaseUser = await signInAnonymously(auth);
+                
+                console.log('✅ Firebase 익명 로그인 완료:', firebaseUser.user.uid);
 
-                await setDoc(doc(db, 'users', userId), {
+                // Firestore에 카카오 정보 저장 (Firebase UID 사용)
+                await setDoc(doc(db, 'users', firebaseUser.user.uid), {
                   email: email,
                   nickname: nickname,
                   kakaoId: kakaoId,
@@ -145,7 +150,8 @@ export default function LoginPage() {
                 console.log('✅ Firestore 저장 완료');
 
                 sessionStorage.setItem('kakao_user', JSON.stringify({
-                  userId,
+                  userId: firebaseUser.user.uid,
+                  kakaoId: kakaoId,
                   email,
                   nickname,
                 }));
