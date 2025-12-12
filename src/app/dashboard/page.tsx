@@ -14,6 +14,7 @@ interface UserData {
   freeRentalsUsed: number;
   isPremium: boolean;
   createdAt: number;
+  notificationDays?: number;
 }
 
 interface Message {
@@ -43,9 +44,11 @@ export default function DashboardPage() {
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [messageThread, setMessageThread] = useState<MessageThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [notificationDays, setNotificationDays] = useState(3);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -65,15 +68,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (rentals.length > 0 && notificationEnabled) {
-      checkExpirationsDaily(rentals);
+      checkExpirationsDaily(rentals, notificationDays);
       
       const interval = setInterval(() => {
-        checkExpirationsDaily(rentals);
+        checkExpirationsDaily(rentals, notificationDays);
       }, 24 * 60 * 60 * 1000);
 
       return () => clearInterval(interval);
     }
-  }, [rentals, notificationEnabled]);
+  }, [rentals, notificationEnabled, notificationDays]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -93,7 +96,9 @@ export default function DashboardPage() {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
-        setUserData(userDoc.data() as UserData);
+        const data = userDoc.data() as UserData;
+        setUserData(data);
+        setNotificationDays(data.notificationDays || 3);
       }
     } catch (error) {
       console.error('사용자 정보 로드 실패:', error);
@@ -125,10 +130,27 @@ export default function DashboardPage() {
     setNotificationEnabled(granted);
     
     if (granted) {
-      alert('알림이 활성화되었습니다! 계약 만료 3일 전부터 알림을 받을 수 있습니다.');
-      checkExpirationsDaily(rentals);
+      alert('알림이 활성화되었습니다! 계약 만료 전에 알림을 받을 수 있습니다.');
+      checkExpirationsDaily(rentals, notificationDays);
     } else {
       alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+    }
+  };
+
+  const handleSaveNotificationDays = async (days: number) => {
+    if (!user) return;
+    
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        notificationDays: days
+      });
+      
+      setNotificationDays(days);
+      alert(`알림 기간이 ${days}일 전으로 설정되었습니다!`);
+      setShowNotificationSettings(false);
+    } catch (error) {
+      console.error('알림 설정 저장 실패:', error);
+      alert('설정 저장에 실패했습니다.');
     }
   };
 
@@ -157,7 +179,6 @@ export default function DashboardPage() {
   const handleOpenMessages = async () => {
     setShowMessageModal(true);
     
-    // 메시지를 열면 안읽은 메시지를 읽음 처리
     if (messageThread && messageThread.unreadByUser > 0) {
       try {
         const messageRef = doc(db, 'messages', user.uid);
@@ -192,13 +213,11 @@ export default function DashboardPage() {
       };
 
       if (messageThread) {
-        // 기존 스레드에 추가
         await updateDoc(messageRef, {
           messages: arrayUnion(messageData),
           unreadByAdmin: messageThread.unreadByAdmin + 1
         });
       } else {
-        // 새 스레드 생성
         await setDoc(messageRef, {
           userId: user.uid,
           userEmail: user.email || '이메일 없음',
@@ -248,7 +267,7 @@ export default function DashboardPage() {
     if (daysLeft < 0) {
       return <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">만료됨</span>;
     }
-    if (daysLeft <= 3) {
+    if (daysLeft <= notificationDays) {
       return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">⚠️ {daysLeft}일 남음</span>;
     }
     return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">{daysLeft}일 남음</span>;
@@ -295,6 +314,13 @@ export default function DashboardPage() {
         📥 Before 촬영
       </button>
     );
+  };
+
+  const getRentalIcon = (type: string) => {
+    if (type === 'car') return '🚗';
+    if (type === 'house') return '🏠';
+    if (type === 'goods') return '📦';
+    return '📋';
   };
 
   if (loading || !userData) {
@@ -357,25 +383,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {!notificationEnabled && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
-                <p className="text-sm text-yellow-700">
-                  계약 만료 3일 전부터 알림을 받으려면 알림을 활성화하세요.
-                </p>
-              </div>
-              <button
-                onClick={handleEnableNotifications}
-                className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
-              >
-                알림 켜기
-              </button>
-            </div>
-          </div>
-        )}
-
         {isPremium ? (
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
@@ -423,6 +430,84 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {!notificationEnabled && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
+                <p className="text-sm text-yellow-700 mb-2">
+                  계약 만료 {notificationDays}일 전부터 알림을 받으려면 알림을 활성화하세요.
+                </p>
+                <button
+                  onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                  className="text-xs text-yellow-800 underline hover:text-yellow-900"
+                >
+                  알림 기간 설정
+                </button>
+                {showNotificationSettings && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[1, 3, 7, 14, 30].map((days) => (
+                      <button
+                        key={days}
+                        onClick={() => handleSaveNotificationDays(days)}
+                        className={`px-3 py-1 text-xs rounded-lg transition ${
+                          notificationDays === days
+                            ? 'bg-yellow-600 text-white'
+                            : 'bg-white text-yellow-800 border border-yellow-300 hover:bg-yellow-100'
+                        }`}
+                      >
+                        {days}일 전
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleEnableNotifications}
+                className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
+              >
+                알림 켜기
+              </button>
+            </div>
+          </div>
+        )}
+
+        {notificationEnabled && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="font-medium text-green-800 mb-1">✅ 알림 활성화됨</h3>
+                <p className="text-sm text-green-700 mb-2">
+                  계약 만료 {notificationDays}일 전부터 알림을 받습니다.
+                </p>
+                <button
+                  onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                  className="text-xs text-green-800 underline hover:text-green-900"
+                >
+                  알림 기간 변경
+                </button>
+                {showNotificationSettings && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[1, 3, 7, 14, 30].map((days) => (
+                      <button
+                        key={days}
+                        onClick={() => handleSaveNotificationDays(days)}
+                        className={`px-3 py-1 text-xs rounded-lg transition ${
+                          notificationDays === days
+                            ? 'bg-green-600 text-white'
+                            : 'bg-white text-green-800 border border-green-300 hover:bg-green-100'
+                        }`}
+                      >
+                        {days}일 전
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleNewRental}
           className="w-full py-4 bg-blue-600 text-white rounded-lg font-medium text-lg mb-6 hover:bg-blue-700 transition"
@@ -452,7 +537,7 @@ export default function DashboardPage() {
                         />
                       ) : (
                         <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-3xl">{rental.type === 'car' ? '🚗' : '🏠'}</span>
+                          <span className="text-3xl">{getRentalIcon(rental.type)}</span>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
