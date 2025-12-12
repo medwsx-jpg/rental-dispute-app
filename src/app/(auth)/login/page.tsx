@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
-  const [showEmailForm, setShowEmailForm] = useState(false); // 이메일 폼 표시 여부
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   // Kakao SDK 초기화 확인
   useEffect(() => {
@@ -28,13 +28,14 @@ export default function LoginPage() {
       if (window.Kakao) {
         if (!window.Kakao.isInitialized()) {
           try {
-            window.Kakao.init('4ac79b7258b6701d7900c727d81ea2c5');
-            console.log('Kakao SDK initialized');
+            window.Kakao.init('f2bc10f532d5ea14883a44ce3fe509ea');
+            console.log('✅ Kakao SDK v1 initialized');
           } catch (error) {
-            console.error('Kakao init error:', error);
+            console.error('❌ Kakao init error:', error);
           }
         }
         setKakaoReady(true);
+        console.log('✅ Kakao Ready:', window.Kakao);
       } else {
         setTimeout(initKakao, 500);
       }
@@ -98,22 +99,29 @@ export default function LoginPage() {
   };
 
   const handleKakaoLogin = async () => {
+    console.log('🔵 카카오 로그인 버튼 클릭됨');
     setError('');
     setLoading(true);
 
     try {
       if (!window.Kakao || !kakaoReady) {
+        console.log('❌ Kakao SDK 준비 안 됨');
         setError('카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
         setLoading(false);
         return;
       }
 
+      console.log('✅ Kakao SDK 준비됨, Auth.login 호출');
+
       window.Kakao.Auth.login({
         success: async (authObj: any) => {
+          console.log('✅ 카카오 로그인 성공!', authObj);
           try {
+            console.log('🔵 사용자 정보 요청 시작');
             window.Kakao.API.request({
               url: '/v2/user/me',
               success: async (res: any) => {
+                console.log('✅ 사용자 정보 받음:', res);
                 const kakaoAccount = res.kakao_account;
                 const kakaoId = res.id;
                 
@@ -122,6 +130,8 @@ export default function LoginPage() {
 
                 const userId = `kakao_${kakaoId}`;
                 
+                console.log('🔵 Firestore 저장 시작:', { userId, email, nickname });
+
                 await setDoc(doc(db, 'users', userId), {
                   email: email,
                   nickname: nickname,
@@ -132,34 +142,37 @@ export default function LoginPage() {
                   isPremium: false,
                 }, { merge: true });
 
+                console.log('✅ Firestore 저장 완료');
+
                 sessionStorage.setItem('kakao_user', JSON.stringify({
                   userId,
                   email,
                   nickname,
                 }));
 
+                console.log('✅ 세션 저장 완료, 대시보드로 이동');
                 router.push('/dashboard');
               },
               fail: (error: any) => {
-                console.error(error);
+                console.error('❌ 사용자 정보 요청 실패:', error);
                 setError('카카오 사용자 정보를 가져오는데 실패했습니다.');
                 setLoading(false);
               },
             });
           } catch (err) {
-            console.error(err);
+            console.error('❌ 사용자 정보 처리 중 에러:', err);
             setError('카카오 로그인 처리 중 오류가 발생했습니다.');
             setLoading(false);
           }
         },
         fail: (err: any) => {
-          console.error(err);
+          console.error('❌ 카카오 로그인 실패:', err);
           setError('카카오 로그인에 실패했습니다.');
           setLoading(false);
         },
       });
     } catch (err: any) {
-      console.error(err);
+      console.error('❌ 카카오 로그인 함수 에러:', err);
       setError('카카오 로그인에 실패했습니다.');
       setLoading(false);
     }
