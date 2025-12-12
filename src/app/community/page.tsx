@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc, updateDoc, arrayUnion, increment, deleteDoc } from 'firebase/firestore';
 
 interface Comment {
   userId: string;
@@ -24,15 +24,23 @@ interface Post {
   views: number;
 }
 
+// 관리자 이메일 목록
+const ADMIN_EMAILS = ['medws@naver.com'];
+
 export default function CommunityPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [nickname, setNickname] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [showEditPostModal, setShowEditPostModal] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editPostTitle, setEditPostTitle] = useState('');
+  const [editPostContent, setEditPostContent] = useState('');
   const [posting, setPosting] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [newComment, setNewComment] = useState('');
@@ -42,6 +50,7 @@ export default function CommunityPage() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setIsAdmin(ADMIN_EMAILS.includes(currentUser.email || ''));
         await checkNickname(currentUser.uid);
         loadPosts();
       } else {
@@ -122,6 +131,56 @@ export default function CommunityPage() {
     }
   };
 
+  const handleEditPost = (post: Post) => {
+    setEditingPost(post);
+    setEditPostTitle(post.title);
+    setEditPostContent(post.content);
+    setShowEditPostModal(true);
+  };
+
+  const handleUpdatePost = async () => {
+    if (!editPostTitle.trim() || !editPostContent.trim() || !editingPost) {
+      alert('제목과 내용을 모두 입력해주세요.');
+      return;
+    }
+
+    setPosting(true);
+    try {
+      const postRef = doc(db, 'posts', editingPost.id);
+      await updateDoc(postRef, {
+        title: editPostTitle.trim(),
+        content: editPostContent.trim(),
+      });
+
+      setShowEditPostModal(false);
+      setEditingPost(null);
+      setEditPostTitle('');
+      setEditPostContent('');
+      alert('게시글이 수정되었습니다!');
+    } catch (error) {
+      console.error('게시글 수정 실패:', error);
+      alert('게시글 수정에 실패했습니다.');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    const confirmed = confirm('정말 이 게시글을 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'posts', postId));
+      alert('게시글이 삭제되었습니다!');
+      if (selectedPost?.id === postId) {
+        setSelectedPost(null);
+      }
+    } catch (error) {
+      console.error('게시글 삭제 실패:', error);
+      alert('게시글 삭제에 실패했습니다.');
+    }
+  };
+
   const handlePostClick = async (post: Post) => {
     // 조회수 증가
     try {
@@ -162,6 +221,11 @@ export default function CommunityPage() {
     } finally {
       setCommenting(false);
     }
+  };
+
+  const canEditOrDelete = (post: Post) => {
+    // 작성자 본인이거나 관리자
+    return user && (user.uid === post.userId || isAdmin);
   };
 
   const formatDate = (timestamp: any) => {
@@ -209,6 +273,7 @@ export default function CommunityPage() {
             className="text-sm text-blue-600 hover:text-blue-800"
           >
             {nickname}
+            {isAdmin && <span className="ml-1 text-xs">👑</span>}
           </button>
         </div>
       </header>
@@ -235,7 +300,12 @@ export default function CommunityPage() {
                   onClick={() => handlePostClick(post)}
                   className="bg-white p-4 cursor-pointer hover:bg-gray-50 transition"
                 >
-                  <h3 className="font-medium text-gray-900 mb-2">{post.title}</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">
+                    {post.title}
+                    {isAdmin && post.userId !== user.uid && (
+                      <span className="ml-2 text-xs text-gray-400">(다른 사용자)</span>
+                    )}
+                  </h3>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-1">
                     {truncateContent(post.content)}
                   </p>
@@ -251,8 +321,34 @@ export default function CommunityPage() {
                   <div className="bg-gray-50 border-t border-b border-gray-200 p-4">
                     <div className="bg-white rounded-lg p-4 mb-4">
                       <p className="text-sm text-gray-700 whitespace-pre-wrap mb-3">{post.content}</p>
-                      <div className="text-xs text-gray-500">
-                        {post.timestamp?.toDate().toLocaleString('ko-KR')}
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-500">
+                          {post.timestamp?.toDate().toLocaleString('ko-KR')}
+                        </div>
+                        
+                        {/* 수정/삭제 버튼 */}
+                        {canEditOrDelete(post) && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditPost(post);
+                              }}
+                              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+                            >
+                              ✏️ 수정
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePost(post.id);
+                              }}
+                              className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+                            >
+                              🗑️ 삭제
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -360,6 +456,67 @@ export default function CommunityPage() {
                 className="flex-1 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {posting ? '등록 중...' : '등록하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 게시글 수정 모달 */}
+      {showEditPostModal && editingPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">게시글 수정</h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  제목 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editPostTitle}
+                  onChange={(e) => setEditPostTitle(e.target.value)}
+                  placeholder="제목을 입력하세요"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  disabled={posting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  내용 <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={editPostContent}
+                  onChange={(e) => setEditPostContent(e.target.value)}
+                  placeholder="내용을 입력하세요"
+                  rows={8}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                  disabled={posting}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowEditPostModal(false);
+                  setEditingPost(null);
+                  setEditPostTitle('');
+                  setEditPostContent('');
+                }}
+                disabled={posting}
+                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdatePost}
+                disabled={posting || !editPostTitle.trim() || !editPostContent.trim()}
+                className="flex-1 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {posting ? '수정 중...' : '수정 완료'}
               </button>
             </div>
           </div>

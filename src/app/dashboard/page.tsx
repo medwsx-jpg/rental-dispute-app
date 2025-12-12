@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc, addDoc } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 
@@ -24,6 +24,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMessageForm, setShowMessageForm] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -115,6 +118,32 @@ export default function DashboardPage() {
     });
 
     return unsubscribe;
+  };
+
+  const handleSendMessage = async () => {
+    if (messageText.trim().length === 0) return;
+    
+    setSendingMessage(true);
+    
+    try {
+      await addDoc(collection(db, 'messages'), {
+        userId: user.uid,
+        userEmail: user.email || '이메일 없음',
+        userName: userData?.nickname || '사용자',
+        message: messageText.trim(),
+        createdAt: Date.now(),
+        status: 'unread',
+      });
+      
+      alert('메시지가 전송되었습니다! 관리자가 확인 후 답변드리겠습니다.');
+      setMessageText('');
+      setShowMessageForm(false);
+    } catch (error) {
+      console.error('메시지 전송 실패:', error);
+      alert('메시지 전송에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -389,18 +418,53 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 text-center">
-          <h3 className="font-medium text-gray-900 mb-2">💬 문의하기</h3>
-          <p className="text-sm text-gray-600 mb-4">
+        {/* 관리자에게 메시지 보내기 */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
+          <h3 className="font-medium text-gray-900 mb-2 text-center">💬 관리자에게 문의하기</h3>
+          <p className="text-sm text-gray-600 mb-4 text-center">
             앱 사용 중 문제가 있거나 제안사항이 있으신가요?
           </p>
           
-          <a href="mailto:medws@naver.com?subject=Record%20365%20문의"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-          >
-            📧 개발자에게 이메일 보내기
-          </a>
-          <p className="text-xs text-gray-500 mt-3">medws@naver.com</p>
+          {showMessageForm ? (
+            <div className="space-y-4">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="메시지를 입력하세요..."
+                rows={5}
+                maxLength={1000}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+              />
+              <div className="text-right text-xs text-gray-500 mb-2">
+                {messageText.length} / 1000자
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowMessageForm(false);
+                    setMessageText('');
+                  }}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={messageText.trim().length === 0 || sendingMessage}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingMessage ? '전송 중...' : '📤 전송'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowMessageForm(true)}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+            >
+              💬 메시지 보내기
+            </button>
+          )}
         </div>
       </main>
     </div>
