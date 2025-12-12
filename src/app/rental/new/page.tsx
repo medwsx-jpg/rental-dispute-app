@@ -140,42 +140,42 @@ export default function NewRentalPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="font-medium text-gray-900 mb-4">렌탈 유형</h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <button
                 type="button"
                 onClick={() => setType('car')}
-                className={`p-6 rounded-lg border-2 text-center transition ${
+                className={`p-3 sm:p-6 rounded-lg border-2 text-center transition ${
                   type === 'car'
                     ? 'border-blue-600 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <span className="text-4xl">🚗</span>
-                <p className="mt-2 font-medium">렌터카</p>
+                <span className="text-3xl sm:text-4xl">🚗</span>
+                <p className="mt-1 sm:mt-2 font-medium text-xs sm:text-base">렌터카</p>
               </button>
               <button
                 type="button"
                 onClick={() => setType('house')}
-                className={`p-6 rounded-lg border-2 text-center transition ${
+                className={`p-3 sm:p-6 rounded-lg border-2 text-center transition ${
                   type === 'house'
                     ? 'border-blue-600 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <span className="text-4xl">🏠</span>
-                <p className="mt-2 font-medium">월세</p>
+                <span className="text-3xl sm:text-4xl">🏠</span>
+                <p className="mt-1 sm:mt-2 font-medium text-xs sm:text-base">월세</p>
               </button>
               <button
                 type="button"
                 onClick={() => setType('goods')}
-                className={`p-6 rounded-lg border-2 text-center transition ${
+                className={`p-3 sm:p-6 rounded-lg border-2 text-center transition ${
                   type === 'goods'
                     ? 'border-blue-600 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <span className="text-4xl">📦</span>
-                <p className="mt-2 font-medium">생활용품</p>
+                <span className="text-3xl sm:text-4xl">📦</span>
+                <p className="mt-1 sm:mt-2 font-medium text-xs sm:text-base">생활용품</p>
               </button>
             </div>
           </div>
