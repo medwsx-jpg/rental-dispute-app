@@ -115,8 +115,7 @@ export default function LoginPage() {
       console.log('✅ Kakao SDK 준비됨, Auth.login 호출');
 
       window.Kakao.Auth.login({
-        throughTalk: false, // 카카오톡 앱 대신 웹 로그인 사용
-        success: async (authObj: any) => {
+               success: async (authObj: any) => {
           console.log('✅ 카카오 로그인 성공!', authObj);
           try {
             console.log('🔵 사용자 정보 요청 시작');
