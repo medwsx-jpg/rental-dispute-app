@@ -12,12 +12,12 @@ export default function NewRentalPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const [type, setType] = useState<'car' | 'house'>('car');
+  const [type, setType] = useState<'car' | 'house' | 'goods'>('car');
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const areas = type === 'car' ? CAR_AREAS : HOUSE_AREAS;
+  const areas = type === 'car' ? CAR_AREAS : type === 'house' ? HOUSE_AREAS : [];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -105,7 +105,7 @@ export default function NewRentalPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="font-medium text-gray-900 mb-4">렌탈 유형</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <button
                 type="button"
                 onClick={() => setType('car')}
@@ -130,6 +130,18 @@ export default function NewRentalPage() {
                 <span className="text-4xl">🏠</span>
                 <p className="mt-2 font-medium">월세</p>
               </button>
+              <button
+                type="button"
+                onClick={() => setType('goods')}
+                className={`p-6 rounded-lg border-2 text-center transition ${
+                  type === 'goods'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <span className="text-4xl">📦</span>
+                <p className="mt-2 font-medium">생활용품</p>
+              </button>
             </div>
           </div>
 
@@ -142,7 +154,13 @@ export default function NewRentalPage() {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder={type === 'car' ? '예: 제주도 여행 렌터카' : '예: 강남 원룸 월세'}
+                  placeholder={
+                    type === 'car' 
+                      ? '예: 제주도 여행 렌터카' 
+                      : type === 'house'
+                      ? '예: 강남 원룸 월세'
+                      : '예: 청소기 대여'
+                  }
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -170,25 +188,27 @@ export default function NewRentalPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="font-medium text-gray-900 mb-4">촬영 영역 미리보기</h2>
-            <div className="flex flex-wrap gap-2">
-              {areas.map((area) => (
-                <span
-                  key={area.id}
-                  className={`px-3 py-2 rounded-full text-sm ${
-                    area.required
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {area.icon} {area.name}
-                  {area.required && <span className="text-red-500 ml-1">*</span>}
-                </span>
-              ))}
+          {areas.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="font-medium text-gray-900 mb-4">촬영 영역 미리보기</h2>
+              <div className="flex flex-wrap gap-2">
+                {areas.map((area) => (
+                  <span
+                    key={area.id}
+                    className={`px-3 py-2 rounded-full text-sm ${
+                      area.required
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {area.icon} {area.name}
+                    {area.required && <span className="text-red-500 ml-1">*</span>}
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-3">* 필수 촬영 영역</p>
             </div>
-            <p className="text-xs text-gray-500 mt-3">* 필수 촬영 영역</p>
-          </div>
+          )}
 
           <div className="bg-yellow-50 rounded-lg p-4">
             <h3 className="font-medium text-yellow-800 mb-2">💡 촬영 팁</h3>
