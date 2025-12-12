@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc, getDoc, arrayUnion } from 'firebase/firestore';
 
 interface User {
   id: string;
@@ -17,13 +17,21 @@ interface User {
 }
 
 interface Message {
-  id: string;
+  from: 'user' | 'admin';
+  message: string;
+  timestamp: number;
+  readByAdmin: boolean;
+  readByUser: boolean;
+}
+
+interface MessageThread {
   userId: string;
   userEmail: string;
   userName: string;
-  message: string;
   createdAt: number;
-  status: 'unread' | 'read';
+  messages: Message[];
+  unreadByUser: number;
+  unreadByAdmin: number;
 }
 
 // 관리자 이메일 목록
@@ -34,9 +42,8 @@ export default function AdminPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'messages'>('users');
   const [users, setUsers] = useState<User[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [userMessages, setUserMessages] = useState<Record<string, MessageThread>>({});
   const [stats, setStats] = useState({
     totalUsers: 0,
     freeUsers: 0,
@@ -45,6 +52,10 @@ export default function AdminPage() {
     unreadMessages: 0,
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedUserThread, setSelectedUserThread] = useState<MessageThread | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -74,7 +85,6 @@ export default function AdminPage() {
         userList.push({ id: doc.id, ...doc.data() } as User);
       });
       
-      // 최신순 정렬
       userList.sort((a, b) => b.createdAt - a.createdAt);
       setUsers(userList);
 
@@ -83,25 +93,28 @@ export default function AdminPage() {
       const totalRentals = rentalsSnapshot.size;
 
       // 메시지 데이터 로드
-      const messagesQuery = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
-      const messagesSnapshot = await getDocs(messagesQuery);
-      const messageList: Message[] = [];
+      const messagesSnapshot = await getDocs(collection(db, 'messages'));
+      const messagesMap: Record<string, MessageThread> = {};
+      let totalUnread = 0;
+      
       messagesSnapshot.forEach((doc) => {
-        messageList.push({ id: doc.id, ...doc.data() } as Message);
+        const data = doc.data() as MessageThread;
+        messagesMap[doc.id] = data;
+        totalUnread += data.unreadByAdmin || 0;
       });
-      setMessages(messageList);
+      
+      setUserMessages(messagesMap);
 
       // 통계 계산
       const freeUsers = userList.filter(u => !u.isPremium).length;
       const premiumUsers = userList.filter(u => u.isPremium).length;
-      const unreadMessages = messageList.filter(m => m.status === 'unread').length;
 
       setStats({
         totalUsers: userList.length,
         freeUsers,
         premiumUsers,
         totalRentals,
-        unreadMessages,
+        unreadMessages: totalUnread,
       });
     } catch (error) {
       console.error('데이터 로드 실패:', error);
@@ -148,42 +161,77 @@ export default function AdminPage() {
     }
   };
 
-  const toggleMessageStatus = async (messageId: string, currentStatus: 'unread' | 'read') => {
-    try {
-      const newStatus = currentStatus === 'unread' ? 'read' : 'unread';
-      await updateDoc(doc(db, 'messages', messageId), {
-        status: newStatus,
-      });
-      await loadData();
-    } catch (error) {
-      console.error('상태 변경 실패:', error);
-      alert('상태 변경에 실패했습니다.');
+  const handleOpenMessages = async (userId: string) => {
+    const thread = userMessages[userId];
+    if (!thread) {
+      alert('이 사용자는 아직 메시지를 보내지 않았습니다.');
+      return;
+    }
+
+    setSelectedUserThread(thread);
+    setShowMessageModal(true);
+
+    // 메시지를 열면 안읽은 메시지를 읽음 처리
+    if (thread.unreadByAdmin > 0) {
+      try {
+        const messageRef = doc(db, 'messages', userId);
+        const updatedMessages = thread.messages.map(msg => ({
+          ...msg,
+          readByAdmin: true
+        }));
+        
+        await updateDoc(messageRef, {
+          messages: updatedMessages,
+          unreadByAdmin: 0
+        });
+        
+        await loadData(); // 통계 새로고침
+      } catch (error) {
+        console.error('읽음 처리 실패:', error);
+      }
     }
   };
 
-  const deleteMessage = async (messageId: string) => {
-    const confirmed = confirm('이 메시지를 삭제하시겠습니까?');
-    if (!confirmed) return;
-
+  const handleSendMessage = async () => {
+    if (newMessage.trim().length === 0 || !selectedUserThread) return;
+    
+    setSendingMessage(true);
+    
     try {
-      await deleteDoc(doc(db, 'messages', messageId));
-      alert('삭제되었습니다!');
-      await loadData();
+      const messageRef = doc(db, 'messages', selectedUserThread.userId);
+      const messageData: Message = {
+        from: 'admin',
+        message: newMessage.trim(),
+        timestamp: Date.now(),
+        readByAdmin: true,
+        readByUser: false,
+      };
+
+      await updateDoc(messageRef, {
+        messages: arrayUnion(messageData),
+        unreadByUser: selectedUserThread.unreadByUser + 1
+      });
+      
+      setNewMessage('');
+      
+      // 스레드 새로고침
+      const updatedDoc = await getDoc(messageRef);
+      if (updatedDoc.exists()) {
+        setSelectedUserThread(updatedDoc.data() as MessageThread);
+      }
+      
+      await loadData(); // 전체 데이터 새로고침
     } catch (error) {
-      console.error('삭제 실패:', error);
-      alert('삭제에 실패했습니다.');
+      console.error('메시지 전송 실패:', error);
+      alert('메시지 전송에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
   const filteredUsers = users.filter(user => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.nickname.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredMessages = messages.filter(msg =>
-    msg.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    msg.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    msg.message.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -256,71 +304,44 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* 탭 메뉴 */}
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`flex-1 px-6 py-4 font-medium transition ${
-                activeTab === 'users'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              👥 사용자 관리
-            </button>
-            <button
-              onClick={() => setActiveTab('messages')}
-              className={`flex-1 px-6 py-4 font-medium transition relative ${
-                activeTab === 'messages'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              💬 메시지
-              {stats.unreadMessages > 0 && (
-                <span className="absolute top-2 right-4 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                  {stats.unreadMessages}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
         {/* 검색 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <input
             type="text"
-            placeholder={activeTab === 'users' ? '🔍 이메일 또는 닉네임 검색...' : '🔍 메시지 검색...'}
+            placeholder="🔍 이메일 또는 닉네임 검색..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
         </div>
 
-        {/* 사용자 목록 탭 */}
-        {activeTab === 'users' && (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                사용자 목록 ({filteredUsers.length}명)
-              </h2>
-            </div>
+        {/* 사용자 목록 */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">
+              사용자 목록 ({filteredUsers.length}명)
+            </h2>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">닉네임</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상태</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">무료 사용</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">가입일</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">관리</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredUsers.map((user) => (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">닉네임</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상태</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">무료 사용</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">메시지</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">가입일</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">관리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredUsers.map((user) => {
+                  const thread = userMessages[user.id];
+                  const unreadCount = thread?.unreadByAdmin || 0;
+                  
+                  return (
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {user.email}
@@ -342,6 +363,23 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-600">
                         {user.freeRentalsUsed} / 1
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {thread ? (
+                          <button
+                            onClick={() => handleOpenMessages(user.id)}
+                            className="relative inline-flex items-center justify-center"
+                          >
+                            <span className="text-lg">💬</span>
+                            {unreadCount > 0 && (
+                              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                                {unreadCount}
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString('ko-KR')}
@@ -369,83 +407,18 @@ export default function AdminPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">검색 결과가 없습니다.</p>
-              </div>
-            )}
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
 
-        {/* 메시지 목록 탭 */}
-        {activeTab === 'messages' && (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                메시지 목록 ({filteredMessages.length}개)
-              </h2>
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">검색 결과가 없습니다.</p>
             </div>
-
-            <div className="divide-y divide-gray-200">
-              {filteredMessages.map((msg) => (
-                <div 
-                  key={msg.id} 
-                  className={`p-4 hover:bg-gray-50 transition ${
-                    msg.status === 'unread' ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{msg.userName}</span>
-                      <span className="text-sm text-gray-500">({msg.userEmail})</span>
-                      {msg.status === 'unread' && (
-                        <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
-                          NEW
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {new Date(msg.createdAt).toLocaleString('ko-KR')}
-                    </span>
-                  </div>
-                  
-                  <p className="text-sm text-gray-700 mb-3 whitespace-pre-wrap">{msg.message}</p>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => toggleMessageStatus(msg.id, msg.status)}
-                      className={`px-3 py-1 text-xs rounded-lg font-medium transition ${
-                        msg.status === 'unread'
-                          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {msg.status === 'unread' ? '✓ 읽음 처리' : '읽지 않음으로'}
-                    </button>
-                    <button
-                      onClick={() => deleteMessage(msg.id)}
-                      className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition"
-                    >
-                      🗑️ 삭제
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {filteredMessages.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-5xl mb-4">📭</p>
-                <p className="text-gray-500">메시지가 없습니다.</p>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {/* 안내 */}
         <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -453,11 +426,98 @@ export default function AdminPage() {
           <ul className="text-sm text-yellow-700 space-y-1">
             <li>• 프리미엄 전환: 사용자를 무료 ↔ 프리미엄으로 전환</li>
             <li>• 초기화: 무료 사용 횟수를 0으로 재설정 (테스트용)</li>
-            <li>• 메시지: 사용자가 보낸 문의 메시지 관리</li>
+            <li>• 메시지: 💬 아이콘 클릭하여 사용자와 대화</li>
             <li>• 통계는 실시간으로 업데이트됩니다</li>
           </ul>
         </div>
       </main>
+
+      {/* 메시지 모달 */}
+      {showMessageModal && selectedUserThread && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">
+                {selectedUserThread.userName}님과의 대화
+              </h2>
+              <button
+                onClick={() => {
+                  setShowMessageModal(false);
+                  setSelectedUserThread(null);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {selectedUserThread.messages.length > 0 ? (
+                selectedUserThread.messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${msg.from === 'admin' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                        msg.from === 'admin'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-200 text-gray-900'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                      <p className={`text-xs mt-1 ${
+                        msg.from === 'admin' ? 'text-green-100' : 'text-gray-500'
+                      }`}>
+                        {new Date(msg.timestamp).toLocaleString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">메시지가 없습니다.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex gap-2">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="답장을 입력하세요... (Shift+Enter로 줄바꿈)"
+                  rows={2}
+                  maxLength={1000}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
+                  disabled={sendingMessage}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={newMessage.trim().length === 0 || sendingMessage}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingMessage ? '전송 중...' : '답장'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 text-right">
+                {newMessage.length} / 1000자
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

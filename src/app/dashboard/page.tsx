@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, onSnapshot, orderBy, doc, getDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 
@@ -16,6 +16,24 @@ interface UserData {
   createdAt: number;
 }
 
+interface Message {
+  from: 'user' | 'admin';
+  message: string;
+  timestamp: number;
+  readByAdmin: boolean;
+  readByUser: boolean;
+}
+
+interface MessageThread {
+  userId: string;
+  userEmail: string;
+  userName: string;
+  createdAt: number;
+  messages: Message[];
+  unreadByUser: number;
+  unreadByAdmin: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -24,8 +42,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showMessageForm, setShowMessageForm] = useState(false);
-  const [messageText, setMessageText] = useState('');
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageThread, setMessageThread] = useState<MessageThread | null>(null);
+  const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
@@ -34,6 +53,7 @@ export default function DashboardPage() {
         setUser(currentUser);
         await loadUserData(currentUser.uid);
         loadRentals(currentUser.uid);
+        loadMessageThread(currentUser.uid);
         checkNotificationPermission();
       } else {
         router.push('/login');
@@ -80,6 +100,20 @@ export default function DashboardPage() {
     }
   };
 
+  const loadMessageThread = (userId: string) => {
+    const messageRef = doc(db, 'messages', userId);
+    
+    const unsubscribe = onSnapshot(messageRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setMessageThread(docSnap.data() as MessageThread);
+      } else {
+        setMessageThread(null);
+      }
+    });
+
+    return unsubscribe;
+  };
+
   const checkNotificationPermission = async () => {
     if ('Notification' in window) {
       setNotificationEnabled(Notification.permission === 'granted');
@@ -120,24 +154,63 @@ export default function DashboardPage() {
     return unsubscribe;
   };
 
+  const handleOpenMessages = async () => {
+    setShowMessageModal(true);
+    
+    // 메시지를 열면 안읽은 메시지를 읽음 처리
+    if (messageThread && messageThread.unreadByUser > 0) {
+      try {
+        const messageRef = doc(db, 'messages', user.uid);
+        const updatedMessages = messageThread.messages.map(msg => ({
+          ...msg,
+          readByUser: true
+        }));
+        
+        await updateDoc(messageRef, {
+          messages: updatedMessages,
+          unreadByUser: 0
+        });
+      } catch (error) {
+        console.error('읽음 처리 실패:', error);
+      }
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (messageText.trim().length === 0) return;
+    if (newMessage.trim().length === 0 || !user || !userData) return;
     
     setSendingMessage(true);
     
     try {
-      await addDoc(collection(db, 'messages'), {
-        userId: user.uid,
-        userEmail: user.email || '이메일 없음',
-        userName: userData?.nickname || '사용자',
-        message: messageText.trim(),
-        createdAt: Date.now(),
-        status: 'unread',
-      });
+      const messageRef = doc(db, 'messages', user.uid);
+      const messageData: Message = {
+        from: 'user',
+        message: newMessage.trim(),
+        timestamp: Date.now(),
+        readByAdmin: false,
+        readByUser: true,
+      };
+
+      if (messageThread) {
+        // 기존 스레드에 추가
+        await updateDoc(messageRef, {
+          messages: arrayUnion(messageData),
+          unreadByAdmin: messageThread.unreadByAdmin + 1
+        });
+      } else {
+        // 새 스레드 생성
+        await setDoc(messageRef, {
+          userId: user.uid,
+          userEmail: user.email || '이메일 없음',
+          userName: userData.nickname,
+          createdAt: Date.now(),
+          messages: [messageData],
+          unreadByUser: 0,
+          unreadByAdmin: 1
+        });
+      }
       
-      alert('메시지가 전송되었습니다! 관리자가 확인 후 답변드리겠습니다.');
-      setMessageText('');
-      setShowMessageForm(false);
+      setNewMessage('');
     } catch (error) {
       console.error('메시지 전송 실패:', error);
       alert('메시지 전송에 실패했습니다. 다시 시도해주세요.');
@@ -152,9 +225,7 @@ export default function DashboardPage() {
   };
 
   const handleNewRental = () => {
-    // 무료 사용자: 1건 제한
     if (!userData?.isPremium && userData && userData.freeRentalsUsed >= FREE_RENTAL_LIMIT) {
-      // 무료 1건 초과 시 결제 안내
       const confirmed = confirm(
         `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 추가 렌탈: 건당 ${PRICE_PER_RENTAL.toLocaleString()}원\n📅 보관 기간: 렌탈 종료 후 1개월\n\n결제 페이지로 이동하시겠습니까?`
       );
@@ -236,6 +307,7 @@ export default function DashboardPage() {
 
   const isPremium = userData.isPremium;
   const freeUsed = userData.freeRentalsUsed;
+  const unreadCount = messageThread?.unreadByUser || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -304,7 +376,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 무료/유료 상태 표시 */}
         {isPremium ? (
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
@@ -425,48 +496,102 @@ export default function DashboardPage() {
             앱 사용 중 문제가 있거나 제안사항이 있으신가요?
           </p>
           
-          {showMessageForm ? (
-            <div className="space-y-4">
-              <textarea
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="메시지를 입력하세요..."
-                rows={5}
-                maxLength={1000}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-              />
-              <div className="text-right text-xs text-gray-500 mb-2">
-                {messageText.length} / 1000자
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowMessageForm(false);
-                    setMessageText('');
-                  }}
-                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={messageText.trim().length === 0 || sendingMessage}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {sendingMessage ? '전송 중...' : '📤 전송'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowMessageForm(true)}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-            >
-              💬 메시지 보내기
-            </button>
-          )}
+          <button
+            onClick={handleOpenMessages}
+            className="relative w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+          >
+            💬 메시지 보내기
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </main>
+
+      {/* 메시지 모달 */}
+      {showMessageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">관리자와의 대화</h2>
+              <button
+                onClick={() => setShowMessageModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messageThread && messageThread.messages.length > 0 ? (
+                messageThread.messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                        msg.from === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-900'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                      <p className={`text-xs mt-1 ${
+                        msg.from === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                        {new Date(msg.timestamp).toLocaleString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">아직 메시지가 없습니다.</p>
+                  <p className="text-gray-400 text-sm mt-2">관리자에게 첫 메시지를 보내보세요!</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex gap-2">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="메시지를 입력하세요... (Shift+Enter로 줄바꿈)"
+                  rows={2}
+                  maxLength={1000}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                  disabled={sendingMessage}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={newMessage.trim().length === 0 || sendingMessage}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingMessage ? '전송 중...' : '전송'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1 text-right">
+                {newMessage.length} / 1000자
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
