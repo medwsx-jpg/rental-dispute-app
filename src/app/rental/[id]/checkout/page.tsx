@@ -6,10 +6,26 @@ import { auth, db, storage } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Rental, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
+import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
 import SignatureModal from '@/components/SignatureModal';
 import { compressImage } from '@/lib/imageCompression';
 import ImageViewer from '@/components/ImageViewer';
+
+// 렌탈 타입에 따른 촬영 영역 반환
+const getAreasForRental = (rental: Rental | null): RentalArea[] => {
+  if (!rental) return [];
+  if (rental.type === 'car') return CAR_AREAS;
+  if (rental.type === 'house') return HOUSE_AREAS;
+  if (rental.type === 'goods' && rental.customAreas && rental.customAreas.length > 0) {
+    return rental.customAreas.map((name, i) => ({
+      id: `custom_${i}`,
+      name: name,
+      icon: '📦',
+      required: false
+    }));
+  }
+  return []; // 생활용품이지만 customAreas가 없으면 빈 배열
+};
 
 export default function AfterPage() {
   const router = useRouter();
@@ -36,7 +52,7 @@ export default function AfterPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
+  const areas = getAreasForRental(rental);
   const currentArea = areas?.[currentAreaIndex];
 
   useEffect(() => {
@@ -94,7 +110,15 @@ export default function AfterPage() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentArea) return;
+    if (!file) return;
+
+    // 생활용품이고 customAreas가 없을 때 (자유 촬영 모드)
+    if (rental?.type === 'goods' && areas.length === 0) {
+      await handleFreePhotoUpload(file);
+      return;
+    }
+
+    if (!currentArea) return;
 
     // 이미지 압축
     const compressedFile = await compressImage(file);
@@ -110,6 +134,51 @@ export default function AfterPage() {
     const currentPhoto = getPhotoForArea(currentArea.id);
     setPendingFile(compressedFile);
     setMemo(currentPhoto?.notes || '');
+  };
+
+  const handleFreePhotoUpload = async (file: File) => {
+    setUploading(true);
+
+    try {
+      const compressedFile = await compressImage(file);
+      const location = await getLocation();
+      const timestamp = Date.now();
+      const photoId = `free_${timestamp}`;
+
+      const storageRef = ref(
+        storage,
+        `rentals/${rentalId}/after/${photoId}.jpg`
+      );
+
+      await uploadBytes(storageRef, compressedFile);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      const newPhoto: Photo = {
+        url: downloadURL,
+        timestamp,
+        location,
+        area: photoId,
+        notes: '',
+      };
+
+      const updatedPhotos = [...photos, newPhoto];
+      setPhotos(updatedPhotos);
+
+      const rentalRef = doc(db, 'rentals', rentalId);
+      await updateDoc(rentalRef, {
+        'checkOut.photos': updatedPhotos,
+      });
+
+      alert('사진이 저장되었습니다!');
+    } catch (error) {
+      console.error('업로드 실패:', error);
+      alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleConfirmPreview = () => {
@@ -189,7 +258,7 @@ export default function AfterPage() {
   };
 
   const handleEditMemo = () => {
-    const currentPhoto = getPhotoForArea(currentArea.id);
+    const currentPhoto = getPhotoForArea(currentArea?.id || '');
     if (currentPhoto) {
       setMemo(currentPhoto.notes);
       setEditingMemo(true);
@@ -238,6 +307,37 @@ export default function AfterPage() {
   };
 
   const handleComplete = async () => {
+    // 생활용품 자유 촬영 모드
+    if (rental?.type === 'goods' && areas.length === 0) {
+      if (photos.length === 0) {
+        alert('최소 1장 이상의 사진을 촬영해주세요.');
+        return;
+      }
+      
+      if (!signature) {
+        alert('서명이 필요합니다.');
+        setShowSignatureModal(true);
+        return;
+      }
+
+      try {
+        const rentalRef = doc(db, 'rentals', rentalId);
+        await updateDoc(rentalRef, {
+          'checkOut.completedAt': Date.now(),
+          'checkOut.signature': signature,
+          'status': 'completed',
+        });
+
+        alert('After 사진 등록이 완료되었습니다! 🎉\n비교 화면으로 이동합니다.');
+        router.push(`/rental/${rentalId}/compare`);
+      } catch (error) {
+        console.error('완료 처리 실패:', error);
+        alert('완료 처리에 실패했습니다.');
+      }
+      return;
+    }
+
+    // 일반 모드 (차량/부동산/생활용품+customAreas)
     const requiredAreas = areas.filter(a => a.required);
     const uploadedAreas = photos.map(p => p.area);
     const missingAreas = requiredAreas.filter(a => !uploadedAreas.includes(a.id));
@@ -277,6 +377,26 @@ export default function AfterPage() {
     return rental?.checkIn.photos.find(p => p.area === areaId);
   };
 
+  const handleDeletePhoto = async (photoArea: string) => {
+    const confirmed = confirm('이 사진을 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      const updatedPhotos = photos.filter(p => p.area !== photoArea);
+      setPhotos(updatedPhotos);
+
+      const rentalRef = doc(db, 'rentals', rentalId);
+      await updateDoc(rentalRef, {
+        'checkOut.photos': updatedPhotos,
+      });
+
+      alert('사진이 삭제되었습니다.');
+    } catch (error) {
+      console.error('사진 삭제 실패:', error);
+      alert('사진 삭제에 실패했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -285,12 +405,175 @@ export default function AfterPage() {
     );
   }
 
-  if (!rental || !currentArea) {
+  if (!rental) {
     return null;
   }
 
-  const currentPhoto = getPhotoForArea(currentArea.id);
-  const beforePhoto = getBeforePhotoForArea(currentArea.id);
+  // 생활용품 자유 촬영 모드
+  if (rental.type === 'goods' && areas.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
+                  ← 뒤로
+                </button>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900">📸 After 촬영</h1>
+                  <p className="text-sm text-gray-500">{rental.title}</p>
+                </div>
+              </div>
+              <span className="text-2xl">📦</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-4xl mx-auto px-4 py-6">
+          <div className="bg-orange-50 rounded-lg p-4 mb-6">
+            <h3 className="font-medium text-orange-800 mb-2">💡 자유 촬영 모드</h3>
+            <p className="text-sm text-orange-700">
+              생활용품은 자유롭게 촬영하실 수 있습니다. Before와 같은 부분을 촬영해주세요.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="text-center mb-6">
+              <p className="text-gray-600">촬영된 사진: {photos.length}장</p>
+            </div>
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
+              {uploading ? (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.capture = 'environment';
+                        input.onchange = (e) => handleFileSelect(e as any);
+                        input.click();
+                      }}
+                      className="flex-1 py-4 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition"
+                    >
+                      📷 촬영하기
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+                    >
+                      📂 갤러리
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3 text-center">Before와 같은 구도로 촬영하세요</p>
+                </div>
+              )}
+            </div>
+
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+          </div>
+
+          {photos.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <h3 className="font-medium text-gray-900 mb-4">📸 촬영된 사진</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {photos.map((photo, index) => (
+                  <div key={photo.area} className="relative">
+                    <img
+                      src={photo.url}
+                      alt={`사진 ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                      onClick={() => {
+                        setViewerImage(photo.url);
+                        setViewerTitle(`사진 ${index + 1}`);
+                        setViewerOpen(true);
+                      }}
+                    />
+                    <button
+                      onClick={() => handleDeletePhoto(photo.area)}
+                      className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1 text-center">
+                      {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {signature && (
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium text-gray-900">✍️ 서명</h3>
+                <button
+                  onClick={() => setShowSignatureModal(true)}
+                  className="text-sm text-orange-500 hover:text-orange-700"
+                >
+                  다시 서명
+                </button>
+              </div>
+              <img src={signature} alt="서명" className="border rounded-lg max-h-24" />
+            </div>
+          )}
+
+          {!signature && (
+            <button
+              onClick={() => setShowSignatureModal(true)}
+              className="w-full py-3 mb-6 border-2 border-dashed border-orange-300 text-orange-500 rounded-lg font-medium hover:bg-orange-50"
+            >
+              ✍️ 서명하기
+            </button>
+          )}
+
+          <button
+            onClick={handleComplete}
+            disabled={photos.length === 0}
+            className="w-full py-4 bg-green-600 text-white rounded-lg font-medium text-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ✓ After 완료
+          </button>
+
+          <div className="mt-6 bg-orange-50 rounded-lg p-4">
+            <h3 className="font-medium text-orange-800 mb-2">💡 촬영 팁</h3>
+            <ul className="text-sm text-orange-700 space-y-1">
+              <li>• Before와 <strong>같은 위치, 같은 구도</strong>로 촬영하세요</li>
+              <li>• 새로운 흠집이나 손상이 있다면 촬영하세요</li>
+              <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
+              <li>• 비교가 쉽도록 비슷한 조명에서 촬영하세요</li>
+            </ul>
+          </div>
+        </main>
+
+        <SignatureModal
+          isOpen={showSignatureModal}
+          onClose={() => setShowSignatureModal(false)}
+          onSave={handleSaveSignature}
+          title="After 촬영 서명"
+        />
+
+        <ImageViewer
+          isOpen={viewerOpen}
+          imageUrl={viewerImage}
+          onClose={() => setViewerOpen(false)}
+          title={viewerTitle}
+        />
+      </div>
+    );
+  }
+
+  // 일반 모드 (영역별 촬영)
+  const currentPhoto = getPhotoForArea(currentArea?.id || '');
+  const beforePhoto = getBeforePhotoForArea(currentArea?.id || '');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -306,7 +589,7 @@ export default function AfterPage() {
                 <p className="text-sm text-gray-500">{rental.title}</p>
               </div>
             </div>
-            <span className="text-2xl">{rental.type === 'car' ? '🚗' : '🏠'}</span>
+            <span className="text-2xl">{rental.type === 'car' ? '🚗' : rental.type === 'house' ? '🏠' : '📦'}</span>
           </div>
         </div>
       </header>
@@ -355,7 +638,7 @@ export default function AfterPage() {
               className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
               onClick={() => {
                 setViewerImage(beforePhoto.url);
-                setViewerTitle(`${currentArea.name} - Before (참고용)`);
+                setViewerTitle(`${currentArea?.name} - Before (참고용)`);
                 setViewerOpen(true);
               }}
             />
@@ -370,9 +653,9 @@ export default function AfterPage() {
 
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="text-center mb-6">
-            <span className="text-5xl">{currentArea.icon}</span>
-            <h2 className="text-xl font-bold mt-2">{currentArea.name}</h2>
-            {currentArea.required && (
+            <span className="text-5xl">{currentArea?.icon}</span>
+            <h2 className="text-xl font-bold mt-2">{currentArea?.name}</h2>
+            {currentArea?.required && (
               <span className="inline-block mt-1 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">필수 촬영</span>
             )}
           </div>
@@ -444,11 +727,11 @@ export default function AfterPage() {
               <div className="relative">
                 <img 
                   src={currentPhoto.url} 
-                  alt={currentArea.name} 
+                  alt={currentArea?.name} 
                   className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
                   onClick={() => {
                     setViewerImage(currentPhoto.url);
-                    setViewerTitle(`${currentArea.name} - After`);
+                    setViewerTitle(`${currentArea?.name} - After`);
                     setViewerOpen(true);
                   }}
                 />

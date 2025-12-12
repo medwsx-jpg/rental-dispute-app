@@ -5,9 +5,25 @@ import { useRouter, useParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
+import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
 import ImageViewer from '@/components/ImageViewer';
 import { PDFReport } from '@/components/PDFReport';
+
+// 렌탈 타입에 따른 촬영 영역 반환
+const getAreasForRental = (rental: Rental | null): RentalArea[] => {
+  if (!rental) return [];
+  if (rental.type === 'car') return CAR_AREAS;
+  if (rental.type === 'house') return HOUSE_AREAS;
+  if (rental.type === 'goods' && rental.customAreas && rental.customAreas.length > 0) {
+    return rental.customAreas.map((name, i) => ({
+      id: `custom_${i}`,
+      name: name,
+      icon: '📦',
+      required: false
+    }));
+  }
+  return []; // 생활용품이지만 customAreas가 없으면 빈 배열
+};
 
 export default function ComparePage() {
   const router = useRouter();
@@ -22,8 +38,8 @@ export default function ComparePage() {
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
 
-  const areas = rental?.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
-  const currentArea = selectedAreaIndex >= 0 ? areas?.[selectedAreaIndex] : null;
+  const areas = getAreasForRental(rental);
+  const currentArea = selectedAreaIndex >= 0 && selectedAreaIndex < areas.length ? areas[selectedAreaIndex] : null;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -96,10 +112,155 @@ export default function ComparePage() {
     );
   }
 
-  if (!rental || !areas) {
+  if (!rental) {
     return null;
   }
 
+  // 생활용품 자유 촬영 모드 (영역별 비교 없음)
+  if (rental.type === 'goods' && areas.length === 0) {
+    const beforePhotos = rental.checkIn.photos || [];
+    const afterPhotos = rental.checkOut.photos || [];
+
+    return (
+      <>
+        <div className="screen-view">
+          <header className="bg-white shadow-sm sticky top-0 z-10">
+            <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+              <button 
+                onClick={() => router.push('/dashboard')} 
+                className="text-gray-600 hover:text-gray-900 flex-shrink-0 font-medium"
+                style={{ fontSize: 'clamp(0.875rem, 3.5vw, 1rem)' }}
+              >
+                ← 뒤로
+              </button>
+              <h1 className="font-bold text-gray-900 whitespace-nowrap px-2" style={{ fontSize: 'clamp(1rem, 4vw, 1.25rem)' }}>
+                🔍 Before / After 비교
+              </h1>
+              <div className="w-16 flex-shrink-0"></div>
+            </div>
+          </header>
+
+          <div className="bg-white border-b sticky top-16 z-10">
+            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="text-sm text-gray-600 truncate flex-1 mr-2">
+                📦 {rental.title}
+              </div>
+              <button
+                onClick={handleShare}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex-shrink-0"
+              >
+                공유
+              </button>
+            </div>
+          </div>
+
+          <main className="max-w-4xl mx-auto px-4 py-6">
+            <div className="bg-blue-50 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800">
+                💡 생활용품은 자유 촬영 모드로 촬영되었습니다. Before와 After 사진을 비교해보세요.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">📥 Before 사진 ({beforePhotos.length}장)</h3>
+              {beforePhotos.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {beforePhotos.map((photo, index) => (
+                    <div key={photo.area}>
+                      <img
+                        src={photo.url}
+                        alt={`Before ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                        onClick={() => handleImageClick(photo.url, `Before - 사진 ${index + 1}`)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {photo.notes && (
+                        <p className="text-xs text-gray-700 mt-1">📝 {photo.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">Before 사진이 없습니다.</p>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">📤 After 사진 ({afterPhotos.length}장)</h3>
+              {afterPhotos.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {afterPhotos.map((photo, index) => (
+                    <div key={photo.area}>
+                      <img
+                        src={photo.url}
+                        alt={`After ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                        onClick={() => handleImageClick(photo.url, `After - 사진 ${index + 1}`)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {photo.notes && (
+                        <p className="text-xs text-gray-700 mt-1">📝 {photo.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">After 사진이 없습니다.</p>
+              )}
+            </div>
+          </main>
+
+          <ImageViewer
+            isOpen={viewerOpen}
+            imageUrl={viewerImage}
+            onClose={() => setViewerOpen(false)}
+            title={viewerTitle}
+          />
+        </div>
+
+        <div className="print-view">
+          {rental && <PDFReport rental={rental} />}
+        </div>
+
+        <style jsx global>{`
+          @media screen {
+            .print-view {
+              display: none;
+            }
+          }
+
+          @media print {
+            .screen-view {
+              display: none !important;
+            }
+            .print-view {
+              display: block !important;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+            }
+            
+            @page {
+              size: A4;
+              margin: 20mm;
+            }
+            
+            * {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+          }
+        `}</style>
+      </>
+    );
+  }
+
+  // 일반 모드 (영역별 비교)
   const beforePhoto = currentArea ? getPhotoForArea(currentArea.id, 'before') : null;
   const afterPhoto = currentArea ? getPhotoForArea(currentArea.id, 'after') : null;
 
@@ -146,27 +307,29 @@ export default function ComparePage() {
         </div>
 
         <main className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex overflow-x-auto gap-2 pb-4 mb-6">
-            {areas.map((area, index) => {
-              const hasBefore = getPhotoForArea(area.id, 'before');
-              const hasAfter = getPhotoForArea(area.id, 'after');
-              return (
-                <button
-                  key={area.id}
-                  onClick={() => setSelectedAreaIndex(index)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                    selectedAreaIndex === index
-                      ? 'bg-blue-600 text-white'
-                      : hasBefore && hasAfter
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {hasBefore && hasAfter && '✓ '}{area.icon} {area.name}
-                </button>
-              );
-            })}
-          </div>
+          {areas.length > 0 && (
+            <div className="flex overflow-x-auto gap-2 pb-4 mb-6">
+              {areas.map((area, index) => {
+                const hasBefore = getPhotoForArea(area.id, 'before');
+                const hasAfter = getPhotoForArea(area.id, 'after');
+                return (
+                  <button
+                    key={area.id}
+                    onClick={() => setSelectedAreaIndex(index)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                      selectedAreaIndex === index
+                        ? 'bg-blue-600 text-white'
+                        : hasBefore && hasAfter
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {hasBefore && hasAfter && '✓ '}{area.icon} {area.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {selectedAreaIndex === -1 ? (
             /* 전체 보기 */

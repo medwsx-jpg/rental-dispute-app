@@ -16,6 +16,10 @@ export default function NewRentalPage() {
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  // 생활용품용 커스텀 촬영 항목
+  const [customAreas, setCustomAreas] = useState<string[]>([]);
+  const [newAreaInput, setNewAreaInput] = useState('');
 
   const areas = type === 'car' ? CAR_AREAS : type === 'house' ? HOUSE_AREAS : [];
 
@@ -34,6 +38,30 @@ export default function NewRentalPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  // 촬영 항목 추가
+  const handleAddArea = () => {
+    const trimmed = newAreaInput.trim();
+    if (!trimmed) {
+      alert('촬영 항목을 입력해주세요.');
+      return;
+    }
+    if (customAreas.includes(trimmed)) {
+      alert('이미 추가된 항목입니다.');
+      return;
+    }
+    if (customAreas.length >= 10) {
+      alert('최대 10개까지 추가할 수 있습니다.');
+      return;
+    }
+    setCustomAreas([...customAreas, trimmed]);
+    setNewAreaInput('');
+  };
+
+  // 촬영 항목 삭제
+  const handleRemoveArea = (index: number) => {
+    setCustomAreas(customAreas.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +89,7 @@ export default function NewRentalPage() {
     setLoading(true);
 
     try {
-      const docRef = await addDoc(collection(db, 'rentals'), {
+      const rentalData: any = {
         userId: user.uid,
         type,
         title: title.trim(),
@@ -77,7 +105,14 @@ export default function NewRentalPage() {
           completedAt: null,
         },
         createdAt: Date.now(),
-      });
+      };
+
+      // 생활용품일 경우 커스텀 영역 저장
+      if (type === 'goods' && customAreas.length > 0) {
+        rentalData.customAreas = customAreas;
+      }
+
+      const docRef = await addDoc(collection(db, 'rentals'), rentalData);
 
       router.push(`/rental/${docRef.id}/checkin`);
     } catch (error) {
@@ -188,6 +223,71 @@ export default function NewRentalPage() {
             </div>
           </div>
 
+          {/* 생활용품 촬영 항목 입력 */}
+          {type === 'goods' && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="font-medium text-gray-900 mb-2">촬영 항목 추가 (선택사항)</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                촬영하고 싶은 부분을 미리 추가해보세요. Before/After 촬영 시 참고할 수 있습니다.
+              </p>
+              
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newAreaInput}
+                  onChange={(e) => setNewAreaInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddArea();
+                    }
+                  }}
+                  placeholder="예: 전체 외관, 상단 부분, 스크래치 등"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  maxLength={20}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddArea}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                >
+                  + 추가
+                </button>
+              </div>
+
+              {customAreas.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">추가된 항목 ({customAreas.length}/10)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {customAreas.map((area, index) => (
+                      <div
+                        key={index}
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm"
+                      >
+                        <span>✓ {area}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveArea(index)}
+                          className="text-blue-400 hover:text-blue-600"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {customAreas.length === 0 && (
+                <div className="text-center py-6 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-500">촬영 항목을 추가하지 않아도 촬영은 가능합니다.</p>
+                  <p className="text-xs text-gray-400 mt-1">항목을 추가하면 촬영 시 참고하기 편리해요!</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 차량/부동산 촬영 영역 미리보기 */}
           {areas.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="font-medium text-gray-900 mb-4">촬영 영역 미리보기</h2>
@@ -216,6 +316,9 @@ export default function NewRentalPage() {
               <li>• 밝은 곳에서 선명하게 촬영하세요</li>
               <li>• 기존 흠집이나 손상은 꼭 촬영하세요</li>
               <li>• Before/After 비교를 위해 같은 구도로 촬영하세요</li>
+              {type === 'goods' && (
+                <li>• 제품 번호나 시리얼 넘버도 함께 촬영하면 좋아요</li>
+              )}
             </ul>
           </div>
 
