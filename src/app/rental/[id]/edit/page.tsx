@@ -17,7 +17,7 @@ export default function EditRentalPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [type, setType] = useState<'car' | 'house'>('car');
+  const [type, setType] = useState<'car' | 'house' | 'goods'>('car');
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
