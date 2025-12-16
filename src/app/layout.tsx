@@ -57,17 +57,30 @@ export default function RootLayout({
         ></script>
       </head>
       <body className="antialiased">
-        <Script id="kakao-init" strategy="afterInteractive">
+      <Script id="kakao-init" strategy="afterInteractive">
           {`
             function initKakao() {
-              if (window.Kakao && !window.Kakao.isInitialized()) {
-                window.Kakao.init('f2bc10f532d5ea14883a44ce3fe509ea');
-                console.log('Kakao SDK v1 initialized:', window.Kakao);
-              } else if (!window.Kakao) {
-                setTimeout(initKakao, 100);
+              try {
+                if (typeof window !== 'undefined' && window.Kakao) {
+                  if (!window.Kakao.isInitialized()) {
+                    window.Kakao.init('f2bc10f532d5ea14883a44ce3fe509ea');
+                    console.log('✅ Kakao SDK initialized');
+                  }
+                } else if (typeof window !== 'undefined') {
+                  setTimeout(initKakao, 100);
+                }
+              } catch (error) {
+                console.error('❌ Kakao SDK init error:', error);
               }
             }
-            initKakao();
+            
+            if (typeof window !== 'undefined') {
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initKakao);
+              } else {
+                initKakao();
+              }
+            }
           `}
         </Script>
         {children}

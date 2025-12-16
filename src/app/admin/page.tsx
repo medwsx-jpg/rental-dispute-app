@@ -8,8 +8,9 @@ import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc, getDoc,
 
 interface User {
   id: string;
-  email: string;
-  nickname: string;
+  email?: string;           // ← ? 추가!
+  nickname?: string;        // ← ? 추가!
+  phoneNumber?: string;     // ← 새로 추가!
   freeRentalsUsed: number;
   isPremium: boolean;
   createdAt: number;
@@ -230,9 +231,9 @@ export default function AdminPage() {
   };
 
   const filteredUsers = users.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.nickname.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (user.nickname?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+);
 
   if (loading) {
     return (
