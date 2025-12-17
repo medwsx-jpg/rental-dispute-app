@@ -1,3 +1,4 @@
+// src/app/api/send-sms/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -12,19 +13,12 @@ function generateCode(): string {
 const verificationCodes = new Map<string, { code: string; expires: number }>();
 
 export async function POST(request: NextRequest) {
-    try {
-      const body = await request.json();
-      const { phone, code, type } = body;
-  
-      // ===== 디버그 코드 추가 =====
-      console.log('🔍 환경변수 확인:');
-      console.log('ALIGO_API_KEY:', process.env.ALIGO_API_KEY);
-      console.log('ALIGO_USER_ID:', process.env.ALIGO_USER_ID);
-      console.log('ALIGO_SENDER:', process.env.ALIGO_SENDER);
-      // ===========================
-  
-      // 인증번호 발송
-      if (type === 'send') {
+  try {
+    const body = await request.json();
+    const { phone, code, type } = body;
+
+    // 인증번호 발송
+    if (type === 'send') {
       if (!phone || phone.length < 10) {
         return NextResponse.json(
           { success: false, error: '올바른 전화번호를 입력해주세요' },
@@ -34,21 +28,21 @@ export async function POST(request: NextRequest) {
 
       const verificationCode = generateCode();
       
+      // FormData 생성 (URLSearchParams 대신!)
+      const formData = new FormData();
+      formData.append('key', 'lfhvdcpywuez79gv6da8hsoagsex2u75');
+      formData.append('user_id', 'dioplywoood');
+      formData.append('sender', '01064707876');
+      formData.append('receiver', phone);
+      formData.append('msg', `[Record 365] 인증번호는 ${verificationCode} 입니다.`);
+      formData.append('msg_type', 'SMS');
+      formData.append('title', '');
+
       // 알리고 SMS 발송
       const aligoResponse = await fetch('https://apis.aligo.in/send/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            key: 'lfhvdcpywuez79gv6da8hsoagsex2u75',
-            user_id: 'dioplywoood',
-            sender: '01064707876',
-            receiver: phone,
-            msg: `[Record 365] 인증번호는 ${verificationCode} 입니다.`,
-            msg_type: 'SMS',
-            title: '',
-          }),
+        body: formData,  // FormData 사용!
+        // headers는 자동으로 설정됨
       });
 
       const result = await aligoResponse.json();
