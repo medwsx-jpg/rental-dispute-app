@@ -4,13 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
-import { 
-  signInAnonymously,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +17,6 @@ export default function LoginPage() {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isCodeSent, setIsCodeSent] = useState(false);
 
   // Kakao SDK 초기화 확인
@@ -38,7 +32,6 @@ export default function LoginPage() {
           }
         }
         setKakaoReady(true);
-        console.log('✅ Kakao Ready:', window.Kakao);
       } else {
         setTimeout(initKakao, 500);
       }
@@ -130,24 +123,9 @@ export default function LoginPage() {
     }
   };
 
-  // 📱 휴대폰 인증 함수들
-  const setupRecaptcha = () => {
-    if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        'recaptcha-container',
-        {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA 확인됨');
-          },
-        }
-      );
-    }
-  };
-
+  // 📱 알리고 SMS 인증번호 발송
   const handleSendCode = async () => {
-    if (!phoneNumber || phoneNumber.length < 11) {
+    if (!phoneNumber || phoneNumber.length < 10) {
       setError('올바른 전화번호를 입력해주세요');
       return;
     }
@@ -156,28 +134,34 @@ export default function LoginPage() {
       setLoading(true);
       setError('');
       
-      const formattedPhone = '+82' + phoneNumber.slice(1);
-      
-      setupRecaptcha();
-      const appVerifier = (window as any).recaptchaVerifier;
-      
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        formattedPhone,
-        appVerifier
-      );
-      
-      setConfirmationResult(confirmation);
-      setIsCodeSent(true);
-      alert('인증번호가 발송되었습니다');
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          type: 'send'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsCodeSent(true);
+        alert('인증번호가 발송되었습니다');
+      } else {
+        throw new Error(result.error || 'SMS 발송 실패');
+      }
     } catch (err: any) {
       console.error('인증번호 발송 오류:', err);
-      setError('인증번호 발송 실패. 다시 시도해주세요.');
+      setError(err.message || '인증번호 발송 실패. 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
 
+  // 📱 인증번호 확인
   const handleVerifyCode = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
       setError('6자리 인증번호를 입력해주세요');
@@ -188,26 +172,29 @@ export default function LoginPage() {
       setLoading(true);
       setError('');
       
-      if (confirmationResult) {
-        const result = await confirmationResult.confirm(verificationCode);
-        
-        const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-        
-        if (!userDoc.exists()) {
-          await setDoc(doc(db, 'users', result.user.uid), {
-            phoneNumber: result.user.phoneNumber,
-            provider: 'phone',
-            createdAt: Date.now(),
-            freeRentalsUsed: 0,
-            isPremium: false,
-          });
-        }
-        
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          code: verificationCode,
+          type: 'verify'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // 인증 성공 - Dashboard로 이동
         router.push('/dashboard');
+      } else {
+        throw new Error(result.error || '인증번호가 올바르지 않습니다');
       }
     } catch (err: any) {
       console.error('인증 오류:', err);
-      setError('인증번호가 올바르지 않습니다');
+      setError(err.message || '인증에 실패했습니다');
     } finally {
       setLoading(false);
     }
@@ -359,7 +346,7 @@ export default function LoginPage() {
                 />
                 <button
                   onClick={handleSendCode}
-                  disabled={loading || phoneNumber.length < 11}
+                  disabled={loading || phoneNumber.length < 10}
                   className="w-full py-3.5 bg-blue-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-all"
                 >
                   {loading ? '전송 중...' : '인증번호 받기'}
@@ -404,8 +391,6 @@ export default function LoginPage() {
           </div>
         </div>
       )}
-
-      <div id="recaptcha-container"></div>
     </div>
   );
 }
