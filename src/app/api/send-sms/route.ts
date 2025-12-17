@@ -1,5 +1,4 @@
 // src/app/api/send-sms/route.ts
-export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
