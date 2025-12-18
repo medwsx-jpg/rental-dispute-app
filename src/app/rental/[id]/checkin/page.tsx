@@ -620,7 +620,16 @@ export default function BeforePage() {
             return (
               <button
   key={area.id}
-  onClick={() => setCurrentAreaIndex(index)}
+  onClick={() => {
+    setCurrentAreaIndex(index);
+    // 상태 초기화
+    setUploading(false);
+    setPendingFile(null);
+    setShowMemoInput(false);
+    setShowPreview(false);
+    setPreviewImage(null);
+    setMemo('');
+  }}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
                   currentAreaIndex === index
                     ? 'bg-blue-600 text-white'
