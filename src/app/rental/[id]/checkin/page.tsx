@@ -127,15 +127,26 @@ export default function BeforePage() {
   
     const compressedFile = await compressImage(file);
   
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewImage(reader.result as string);
-      setShowPreview(true);
-    };
-    reader.readAsDataURL(compressedFile);
+    // 모바일 감지
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // 모바일: 미리보기 건너뛰고 바로 메모 입력
+      setPendingFile(compressedFile);
+      setMemo('');
+      setShowMemoInput(true);
+    } else {
+      // 웹: 미리보기 표시
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+        setShowPreview(true);
+      };
+      reader.readAsDataURL(compressedFile);
   
-    setPendingFile(compressedFile);
-    setMemo('');
+      setPendingFile(compressedFile);
+      setMemo('');
+    }
   };
 
   const handleFreePhotoUpload = async (file: File) => {
@@ -608,17 +619,8 @@ export default function BeforePage() {
             const hasPhoto = areaPhotos.length > 0;
             return (
               <button
-              key={area.id}
-              onClick={() => {
-                setCurrentAreaIndex(index);
-                // 상태 초기화
-                setPendingFile(null);
-                setPreviewImage(null);
-                setShowPreview(false);
-                setShowMemoInput(false);
-                setEditingMemo(false);
-                setMemo('');
-              }}
+  key={area.id}
+  onClick={() => setCurrentAreaIndex(index)}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
                   currentAreaIndex === index
                     ? 'bg-blue-600 text-white'
