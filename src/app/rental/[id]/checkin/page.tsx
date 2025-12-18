@@ -209,23 +209,31 @@ export default function BeforePage() {
   };
 
   const handleUploadWithMemo = async () => {
-    if (!pendingFile || !currentArea) return;
+    if (!pendingFile || !currentArea) {
+      alert('파일 또는 영역 없음!');
+      return;
+    }
   
     setUploading(true);
     setShowMemoInput(false);
   
     try {
+      alert('1. 위치 정보 가져오는 중...');
       const location = await getLocation();
+      
+      alert('2. Firebase 업로드 시작...');
       const timestamp = Date.now();
-  
       const storageRef = ref(
         storage,
         `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
       );
   
       await uploadBytes(storageRef, pendingFile);
+      alert('3. 업로드 완료! URL 가져오는 중...');
+      
       const downloadURL = await getDownloadURL(storageRef);
-
+      alert('4. URL 완료! DB 저장 중...');
+  
       const newPhoto: Photo = {
         url: downloadURL,
         timestamp,
@@ -233,30 +241,23 @@ export default function BeforePage() {
         area: currentArea.id,
         notes: memo.trim(),
       };
-
-      // ✅ 변경: 덮어쓰기 로직 제거, 항상 추가
+  
       const updatedPhotos = [...photos, newPhoto];
-      
       setPhotos(updatedPhotos);
-
+  
       const rentalRef = doc(db, 'rentals', rentalId);
       await updateDoc(rentalRef, {
         'checkIn.photos': updatedPhotos,
       });
-
+  
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
-
-      // 다음 영역으로 자동 이동하지 않음 (여러 장 촬영 가능하도록)
-      // if (currentAreaIndex < areas.length - 1) {
-      //   setCurrentAreaIndex(currentAreaIndex + 1);
-      // }
-
+  
       alert(`사진 저장 완료!`);
     } catch (error) {
-      console.error('업로드 실패:', error);
-      alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
+      console.error('업로드 에러:', error);
+      alert('에러: ' + (error as Error).message);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
