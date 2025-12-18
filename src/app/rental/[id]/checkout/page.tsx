@@ -129,16 +129,11 @@ export default function AfterPage() {
     // 이미지 압축
     const compressedFile = await compressImage(file);
 
-    // 미리보기 이미지 생성
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewImage(reader.result as string);
-      setShowPreview(true);
-    };
-    reader.readAsDataURL(compressedFile);
+   
 
     setPendingFile(compressedFile);
     setMemo('');
+    setShowMemoInput(true);
   };
 
   const handleFreePhotoUpload = async (file: File) => {
