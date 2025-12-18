@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
 import SignatureModal from '@/components/SignatureModal';
 import { compressImage } from '@/lib/imageCompression';
@@ -223,8 +223,20 @@ export default function AfterPage() {
         `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`
       );
 
-      await uploadBytes(storageRef, pendingFile);
-      const downloadURL = await getDownloadURL(storageRef);
+      const uploadTask = uploadBytesResumable(storageRef, pendingFile);
+
+await new Promise<void>((resolve, reject) => {
+  uploadTask.on('state_changed',
+    (snapshot) => {
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      console.log('업로드 진행률:', progress.toFixed(0) + '%');
+    },
+    (error) => reject(error),
+    () => resolve()
+  );
+});
+
+const downloadURL = await getDownloadURL(storageRef);
 
       const newPhoto: Photo = {
         url: downloadURL,
