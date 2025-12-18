@@ -40,6 +40,19 @@ export default function AfterPage() {
   const [uploading, setUploading] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
+  useEffect(() => {
+    setPendingFile(null);
+    setPreviewImage(null);
+    setMemo('');
+    setShowMemoInput(false);
+    setShowPreview(false);
+    setEditingMemo(false);
+    setEditingPhotoTimestamp(null);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [currentAreaIndex]);
   const [memo, setMemo] = useState('');
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);

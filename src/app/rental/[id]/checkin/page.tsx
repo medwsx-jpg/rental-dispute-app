@@ -41,6 +41,21 @@ export default function BeforePage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
   const [memo, setMemo] = useState('');
+   // ✅ 여기 중간에 추가!
+   useEffect(() => {
+    setPendingFile(null);
+    setPreviewImage(null);
+    setMemo('');
+    setShowMemoInput(false);
+    setShowPreview(false);
+    setEditingMemo(false);
+    setEditingPhotoTimestamp(null);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [currentAreaIndex]);
+  // ✅ 여기까지!
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
   const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null); // ← 추가
@@ -200,22 +215,38 @@ export default function BeforePage() {
   };
 
   const handleUploadWithMemo = async () => {
-    if (!pendingFile || !currentArea) return;
-
+    console.log('=== 업로드 시작 ===');
+    console.log('pendingFile:', pendingFile);
+    console.log('currentArea:', currentArea);
+    
+    if (!pendingFile || !currentArea) {
+      console.log('파일 또는 영역 없음!');
+      alert('파일 또는 영역이 없습니다.');
+      return;
+    }
+  
     setUploading(true);
     setShowMemoInput(false);
-
+  
     try {
+      console.log('1. getLocation 시작');
       const location = await getLocation();
+      console.log('2. location:', location);
+      
       const timestamp = Date.now();
-
+      console.log('3. timestamp:', timestamp);
+  
       const storageRef = ref(
         storage,
         `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
       );
-
+      console.log('4. storageRef 생성');
+  
       await uploadBytes(storageRef, pendingFile);
+      console.log('5. uploadBytes 완료');
+      
       const downloadURL = await getDownloadURL(storageRef);
+      console.log('6. downloadURL:', downloadURL);
 
       const newPhoto: Photo = {
         url: downloadURL,
