@@ -115,39 +115,27 @@ export default function BeforePage() {
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('=== handleFileSelect 시작 ===');
     const file = e.target.files?.[0];
-    if (!file) {
-      console.log('파일 없음');
-      return;
-    }
-    console.log('파일 선택됨:', file.name, file.size);
+    if (!file) return;
   
     if (rental?.type === 'goods' && areas.length === 0) {
-      console.log('자유 촬영 모드');
       await handleFreePhotoUpload(file);
       return;
     }
   
-    if (!currentArea) {
-      console.log('currentArea 없음');
-      return;
-    }
-    console.log('currentArea:', currentArea.id);
+    if (!currentArea) return;
   
-    console.log('압축 시작...');
-    try {
-      const compressedFile = await compressImage(file);
-      console.log('압축 완료:', compressedFile.size);
+    const compressedFile = await compressImage(file);
   
-      setPendingFile(compressedFile);
-      setMemo('');
-      setShowMemoInput(true);
-      console.log('메모 입력 화면으로 전환');
-    } catch (error) {
-      console.error('압축 에러:', error);
-      alert('이미지 압축 실패: ' + (error as Error).message);
-    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result as string);
+      setShowPreview(true);
+    };
+    reader.readAsDataURL(compressedFile);
+  
+    setPendingFile(compressedFile);
+    setMemo('');
   };
 
   const handleFreePhotoUpload = async (file: File) => {
@@ -185,8 +173,8 @@ export default function BeforePage() {
 
       alert('사진이 저장되었습니다!');
     } catch (error) {
-      console.error('===업로드 에러===', error);
-      alert('업로드 실패: ' + (error as Error).message);
+      console.error('업로드 실패:', error);
+      alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -210,38 +198,22 @@ export default function BeforePage() {
   };
 
   const handleUploadWithMemo = async () => {
-    console.log('=== 업로드 시작 ===');
-    console.log('pendingFile:', pendingFile);
-    console.log('currentArea:', currentArea);
-    
-    if (!pendingFile || !currentArea) {
-      console.log('파일 또는 영역 없음!');
-      alert('파일 또는 영역이 없습니다.');
-      return;
-    }
+    if (!pendingFile || !currentArea) return;
   
     setUploading(true);
     setShowMemoInput(false);
   
     try {
-      console.log('1. getLocation 시작');
       const location = await getLocation();
-      console.log('2. location:', location);
-      
       const timestamp = Date.now();
-      console.log('3. timestamp:', timestamp);
   
       const storageRef = ref(
         storage,
         `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
       );
-      console.log('4. storageRef 생성');
   
       await uploadBytes(storageRef, pendingFile);
-      console.log('5. uploadBytes 완료');
-      
       const downloadURL = await getDownloadURL(storageRef);
-      console.log('6. downloadURL:', downloadURL);
 
       const newPhoto: Photo = {
         url: downloadURL,
@@ -471,6 +443,7 @@ export default function BeforePage() {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
+<p className="mt-2 text-xs text-gray-500">고화질 사진은 1-2분 소요될 수 있습니다</p>
                 </div>
               ) : (
                 <div>
@@ -797,6 +770,7 @@ export default function BeforePage() {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
+                  <p className="mt-2 text-xs text-gray-500">고화질 사진은 1-2분 소요될 수 있습니다</p>
                 </div>
               ) : (
                 <div>

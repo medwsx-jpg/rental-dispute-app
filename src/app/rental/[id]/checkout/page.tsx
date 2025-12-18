@@ -117,23 +117,25 @@ export default function AfterPage() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // 생활용품이고 customAreas가 없을 때 (자유 촬영 모드)
+  
     if (rental?.type === 'goods' && areas.length === 0) {
       await handleFreePhotoUpload(file);
       return;
     }
-
+  
     if (!currentArea) return;
-
-    // 이미지 압축
+  
     const compressedFile = await compressImage(file);
-
-   
-
+  
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result as string);
+      setShowPreview(true);
+    };
+    reader.readAsDataURL(compressedFile);
+  
     setPendingFile(compressedFile);
     setMemo('');
-    setShowMemoInput(true);
   };
 
   const handleFreePhotoUpload = async (file: File) => {
@@ -171,8 +173,8 @@ export default function AfterPage() {
 
       alert('사진이 저장되었습니다!');
     } catch (error) {
-      console.error('===업로드 에러===', error);
-      alert('업로드 실패: ' + (error as Error).message);
+      console.error('업로드 실패:', error);
+      alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -439,6 +441,7 @@ export default function AfterPage() {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
                   <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
+                  <p className="mt-2 text-xs text-gray-500">고화질 사진은 1-2분 소요될 수 있습니다</p>
                 </div>
               ) : (
                 <div>
