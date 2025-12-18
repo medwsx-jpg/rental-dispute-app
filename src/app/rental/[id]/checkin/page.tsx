@@ -41,21 +41,7 @@ export default function BeforePage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
   const [memo, setMemo] = useState('');
-   // ✅ 여기 중간에 추가!
-   useEffect(() => {
-    setPendingFile(null);
-    setPreviewImage(null);
-    setMemo('');
-    setShowMemoInput(false);
-    setShowPreview(false);
-    setEditingMemo(false);
-    setEditingPhotoTimestamp(null);
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [currentAreaIndex]);
-  // ✅ 여기까지!
+ 
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
   const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null); // ← 추가
