@@ -223,20 +223,8 @@ export default function AfterPage() {
         `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`
       );
 
-      const uploadTask = uploadBytesResumable(storageRef, pendingFile);
-
-await new Promise<void>((resolve, reject) => {
-  uploadTask.on('state_changed',
-    (snapshot) => {
-      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      console.log('업로드 진행률:', progress.toFixed(0) + '%');
-    },
-    (error) => reject(error),
-    () => resolve()
-  );
-});
-
-const downloadURL = await getDownloadURL(storageRef);
+      await uploadBytes(storageRef, pendingFile);
+      const downloadURL = await getDownloadURL(storageRef);
 
       const newPhoto: Photo = {
         url: downloadURL,
