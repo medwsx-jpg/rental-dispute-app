@@ -9,9 +9,10 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
   ({ rental }, ref) => {
     const areas = rental.type === 'car' ? CAR_AREAS : HOUSE_AREAS;
 
-    const getPhotoForArea = (areaId: string, type: 'before' | 'after') => {
+    // ✅ 변경: 여러 장 가져오기
+    const getPhotosForArea = (areaId: string, type: 'before' | 'after') => {
       const photos = type === 'before' ? rental.checkIn.photos : rental.checkOut.photos;
-      return photos.find(p => p.area === areaId);
+      return photos.filter(p => p.area === areaId);
     };
 
     return (
@@ -37,10 +38,10 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
 
         {/* 각 영역별 비교 */}
         {areas.map((area, index) => {
-          const beforePhoto = getPhotoForArea(area.id, 'before');
-          const afterPhoto = getPhotoForArea(area.id, 'after');
+          const beforePhotos = getPhotosForArea(area.id, 'before');
+          const afterPhotos = getPhotosForArea(area.id, 'after');
 
-          if (!beforePhoto && !afterPhoto) return null;
+          if (beforePhotos.length === 0 && afterPhotos.length === 0) return null;
 
           return (
             <div 
@@ -63,6 +64,9 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                 <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
                   {area.name}
                 </h3>
+                <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: 'auto' }}>
+                  Before: {beforePhotos.length}장 / After: {afterPhotos.length}장
+                </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -77,59 +81,58 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     fontWeight: '600',
                     color: '#1e40af'
                   }}>
-                    📥 Before
+                    📥 Before ({beforePhotos.length}장)
                   </div>
-                  {beforePhoto ? (
-                    <div>
-                      <div style={{
-                        width: '100%',
-                        height: '200px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '6px',
-                        border: '1px solid #e5e7eb',
-                        padding: '4px',
-                        overflow: 'hidden'
-                      }}>
-                        <img 
-                          src={beforePhoto.url} 
-                          alt="Before" 
-                          style={{ 
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: 'auto',
-                            height: 'auto',
-                            objectFit: 'contain',
-                            display: 'block'
-                          }} 
-                        />
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px' }}>
-                        {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
-                      </div>
-                      {beforePhoto.notes && (
-                        <div style={{ 
-                          fontSize: '11px', 
-                          color: '#374151', 
-                          marginTop: '6px',
-                          padding: '6px',
-                          backgroundColor: '#fef3c7',
-                          borderRadius: '4px'
-                        }}>
-                          📝 {beforePhoto.notes}
+                  {beforePhotos.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {beforePhotos.map((photo, photoIndex) => (
+                        <div key={photo.timestamp}>
+                          <div style={{
+                            width: '100%',
+                            height: '150px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                            padding: '4px',
+                            overflow: 'hidden'
+                          }}>
+                            <img 
+                              src={photo.url} 
+                              alt={`Before ${photoIndex + 1}`}
+                              style={{ 
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain',
+                                display: 'block'
+                              }} 
+                            />
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>
+                            {new Date(photo.timestamp).toLocaleString('ko-KR')}
+                          </div>
+                          {photo.notes && (
+                            <div style={{ 
+                              fontSize: '10px', 
+                              color: '#374151', 
+                              marginTop: '4px',
+                              padding: '4px',
+                              backgroundColor: '#fef3c7',
+                              borderRadius: '4px'
+                            }}>
+                              📝 {photo.notes}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {beforePhoto.location && (
-                        <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px' }}>
-                          📍 GPS: {beforePhoto.location.lat.toFixed(6)}, {beforePhoto.location.lng.toFixed(6)}
-                        </div>
-                      )}
+                      ))}
                     </div>
                   ) : (
                     <div style={{ 
-                      height: '200px', 
+                      height: '150px', 
                       backgroundColor: '#f3f4f6', 
                       borderRadius: '6px',
                       display: 'flex',
@@ -154,59 +157,58 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                     fontWeight: '600',
                     color: '#c2410c'
                   }}>
-                    📤 After
+                    📤 After ({afterPhotos.length}장)
                   </div>
-                  {afterPhoto ? (
-                    <div>
-                      <div style={{
-                        width: '100%',
-                        height: '200px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '6px',
-                        border: '1px solid #e5e7eb',
-                        padding: '4px',
-                        overflow: 'hidden'
-                      }}>
-                        <img 
-                          src={afterPhoto.url} 
-                          alt="After" 
-                          style={{ 
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: 'auto',
-                            height: 'auto',
-                            objectFit: 'contain',
-                            display: 'block'
-                          }} 
-                        />
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px' }}>
-                        {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
-                      </div>
-                      {afterPhoto.notes && (
-                        <div style={{ 
-                          fontSize: '11px', 
-                          color: '#374151', 
-                          marginTop: '6px',
-                          padding: '6px',
-                          backgroundColor: '#fef3c7',
-                          borderRadius: '4px'
-                        }}>
-                          📝 {afterPhoto.notes}
+                  {afterPhotos.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {afterPhotos.map((photo, photoIndex) => (
+                        <div key={photo.timestamp}>
+                          <div style={{
+                            width: '100%',
+                            height: '150px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                            padding: '4px',
+                            overflow: 'hidden'
+                          }}>
+                            <img 
+                              src={photo.url} 
+                              alt={`After ${photoIndex + 1}`}
+                              style={{ 
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain',
+                                display: 'block'
+                              }} 
+                            />
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>
+                            {new Date(photo.timestamp).toLocaleString('ko-KR')}
+                          </div>
+                          {photo.notes && (
+                            <div style={{ 
+                              fontSize: '10px', 
+                              color: '#374151', 
+                              marginTop: '4px',
+                              padding: '4px',
+                              backgroundColor: '#fef3c7',
+                              borderRadius: '4px'
+                            }}>
+                              📝 {photo.notes}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {afterPhoto.location && (
-                        <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px' }}>
-                          📍 GPS: {afterPhoto.location.lat.toFixed(6)}, {afterPhoto.location.lng.toFixed(6)}
-                        </div>
-                      )}
+                      ))}
                     </div>
                   ) : (
                     <div style={{ 
-                      height: '200px', 
+                      height: '150px', 
                       backgroundColor: '#f3f4f6', 
                       borderRadius: '6px',
                       display: 'flex',

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
+import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
 import ImageViewer from '@/components/ImageViewer';
 import { PDFReport } from '@/components/PDFReport';
 
@@ -22,7 +22,7 @@ const getAreasForRental = (rental: Rental | null): RentalArea[] => {
       required: false
     }));
   }
-  return []; // 생활용품이지만 customAreas가 없으면 빈 배열
+  return [];
 };
 
 export default function ComparePage() {
@@ -92,10 +92,11 @@ export default function ComparePage() {
     }
   };
 
-  const getPhotoForArea = (areaId: string, type: 'before' | 'after') => {
-    if (!rental) return null;
+  // ✅ 변경: 여러 장 가져오기
+  const getPhotosForArea = (areaId: string, type: 'before' | 'after'): Photo[] => {
+    if (!rental) return [];
     const photos = type === 'before' ? rental.checkIn.photos : rental.checkOut.photos;
-    return photos.find(p => p.area === areaId);
+    return photos.filter(p => p.area === areaId);
   };
 
   const handleImageClick = (imageUrl: string, title: string) => {
@@ -166,7 +167,7 @@ export default function ComparePage() {
               {beforePhotos.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {beforePhotos.map((photo, index) => (
-                    <div key={photo.area}>
+                    <div key={photo.timestamp}>
                       <img
                         src={photo.url}
                         alt={`Before ${index + 1}`}
@@ -192,7 +193,7 @@ export default function ComparePage() {
               {afterPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {afterPhotos.map((photo, index) => (
-                    <div key={photo.area}>
+                    <div key={photo.timestamp}>
                       <img
                         src={photo.url}
                         alt={`After ${index + 1}`}
@@ -261,8 +262,8 @@ export default function ComparePage() {
   }
 
   // 일반 모드 (영역별 비교)
-  const beforePhoto = currentArea ? getPhotoForArea(currentArea.id, 'before') : null;
-  const afterPhoto = currentArea ? getPhotoForArea(currentArea.id, 'after') : null;
+  const beforePhotos = currentArea ? getPhotosForArea(currentArea.id, 'before') : [];
+  const afterPhotos = currentArea ? getPhotosForArea(currentArea.id, 'after') : [];
 
   return (
     <>
@@ -310,8 +311,11 @@ export default function ComparePage() {
           {areas.length > 0 && (
             <div className="flex overflow-x-auto gap-2 pb-4 mb-6">
               {areas.map((area, index) => {
-                const hasBefore = getPhotoForArea(area.id, 'before');
-                const hasAfter = getPhotoForArea(area.id, 'after');
+                const hasBefore = getPhotosForArea(area.id, 'before').length > 0;
+                const hasAfter = getPhotosForArea(area.id, 'after').length > 0;
+                const beforeCount = getPhotosForArea(area.id, 'before').length;
+                const afterCount = getPhotosForArea(area.id, 'after').length;
+                
                 return (
                   <button
                     key={area.id}
@@ -324,7 +328,10 @@ export default function ComparePage() {
                         : 'bg-gray-100 text-gray-600'
                     }`}
                   >
-                    {hasBefore && hasAfter && '✓ '}{area.icon} {area.name}
+                    {hasBefore && hasAfter && `✓ `}{area.icon} {area.name}
+                    {(beforeCount > 0 || afterCount > 0) && (
+                      <span className="ml-1 text-xs">({beforeCount}/{afterCount})</span>
+                    )}
                   </button>
                 );
               })}
@@ -346,60 +353,75 @@ export default function ComparePage() {
             /* 개별 영역 보기 */
             <>
               <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <div className="text-center mb-4">
+                  <span className="text-4xl">{currentArea?.icon}</span>
+                  <h2 className="text-xl font-bold mt-2">{currentArea?.name}</h2>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Before */}
                   <div>
-                    <h3 className="text-sm font-medium text-blue-600 mb-2">📥 Before</h3>
-                    {beforePhoto ? (
-                      <div>
-                        <div className="relative">
-                          <img 
-                            src={beforePhoto.url} 
-                            alt="Before" 
-                            className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
-                            onClick={() => handleImageClick(beforePhoto.url, `${currentArea?.name} - Before`)}
-                          />
-                          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                            탭하여 확대
+                    <h3 className="text-sm font-medium text-blue-600 mb-3">📥 Before ({beforePhotos.length}장)</h3>
+                    {beforePhotos.length > 0 ? (
+                      <div className="space-y-3">
+                        {beforePhotos.map((photo) => (
+                          <div key={photo.timestamp}>
+                            <div className="relative">
+                              <img 
+                                src={photo.url} 
+                                alt="Before" 
+                                className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                                onClick={() => handleImageClick(photo.url, `${currentArea?.name} - Before`)}
+                              />
+                              <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                                탭하여 확대
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(photo.timestamp).toLocaleString('ko-KR')}
+                            </p>
+                            {photo.notes && (
+                              <p className="text-sm text-gray-700 mt-1 bg-yellow-50 p-2 rounded">📝 {photo.notes}</p>
+                            )}
                           </div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {new Date(beforePhoto.timestamp).toLocaleString('ko-KR')}
-                        </p>
-                        {beforePhoto.notes && (
-                          <p className="text-sm text-gray-700 mt-1">📝 {beforePhoto.notes}</p>
-                        )}
+                        ))}
                       </div>
                     ) : (
-                      <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">
                         <p className="text-gray-400">사진 없음</p>
                       </div>
                     )}
                   </div>
 
+                  {/* After */}
                   <div>
-                    <h3 className="text-sm font-medium text-orange-600 mb-2">📤 After</h3>
-                    {afterPhoto ? (
-                      <div>
-                        <div className="relative">
-                          <img 
-                            src={afterPhoto.url} 
-                            alt="After" 
-                            className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
-                            onClick={() => handleImageClick(afterPhoto.url, `${currentArea?.name} - After`)}
-                          />
-                          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                            탭하여 확대
+                    <h3 className="text-sm font-medium text-orange-600 mb-3">📤 After ({afterPhotos.length}장)</h3>
+                    {afterPhotos.length > 0 ? (
+                      <div className="space-y-3">
+                        {afterPhotos.map((photo) => (
+                          <div key={photo.timestamp}>
+                            <div className="relative">
+                              <img 
+                                src={photo.url} 
+                                alt="After" 
+                                className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" 
+                                onClick={() => handleImageClick(photo.url, `${currentArea?.name} - After`)}
+                              />
+                              <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                                탭하여 확대
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(photo.timestamp).toLocaleString('ko-KR')}
+                            </p>
+                            {photo.notes && (
+                              <p className="text-sm text-gray-700 mt-1 bg-yellow-50 p-2 rounded">📝 {photo.notes}</p>
+                            )}
                           </div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {new Date(afterPhoto.timestamp).toLocaleString('ko-KR')}
-                        </p>
-                        {afterPhoto.notes && (
-                          <p className="text-sm text-gray-700 mt-1">📝 {afterPhoto.notes}</p>
-                        )}
+                        ))}
                       </div>
                     ) : (
-                      <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">
                         <p className="text-gray-400">사진 없음</p>
                       </div>
                     )}
@@ -460,7 +482,6 @@ export default function ComparePage() {
             padding: 0;
           }
           
-          /* 페이지 설정 */
           @page {
             size: A4;
             margin: 20mm;
