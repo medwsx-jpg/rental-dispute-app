@@ -8,6 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/rental';
 import ImageViewer from '@/components/ImageViewer';
 import { PDFReport } from '@/components/PDFReport';
+import { ChecklistItem } from '@/types/rental';
 
 // 렌탈 타입에 따른 촬영 영역 반환
 const getAreasForRental = (rental: Rental | null): RentalArea[] => {
@@ -24,7 +25,68 @@ const getAreasForRental = (rental: Rental | null): RentalArea[] => {
   }
   return [];
 };
+function ChecklistComparison({ 
+  beforeItems, 
+  afterItems 
+}: { 
+  beforeItems: ChecklistItem[], 
+  afterItems: ChecklistItem[] 
+}) {
+  if (beforeItems.length === 0 && afterItems.length === 0) return null;
 
+  const allItemTexts = new Set([
+    ...beforeItems.map(i => i.text),
+    ...afterItems.map(i => i.text)
+  ]);
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 mt-4">
+      <h3 className="font-medium text-gray-900 mb-3">✅ 확인 사항 비교</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-xs font-medium text-blue-600 mb-2">
+            Before ({beforeItems.filter(i => i.checked).length}/{beforeItems.length})
+          </p>
+          <div className="space-y-1">
+            {Array.from(allItemTexts).map((text, idx) => {
+              const beforeItem = beforeItems.find(i => i.text === text);
+              return (
+                <div key={idx} className="flex items-start gap-2 text-sm">
+                  <span className={beforeItem?.checked ? 'text-green-600' : 'text-gray-300'}>
+                    {beforeItem?.checked ? '✓' : '○'}
+                  </span>
+                  <span className={beforeItem?.checked ? 'text-gray-700' : 'text-gray-400'}>
+                    {text}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-orange-600 mb-2">
+            After ({afterItems.filter(i => i.checked).length}/{afterItems.length})
+          </p>
+          <div className="space-y-1">
+            {Array.from(allItemTexts).map((text, idx) => {
+              const afterItem = afterItems.find(i => i.text === text);
+              return (
+                <div key={idx} className="flex items-start gap-2 text-sm">
+                  <span className={afterItem?.checked ? 'text-green-600' : 'text-gray-300'}>
+                    {afterItem?.checked ? '✓' : '○'}
+                  </span>
+                  <span className={afterItem?.checked ? 'text-gray-700' : 'text-gray-400'}>
+                    {text}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function ComparePage() {
   const router = useRouter();
   const params = useParams();
@@ -426,10 +488,15 @@ export default function ComparePage() {
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
+                  </div>
+        </div>
 
-              <div className="flex gap-4">
+        <ChecklistComparison
+          beforeItems={rental.checkIn.checklists?.find(c => c.areaId === currentArea?.id)?.items || []}
+          afterItems={rental.checkOut.checklists?.find(c => c.areaId === currentArea?.id)?.items || []}
+        />
+
+        <div className="flex gap-4">
                 <button
                   onClick={() => setSelectedAreaIndex(Math.max(0, selectedAreaIndex - 1))}
                   disabled={selectedAreaIndex === 0}

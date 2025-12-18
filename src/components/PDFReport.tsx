@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rental, CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
+import { Rental, CAR_AREAS, HOUSE_AREAS, ChecklistItem } from '@/types/rental';
 
 interface PDFReportProps {
   rental: Rental;
@@ -13,6 +13,12 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
     const getPhotosForArea = (areaId: string, type: 'before' | 'after') => {
       const photos = type === 'before' ? rental.checkIn.photos : rental.checkOut.photos;
       return photos.filter(p => p.area === areaId);
+    };
+    
+    // ✅ 여기에 추가
+    const getChecklistForArea = (areaId: string, type: 'before' | 'after'): ChecklistItem[] => {
+      const checklists = type === 'before' ? rental.checkIn.checklists : rental.checkOut.checklists;
+      return checklists?.find(c => c.areaId === areaId)?.items || [];
     };
 
     return (
@@ -220,10 +226,63 @@ export const PDFReport = React.forwardRef<HTMLDivElement, PDFReportProps>(
                       사진 없음
                     </div>
                   )}
-                </div>
-              </div>
+               </div>
+            </div>
 
-              {index < areas.length - 1 && (
+            {/* ✅ 체크리스트 추가 */}
+            {(() => {
+              const beforeChecklist = getChecklistForArea(area.id, 'before');
+              const afterChecklist = getChecklistForArea(area.id, 'after');
+              
+              if (beforeChecklist.length === 0 && afterChecklist.length === 0) return null;
+
+              return (
+                <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                  <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                    ✅ 확인 사항
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#2563eb', marginBottom: '6px' }}>
+                        Before ({beforeChecklist.filter(i => i.checked).length}/{beforeChecklist.length})
+                      </p>
+                      <div style={{ fontSize: '9px', color: '#4b5563' }}>
+                        {beforeChecklist.map((item, idx) => (
+                          <div key={idx} style={{ marginBottom: '3px', display: 'flex', gap: '4px' }}>
+                            <span style={{ color: item.checked ? '#10b981' : '#d1d5db' }}>
+                              {item.checked ? '✓' : '○'}
+                            </span>
+                            <span style={{ color: item.checked ? '#374151' : '#9ca3af' }}>
+                              {item.text}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#ea580c', marginBottom: '6px' }}>
+                        After ({afterChecklist.filter(i => i.checked).length}/{afterChecklist.length})
+                      </p>
+                      <div style={{ fontSize: '9px', color: '#4b5563' }}>
+                        {afterChecklist.map((item, idx) => (
+                          <div key={idx} style={{ marginBottom: '3px', display: 'flex', gap: '4px' }}>
+                            <span style={{ color: item.checked ? '#10b981' : '#d1d5db' }}>
+                              {item.checked ? '✓' : '○'}
+                            </span>
+                            <span style={{ color: item.checked ? '#374151' : '#9ca3af' }}>
+                              {item.text}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            {/* ✅ 여기까지 */}
+
+            {index < areas.length - 1 && (
                 <div style={{ 
                   height: '1px', 
                   backgroundColor: '#e5e7eb', 

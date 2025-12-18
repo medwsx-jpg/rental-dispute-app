@@ -10,6 +10,8 @@ import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/renta
 import SignatureModal from '@/components/SignatureModal';
 import { compressImage } from '@/lib/imageCompression';
 import ImageViewer from '@/components/ImageViewer';
+import ChecklistSection from '@/components/ChecklistSection';
+import { AreaChecklist } from '@/types/rental';
 
 // 렌탈 타입에 따른 촬영 영역 반환
 const getAreasForRental = (rental: Rental | null): RentalArea[] => {
@@ -42,6 +44,7 @@ export default function AfterPage() {
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
   const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null);
+  const [checklists, setChecklists] = useState<AreaChecklist[]>([]);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [signature, setSignature] = useState<string>('');
@@ -79,6 +82,7 @@ export default function AfterPage() {
         setRental(data);
         setPhotos(data.checkOut.photos || []);
         setSignature(data.checkOut.signature || '');
+        setChecklists(data.checkOut.checklists || []);
       } else {
         alert('렌탈을 찾을 수 없습니다.');
         router.push('/dashboard');
@@ -314,6 +318,7 @@ export default function AfterPage() {
         await updateDoc(rentalRef, {
           'checkOut.completedAt': Date.now(),
           'checkOut.signature': signature,
+          'checkOut.checklists': checklists,
           'status': 'completed',
         });
 
@@ -347,6 +352,7 @@ export default function AfterPage() {
       await updateDoc(rentalRef, {
         'checkOut.completedAt': Date.now(),
         'checkOut.signature': signature,
+        'checkOut.checklists': checklists,
         'status': 'completed',
       });
 
@@ -812,8 +818,19 @@ export default function AfterPage() {
             </div>
           )}
 
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+<input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
         </div>
+
+        {rental?.type !== 'goods' && currentArea && (
+          <ChecklistSection
+            rentalId={rentalId}
+            rentalType={rental.type}
+            areaId={currentArea.id}
+            type="after"
+            existingChecklists={checklists}
+            onUpdate={setChecklists}
+          />
+        )}
 
         {signature && (
           <div className="bg-white rounded-lg shadow-sm p-4 mt-6">

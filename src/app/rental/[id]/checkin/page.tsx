@@ -10,6 +10,8 @@ import { Rental, RentalArea, CAR_AREAS, HOUSE_AREAS, Photo } from '@/types/renta
 import SignatureModal from '@/components/SignatureModal';
 import { compressImage } from '@/lib/imageCompression';
 import ImageViewer from '@/components/ImageViewer';
+import ChecklistSection from '@/components/ChecklistSection';
+import { AreaChecklist } from '@/types/rental';
 
 // 렌탈 타입에 따른 촬영 영역 반환
 const getAreasForRental = (rental: Rental | null): RentalArea[] => {
@@ -41,7 +43,8 @@ export default function BeforePage() {
   const [memo, setMemo] = useState('');
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
-  const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null);
+  const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null); // ← 추가
+  const [checklists, setChecklists] = useState<AreaChecklist[]>([]);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [signature, setSignature] = useState<string>('');
@@ -79,6 +82,7 @@ export default function BeforePage() {
         setRental(data);
         setPhotos(data.checkIn.photos || []);
         setSignature(data.checkIn.signature || '');
+        setChecklists(data.checkIn.checklists || []);
       } else {
         alert('렌탈을 찾을 수 없습니다.');
         router.push('/dashboard');
@@ -113,6 +117,7 @@ export default function BeforePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 생활용품이고 customAreas가 없을 때 (자유 촬영 모드)
     if (rental?.type === 'goods' && areas.length === 0) {
       await handleFreePhotoUpload(file);
       return;
@@ -120,8 +125,10 @@ export default function BeforePage() {
 
     if (!currentArea) return;
 
+    // 이미지 압축
     const compressedFile = await compressImage(file);
 
+    // 미리보기 이미지 생성
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreviewImage(reader.result as string);
@@ -130,7 +137,7 @@ export default function BeforePage() {
     reader.readAsDataURL(compressedFile);
 
     setPendingFile(compressedFile);
-    setMemo('');
+    setMemo(''); // ← 새 사진이므로 메모 초기화
   };
 
   const handleFreePhotoUpload = async (file: File) => {
@@ -218,6 +225,7 @@ export default function BeforePage() {
         notes: memo.trim(),
       };
 
+      // ✅ 변경: 덮어쓰기 로직 제거, 항상 추가
       const updatedPhotos = [...photos, newPhoto];
       
       setPhotos(updatedPhotos);
@@ -231,6 +239,11 @@ export default function BeforePage() {
       setPendingFile(null);
       setPreviewImage(null);
 
+      // 다음 영역으로 자동 이동하지 않음 (여러 장 촬영 가능하도록)
+      // if (currentAreaIndex < areas.length - 1) {
+      //   setCurrentAreaIndex(currentAreaIndex + 1);
+      // }
+
       alert(`사진 저장 완료!`);
     } catch (error) {
       console.error('업로드 실패:', error);
@@ -243,6 +256,7 @@ export default function BeforePage() {
     }
   };
 
+  // ✅ 변경: 특정 사진의 메모 수정
   const handleEditMemo = (photoTimestamp: number, currentNotes: string) => {
     setEditingPhotoTimestamp(photoTimestamp);
     setMemo(currentNotes);
@@ -292,6 +306,7 @@ export default function BeforePage() {
   };
 
   const handleComplete = async () => {
+    // 생활용품 자유 촬영 모드
     if (rental?.type === 'goods' && areas.length === 0) {
       if (photos.length === 0) {
         alert('최소 1장 이상의 사진을 촬영해주세요.');
@@ -309,6 +324,7 @@ export default function BeforePage() {
         await updateDoc(rentalRef, {
           'checkIn.completedAt': Date.now(),
           'checkIn.signature': signature,
+          'checkIn.checklists': checklists,
         });
 
         alert('Before 사진 등록이 완료되었습니다!');
@@ -320,8 +336,9 @@ export default function BeforePage() {
       return;
     }
 
+    // 일반 모드: 필수 영역별로 최소 1장씩 확인
     const requiredAreas = areas.filter(a => a.required);
-    const uploadedAreaIds = [...new Set(photos.map(p => p.area))];
+    const uploadedAreaIds = [...new Set(photos.map(p => p.area))]; // 중복 제거
     const missingAreas = requiredAreas.filter(a => !uploadedAreaIds.includes(a.id));
 
     if (missingAreas.length > 0) {
@@ -340,6 +357,7 @@ export default function BeforePage() {
       await updateDoc(rentalRef, {
         'checkIn.completedAt': Date.now(),
         'checkIn.signature': signature,
+        'checkIn.checklists': checklists,
       });
 
       alert('Before 사진 등록이 완료되었습니다!');
@@ -350,10 +368,12 @@ export default function BeforePage() {
     }
   };
 
+  // ✅ 변경: 단일 사진 → 여러 사진 배열
   const getPhotosForArea = (areaId: string): Photo[] => {
     return photos.filter(p => p.area === areaId);
   };
 
+  // ✅ 변경: timestamp로 삭제
   const handleDeletePhoto = async (photoTimestamp: number) => {
     const confirmed = confirm('이 사진을 삭제하시겠습니까?');
     if (!confirmed) return;
@@ -386,6 +406,7 @@ export default function BeforePage() {
     return null;
   }
 
+  // 생활용품 자유 촬영 모드
   if (rental.type === 'goods' && areas.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -547,6 +568,7 @@ export default function BeforePage() {
     );
   }
 
+  // 일반 모드 (영역별 촬영)
   const currentPhotos = getPhotosForArea(currentArea?.id || '');
 
   return (
@@ -681,6 +703,7 @@ export default function BeforePage() {
             </div>
           ) : currentPhotos.length > 0 ? (
             <div className="space-y-4">
+              {/* ✅ 사진 그리드 */}
               <div className="grid grid-cols-2 gap-3">
                 {currentPhotos.map((photo) => (
                   <div key={photo.timestamp} className="relative">
@@ -704,6 +727,7 @@ export default function BeforePage() {
                       탭하여 확대
                     </div>
                     
+                    {/* 메모 표시 */}
                     {photo.notes && (
                       <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
                         <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
@@ -731,6 +755,7 @@ export default function BeforePage() {
                 ))}
               </div>
               
+              {/* ✅ + 사진 추가 버튼 */}
               <button 
                 onClick={() => fileInputRef.current?.click()} 
                 disabled={uploading} 
@@ -738,6 +763,7 @@ export default function BeforePage() {
               >
                 ➕ 사진 추가
               </button>
+              
             </div>
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
@@ -775,8 +801,19 @@ export default function BeforePage() {
             </div>
           )}
 
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+<input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
         </div>
+
+        {rental?.type !== 'goods' && currentArea && (
+          <ChecklistSection
+            rentalId={rentalId}
+            rentalType={rental.type}
+            areaId={currentArea.id}
+            type="before"
+            existingChecklists={checklists}
+            onUpdate={setChecklists}
+          />
+        )}
 
         {signature && (
           <div className="bg-white rounded-lg shadow-sm p-4 mt-6">
@@ -829,6 +866,7 @@ export default function BeforePage() {
         </div>
       </main>
 
+      {/* 이미지 미리보기 모달 */}
       {showPreview && previewImage && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
           <div className="flex-1 flex items-center justify-center p-4">
