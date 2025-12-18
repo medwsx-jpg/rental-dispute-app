@@ -115,23 +115,39 @@ export default function BeforePage() {
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('=== handleFileSelect 시작 ===');
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 생활용품이고 customAreas가 없을 때 (자유 촬영 모드)
+    if (!file) {
+      console.log('파일 없음');
+      return;
+    }
+    console.log('파일 선택됨:', file.name, file.size);
+  
     if (rental?.type === 'goods' && areas.length === 0) {
+      console.log('자유 촬영 모드');
       await handleFreePhotoUpload(file);
       return;
     }
-
-    if (!currentArea) return;
-
-    // 이미지 압축
-    const compressedFile = await compressImage(file);
-
-    setPendingFile(compressedFile);
-    setMemo('');
-    setShowMemoInput(true);
+  
+    if (!currentArea) {
+      console.log('currentArea 없음');
+      return;
+    }
+    console.log('currentArea:', currentArea.id);
+  
+    console.log('압축 시작...');
+    try {
+      const compressedFile = await compressImage(file);
+      console.log('압축 완료:', compressedFile.size);
+  
+      setPendingFile(compressedFile);
+      setMemo('');
+      setShowMemoInput(true);
+      console.log('메모 입력 화면으로 전환');
+    } catch (error) {
+      console.error('압축 에러:', error);
+      alert('이미지 압축 실패: ' + (error as Error).message);
+    }
   };
 
   const handleFreePhotoUpload = async (file: File) => {
