@@ -607,8 +607,17 @@ export default function AfterPage() {
             const hasPhoto = areaPhotos.length > 0;
             return (
               <button
-                key={area.id}
-                onClick={() => setCurrentAreaIndex(index)}
+              key={area.id}
+              onClick={() => {
+                setCurrentAreaIndex(index);
+                // 상태 초기화
+                setPendingFile(null);
+                setPreviewImage(null);
+                setShowPreview(false);
+                setShowMemoInput(false);
+                setEditingMemo(false);
+                setMemo('');
+              }}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
                   currentAreaIndex === index
                     ? 'bg-orange-500 text-white'
