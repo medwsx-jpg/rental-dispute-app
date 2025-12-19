@@ -215,86 +215,108 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
   };
 
   const handleUploadWithMemo = async () => {
-    console.log('handleUploadWithMemo 호출', { pendingFile, currentArea, uploading });
-    
-    if (uploading) {
-      console.log('이미 업로드 중');
-      return;
-    }
-    
-    if (!pendingFile || !currentArea) {
-      console.log('파일 또는 영역 없음');
-      return;
-    }
-  
-    // 파일 크기 체크
+    if (uploading) return;
+    if (!pendingFile || !currentArea) return;
+
     if (pendingFile.size > 10 * 1024 * 1024) {
       alert('파일이 너무 큽니다 (10MB 이하만 가능)');
       return;
     }
-  
+
     setUploading(true);
     setShowMemoInput(false);
-  
+
     try {
       const location = await getLocation();
       const timestamp = Date.now();
-      const storageRef = ref(
-        storage,
-        `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
-      );
-  
-      // uploadBytesResumable 사용
-      const uploadTask = uploadBytesResumable(storageRef, pendingFile);
-  
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log('업로드 진행:', progress.toFixed(0) + '%');
-        },
-        (error) => {
-          console.error('업로드 실패:', error);
-          alert('업로드 실패: ' + error.message);
-          setUploading(false);
-        },
-        async () => {
-          // 업로드 완료
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-  
-          const newPhoto: Photo = {
-            url: downloadURL,
+
+      // 🔥 모바일 감지
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      let downloadURL: string;
+
+      if (isMobile) {
+        // 📱 모바일: 서버 업로드
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(pendingFile);
+        });
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: base64,
+            rentalId,
+            areaId: currentArea.id,
             timestamp,
-            location,
-            area: currentArea.id,
-            notes: memo.trim(),
-          };
-  
-          const updatedPhotos = [...photos, newPhoto];
-          setPhotos(updatedPhotos);
-  
-          const rentalRef = doc(db, 'rentals', rentalId);
-          await updateDoc(rentalRef, {
-            'checkIn.photos': updatedPhotos,
-          });
-  
-          // 상태 명확히 리셋
-        setMemo('');
-        setPendingFile(null);
-        setPreviewImage(null);
-        setShowMemoInput(false);
-        setShowPreview(false);
-        setUploading(false);
+            type: 'before',
+          }),
+        });
 
-        // 메모리 정리 대기
-        await new Promise(resolve => setTimeout(resolve, 300));
+        if (!response.ok) throw new Error('서버 업로드 실패');
 
-        alert('사진 저장 완료!');
-        }
-      );
+        const data = await response.json();
+        downloadURL = data.downloadURL;
+
+      } else {
+        // 💻 웹: 기존 방식 (클라이언트 직접 업로드)
+        const storageRef = ref(
+          storage,
+          `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
+        );
+
+        const uploadTask = uploadBytesResumable(storageRef, pendingFile);
+
+        await new Promise<void>((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              console.log('업로드 진행:', progress.toFixed(0) + '%');
+            },
+            (error) => reject(error),
+            () => resolve()
+          );
+        });
+
+        downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+      }
+
+      // 공통: Firestore에 저장
+      const newPhoto: Photo = {
+        url: downloadURL,
+        timestamp,
+        location,
+        area: currentArea.id,
+        notes: memo.trim(),
+      };
+
+      const updatedPhotos = [...photos, newPhoto];
+      setPhotos(updatedPhotos);
+
+      const rentalRef = doc(db, 'rentals', rentalId);
+      await updateDoc(rentalRef, {
+        'checkIn.photos': updatedPhotos,
+      });
+
+      // 상태 리셋
+      setMemo('');
+      setPendingFile(null);
+      setPreviewImage(null);
+      setShowMemoInput(false);
+      setShowPreview(false);
+      setUploading(false);
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      alert('사진 저장 완료!');
+      
     } catch (error) {
-      console.error('에러:', error);
-      alert('업로드 에러: ' + (error as Error).message);
+      console.error('업로드 에러:', error);
+      alert('업로드 실패: ' + (error as Error).message);
       setUploading(false);
     }
   };
@@ -816,13 +838,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               {/* ✅ + 사진 추가 버튼 */}
               <button 
   onClick={() => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      alert('모바일에서는 영역당 1장만 촬영 가능합니다.\n\nPC 웹 버전(https://rental-dispute-app.vercel.app)을 사용하시면 여러 장 촬영하실 수 있습니다.');
-      return;
-    }
-    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -934,13 +949,9 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         <div className="mt-6 bg-yellow-50 rounded-lg p-4">
   <h3 className="font-medium text-yellow-800 mb-2">💡 촬영 팁</h3>
   <ul className="text-sm text-yellow-700 space-y-1">
-    <li>• 밝은 곳에서 촬영하세요</li>
-    {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
-      <li>• 모바일에서는 영역당 1장씩 촬영됩니다 (PC 웹에서는 여러 장 가능)</li>
-    ) : (
-      <li>• 한 영역에 여러 장 촬영 가능합니다</li>
-    )}
-    <li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
+  <li>• 밝은 곳에서 촬영하세요</li>
+<li>• 한 영역에 여러 장 촬영 가능합니다</li>
+<li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
     <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
     <li>• GPS가 켜져 있으면 위치가 자동 기록됩니다</li>
   </ul>
