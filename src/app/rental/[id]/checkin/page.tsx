@@ -47,7 +47,7 @@ export default function BeforePage() {
   const [editingMemo, setEditingMemo] = useState(false);
   const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null); // ← 추가
   const [checklists, setChecklists] = useState<AreaChecklist[]>([]);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFile, setPendingFile] = useState<{ file: File; base64: string } | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [signature, setSignature] = useState<string>('');
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -128,24 +128,27 @@ export default function BeforePage() {
   
     const compressedFile = await compressImage(file);
   
+    // 🔥 즉시 Base64로 변환 (권한 문제 방지)
+    const reader = new FileReader();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('파일 읽기 실패'));
+      reader.readAsDataURL(compressedFile);
+    });
+  
     // 모바일 감지
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     if (isMobile) {
-      // 모바일: 미리보기 건너뛰고 바로 메모 입력
-      setPendingFile(compressedFile);
+      // 모바일: 파일 + Base64 저장
+      setPendingFile({ file: compressedFile, base64 });
       setMemo('');
       setShowMemoInput(true);
     } else {
       // 웹: 미리보기 표시
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-        setShowPreview(true);
-      };
-      reader.readAsDataURL(compressedFile);
-  
-      setPendingFile(compressedFile);
+      setPreviewImage(base64);
+      setShowPreview(true);
+      setPendingFile({ file: compressedFile, base64 });
       setMemo('');
     }
   };
@@ -216,15 +219,15 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
   };
 
   const handleUploadWithMemo = async () => {
-    if (isUploadingRef.current) return; // 🔥 ref로 체크
+    if (isUploadingRef.current) return;
     if (!pendingFile || !currentArea) return;
 
-    if (pendingFile.size > 10 * 1024 * 1024) {
+    if (pendingFile.file.size > 10 * 1024 * 1024) {
       alert('파일이 너무 큽니다 (10MB 이하만 가능)');
       return;
     }
 
-    isUploadingRef.current = true; // 🔥 즉시 true
+    isUploadingRef.current = true;
     setUploading(true);
     setShowMemoInput(false);
 
@@ -237,35 +240,12 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       let downloadURL: string;
 
       if (isMobile) {
-        // 🔥 파일 검증 추가
-        console.log('pendingFile:', pendingFile);
-        console.log('pendingFile.size:', pendingFile?.size);
-        console.log('pendingFile.type:', pendingFile?.type);
-        
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => {
-            if (reader.result) {
-              resolve(reader.result as string);
-            } else {
-              reject(new Error('FileReader result is null'));
-            }
-          };
-          reader.onerror = (error) => {
-            console.error('FileReader error:', error);
-            console.error('FileReader.error:', reader.error);
-            reject(new Error('파일 읽기 실패: ' + (reader.error?.message || 'Unknown')));
-          };
-          reader.readAsDataURL(pendingFile);
-        });
-        
-        console.log('Base64 생성 완료, 길이:', base64.length);
-
+        // 📱 모바일: 서버 업로드
         const response = await fetch('/api/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            imageBase64: base64,
+            imageBase64: pendingFile.base64,
             rentalId,
             areaId: currentArea.id,
             timestamp,
@@ -279,12 +259,13 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         downloadURL = data.downloadURL;
 
       } else {
+        // 💻 웹: 클라이언트 직접 업로드
         const storageRef = ref(
           storage,
           `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
         );
 
-        const uploadTask = uploadBytesResumable(storageRef, pendingFile);
+        const uploadTask = uploadBytesResumable(storageRef, pendingFile.file);
 
         await new Promise<void>((resolve, reject) => {
           uploadTask.on(
@@ -314,25 +295,22 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         'checkIn.photos': updatedPhotos,
       });
 
-      // 🔥 상태 리셋 먼저
+      // 상태 리셋
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
-      isUploadingRef.current = false; // 🔥 ref 먼저 해제!
+      isUploadingRef.current = false;
       setUploading(false);
 
-      // 🔥 alert는 마지막
       alert('사진 저장 완료!');
       
     } catch (error) {
       console.error('=== 업로드 에러 상세 ===');
       console.error('에러 객체:', error);
-      console.error('에러 타입:', typeof error);
-      console.error('에러 내용:', JSON.stringify(error, null, 2));
       
-      // 🔥 상태 리셋 먼저
+      // 상태 리셋
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
@@ -341,17 +319,12 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       isUploadingRef.current = false;
       setUploading(false);
       
-      // 🔥 더 자세한 에러 메시지
       let errorMsg = '알 수 없는 오류';
       if (error instanceof Error) {
         errorMsg = error.message;
-      } else if (typeof error === 'string') {
-        errorMsg = error;
-      } else if (error && typeof error === 'object') {
-        errorMsg = JSON.stringify(error);
       }
       
-      alert('업로드 실패:\n' + errorMsg + '\n\n(개발자 도구 Console을 확인하세요)');
+      alert('업로드 실패:\n' + errorMsg);
     }
   };
   // ✅ 변경: 특정 사진의 메모 수정
