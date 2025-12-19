@@ -38,6 +38,7 @@ export default function BeforePage() {
   const [rental, setRental] = useState<Rental | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const isUploadingRef = useRef(false); // 🔥 추가!
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
   const [memo, setMemo] = useState('');
@@ -215,7 +216,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
   };
 
   const handleUploadWithMemo = async () => {
-    if (uploading) return;
+    if (isUploadingRef.current) return; // 🔥 ref로 체크
     if (!pendingFile || !currentArea) return;
 
     if (pendingFile.size > 10 * 1024 * 1024) {
@@ -223,6 +224,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       return;
     }
 
+    isUploadingRef.current = true; // 🔥 즉시 true
     setUploading(true);
     setShowMemoInput(false);
 
@@ -301,6 +303,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
+      isUploadingRef.current = false; // 🔥 ref 먼저 해제!
       setUploading(false);
 
       // 🔥 alert는 마지막
@@ -315,6 +318,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
+      isUploadingRef.current = false; // 🔥 ref 먼저 해제!
       setUploading(false);
       
       // 🔥 alert는 마지막
