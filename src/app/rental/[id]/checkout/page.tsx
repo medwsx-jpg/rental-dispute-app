@@ -230,13 +230,11 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       const location = await getLocation();
       const timestamp = Date.now();
 
-      // 🔥 모바일 감지
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       let downloadURL: string;
 
       if (isMobile) {
-        // 📱 모바일: 서버 업로드
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve, reject) => {
           reader.onloadend = () => resolve(reader.result as string);
@@ -252,7 +250,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             rentalId,
             areaId: currentArea.id,
             timestamp,
-            type: 'after',  // ← 주의: 'after'
+            type: 'after',  // ← checkin과 다름!
           }),
         });
 
@@ -262,10 +260,9 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         downloadURL = data.downloadURL;
 
       } else {
-        // 💻 웹: 기존 방식
         const storageRef = ref(
           storage,
-          `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`
+          `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`  // ← after!
         );
 
         const uploadTask = uploadBytesResumable(storageRef, pendingFile);
@@ -282,7 +279,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       }
 
-      // 공통: Firestore에 저장
       const newPhoto: Photo = {
         url: downloadURL,
         timestamp,
@@ -296,32 +292,33 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const rentalRef = doc(db, 'rentals', rentalId);
       await updateDoc(rentalRef, {
-        'checkOut.photos': updatedPhotos,  // ← 주의: 'checkOut'
+        'checkOut.photos': updatedPhotos,  // ← checkin과 다름!
       });
 
-      alert('사진 저장 완료!');
-
-      // 상태 리셋
+      // 🔥 상태 리셋 먼저
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
       setUploading(false);
+
+      // 🔥 alert는 마지막
+      alert('사진 저장 완료!');
       
     } catch (error) {
       console.error('업로드 에러:', error);
-      alert('업로드 실패: ' + (error as Error).message);
       
-      // 에러 시에도 확실히 리셋
+      // 🔥 상태 리셋 먼저
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
       setUploading(false);
+      
+      // 🔥 alert는 마지막
+      alert('업로드 실패: ' + (error as Error).message);
     }
   };
 
