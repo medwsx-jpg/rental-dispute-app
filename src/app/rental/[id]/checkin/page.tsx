@@ -198,9 +198,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      
     }
   };
 
@@ -213,13 +211,21 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
     setShowPreview(false);
     setPreviewImage(null);
     setPendingFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    
   };
 
   const handleUploadWithMemo = async () => {
-    if (!pendingFile || !currentArea) return;
+    console.log('handleUploadWithMemo 호출', { pendingFile, currentArea, uploading });
+    
+    if (uploading) {
+      console.log('이미 업로드 중');
+      return;
+    }
+    
+    if (!pendingFile || !currentArea) {
+      console.log('파일 또는 영역 없음');
+      return;
+    }
   
     // 파일 크기 체크
     if (pendingFile.size > 10 * 1024 * 1024) {
@@ -272,12 +278,18 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             'checkIn.photos': updatedPhotos,
           });
   
-          setMemo('');
-          setPendingFile(null);
-          setPreviewImage(null);
-          setUploading(false);
-  
-          alert('사진 저장 완료!');
+          // 상태 명확히 리셋
+        setMemo('');
+        setPendingFile(null);
+        setPreviewImage(null);
+        setShowMemoInput(false);
+        setShowPreview(false);
+        setUploading(false);
+
+        // 메모리 정리 대기
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        alert('사진 저장 완료!');
         }
       );
     } catch (error) {
@@ -494,18 +506,24 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                       📷 촬영하기
                     </button>
                     <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
-                    >
-                      📂 갤러리
-                    </button>
+  onClick={() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => handleFileSelect(e as any);
+    input.click();
+  }}
+  className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+>
+  📂 갤러리
+</button>
                   </div>
                   <p className="text-xs text-gray-500 mt-3 text-center">자동으로 압축되어 저장됩니다</p>
                 </div>
               )}
             </div>
 
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+            
           </div>
 
           {photos.length > 0 && (
@@ -797,7 +815,13 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               
               {/* ✅ + 사진 추가 버튼 */}
               <button 
-                onClick={() => fileInputRef.current?.click()} 
+  onClick={() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => handleFileSelect(e as any);
+    input.click();
+  }}
                 disabled={uploading} 
                 className="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
               >
@@ -830,7 +854,13 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                       📷 촬영
                     </button>
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+  onClick={() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => handleFileSelect(e as any);
+    input.click();
+  }}
                       className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
                     >
                       📂 갤러리
@@ -842,7 +872,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             </div>
           )}
 
-<input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
         </div>
 
         {rental?.type !== 'goods' && currentArea && (
