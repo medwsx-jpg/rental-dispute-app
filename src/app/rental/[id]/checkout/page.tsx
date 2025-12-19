@@ -163,8 +163,18 @@ export default function AfterPage() {
         `rentals/${rentalId}/after/${photoId}.jpg`
       );
 
-      await uploadBytes(storageRef, compressedFile);
-      const downloadURL = await getDownloadURL(storageRef);
+      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+
+await new Promise<void>((resolve, reject) => {
+  uploadTask.on(
+    'state_changed',
+    null,
+    (error) => reject(error),
+    () => resolve()
+  );
+});
+
+const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const newPhoto: Photo = {
         url: downloadURL,
@@ -210,53 +220,70 @@ export default function AfterPage() {
 
   const handleUploadWithMemo = async () => {
     if (!pendingFile || !currentArea) return;
-
+  
+    // 파일 크기 체크
+    if (pendingFile.size > 10 * 1024 * 1024) {
+      alert('파일이 너무 큽니다 (10MB 이하만 가능)');
+      return;
+    }
+  
     setUploading(true);
     setShowMemoInput(false);
-
+  
     try {
       const location = await getLocation();
       const timestamp = Date.now();
-
       const storageRef = ref(
         storage,
         `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`
       );
-
-      await uploadBytes(storageRef, pendingFile);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      const newPhoto: Photo = {
-        url: downloadURL,
-        timestamp,
-        location,
-        area: currentArea.id,
-        notes: memo.trim(),
-      };
-
-      // ✅ 변경: 덮어쓰기 로직 제거, 항상 추가
-      const updatedPhotos = [...photos, newPhoto];
-      
-      setPhotos(updatedPhotos);
-
-      const rentalRef = doc(db, 'rentals', rentalId);
-      await updateDoc(rentalRef, {
-        'checkOut.photos': updatedPhotos,
-      });
-
-      setMemo('');
-      setPendingFile(null);
-      setPreviewImage(null);
-
-      alert(`사진 저장 완료!`);
+  
+      // uploadBytesResumable 사용
+      const uploadTask = uploadBytesResumable(storageRef, pendingFile);
+  
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('업로드 진행:', progress.toFixed(0) + '%');
+        },
+        (error) => {
+          console.error('업로드 실패:', error);
+          alert('업로드 실패: ' + error.message);
+          setUploading(false);
+        },
+        async () => {
+          // 업로드 완료
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+  
+          const newPhoto: Photo = {
+            url: downloadURL,
+            timestamp,
+            location,
+            area: currentArea.id,
+            notes: memo.trim(),
+          };
+  
+          const updatedPhotos = [...photos, newPhoto];
+          setPhotos(updatedPhotos);
+  
+          const rentalRef = doc(db, 'rentals', rentalId);
+          await updateDoc(rentalRef, {
+            'checkOut.photos': updatedPhotos,
+          });
+  
+          setMemo('');
+          setPendingFile(null);
+          setPreviewImage(null);
+          setUploading(false);
+  
+          alert('사진 저장 완료!');
+        }
+      );
     } catch (error) {
-      console.error('업로드 실패:', error);
-      alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
-    } finally {
+      console.error('에러:', error);
+      alert('업로드 에러: ' + (error as Error).message);
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 

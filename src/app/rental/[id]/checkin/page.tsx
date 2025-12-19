@@ -163,8 +163,18 @@ export default function BeforePage() {
         `rentals/${rentalId}/before/${photoId}.jpg`
       );
 
-      await uploadBytes(storageRef, compressedFile);
-      const downloadURL = await getDownloadURL(storageRef);
+      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+
+await new Promise<void>((resolve, reject) => {
+  uploadTask.on(
+    'state_changed',
+    null,
+    (error) => reject(error),
+    () => resolve()
+  );
+});
+
+const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const newPhoto: Photo = {
         url: downloadURL,
@@ -209,66 +219,73 @@ export default function BeforePage() {
   };
 
   const handleUploadWithMemo = async () => {
-    if (!pendingFile || !currentArea) {
-      alert('파일 또는 영역 없음!');
+    if (!pendingFile || !currentArea) return;
+  
+    // 파일 크기 체크
+    if (pendingFile.size > 10 * 1024 * 1024) {
+      alert('파일이 너무 큽니다 (10MB 이하만 가능)');
       return;
     }
-  
-    // ✅ 이 부분 추가!
-    alert(`pendingFile 확인:\n크기: ${(pendingFile.size / 1024).toFixed(2)}KB\ntype: ${pendingFile.type}\nname: ${pendingFile.name}`);
   
     setUploading(true);
     setShowMemoInput(false);
   
     try {
-      alert('1. 위치 정보 가져오는 중...');
       const location = await getLocation();
-      
-      alert('2. Firebase 업로드 시작...');
       const timestamp = Date.now();
       const storageRef = ref(
         storage,
         `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
       );
   
-      await uploadBytes(storageRef, pendingFile);
-      alert('3. 업로드 완료! URL 가져오는 중...');
-      
-      const downloadURL = await getDownloadURL(storageRef);
-      alert('4. URL 완료! DB 저장 중...');
+      // uploadBytesResumable 사용
+      const uploadTask = uploadBytesResumable(storageRef, pendingFile);
   
-      const newPhoto: Photo = {
-        url: downloadURL,
-        timestamp,
-        location,
-        area: currentArea.id,
-        notes: memo.trim(),
-      };
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('업로드 진행:', progress.toFixed(0) + '%');
+        },
+        (error) => {
+          console.error('업로드 실패:', error);
+          alert('업로드 실패: ' + error.message);
+          setUploading(false);
+        },
+        async () => {
+          // 업로드 완료
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
   
-      const updatedPhotos = [...photos, newPhoto];
-      setPhotos(updatedPhotos);
+          const newPhoto: Photo = {
+            url: downloadURL,
+            timestamp,
+            location,
+            area: currentArea.id,
+            notes: memo.trim(),
+          };
   
-      const rentalRef = doc(db, 'rentals', rentalId);
-      await updateDoc(rentalRef, {
-        'checkIn.photos': updatedPhotos,
-      });
+          const updatedPhotos = [...photos, newPhoto];
+          setPhotos(updatedPhotos);
   
-      setMemo('');
-      setPendingFile(null);
-      setPreviewImage(null);
+          const rentalRef = doc(db, 'rentals', rentalId);
+          await updateDoc(rentalRef, {
+            'checkIn.photos': updatedPhotos,
+          });
   
-      alert(`사진 저장 완료!`);
+          setMemo('');
+          setPendingFile(null);
+          setPreviewImage(null);
+          setUploading(false);
+  
+          alert('사진 저장 완료!');
+        }
+      );
     } catch (error) {
-      console.error('업로드 에러:', error);
-      alert('에러: ' + (error as Error).message);
-    } finally {
+      console.error('에러:', error);
+      alert('업로드 에러: ' + (error as Error).message);
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
-
   // ✅ 변경: 특정 사진의 메모 수정
   const handleEditMemo = (photoTimestamp: number, currentNotes: string) => {
     setEditingPhotoTimestamp(photoTimestamp);
