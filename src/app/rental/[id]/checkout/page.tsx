@@ -237,12 +237,29 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       let downloadURL: string;
 
       if (isMobile) {
+        // 🔥 파일 검증 추가
+        console.log('pendingFile:', pendingFile);
+        console.log('pendingFile.size:', pendingFile?.size);
+        console.log('pendingFile.type:', pendingFile?.type);
+        
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
+          reader.onloadend = () => {
+            if (reader.result) {
+              resolve(reader.result as string);
+            } else {
+              reject(new Error('FileReader result is null'));
+            }
+          };
+          reader.onerror = (error) => {
+            console.error('FileReader error:', error);
+            console.error('FileReader.error:', reader.error);
+            reject(new Error('파일 읽기 실패: ' + (reader.error?.message || 'Unknown')));
+          };
           reader.readAsDataURL(pendingFile);
         });
+        
+        console.log('Base64 생성 완료, 길이:', base64.length);
 
         const response = await fetch('/api/upload', {
           method: 'POST',
