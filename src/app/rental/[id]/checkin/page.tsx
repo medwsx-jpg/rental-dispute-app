@@ -214,6 +214,9 @@ export default function BeforePage() {
       return;
     }
   
+    // ✅ 이 부분 추가!
+    alert(`pendingFile 확인:\n크기: ${(pendingFile.size / 1024).toFixed(2)}KB\ntype: ${pendingFile.type}\nname: ${pendingFile.name}`);
+  
     setUploading(true);
     setShowMemoInput(false);
   
