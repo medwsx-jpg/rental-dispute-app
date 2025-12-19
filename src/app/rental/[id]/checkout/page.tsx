@@ -252,7 +252,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             rentalId,
             areaId: currentArea.id,
             timestamp,
-            type: 'after',
+            type: 'after',  // ← 주의: 'after'
           }),
         });
 
@@ -262,7 +262,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         downloadURL = data.downloadURL;
 
       } else {
-        // 💻 웹: 기존 방식 (클라이언트 직접 업로드)
+        // 💻 웹: 기존 방식
         const storageRef = ref(
           storage,
           `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`
@@ -273,10 +273,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         await new Promise<void>((resolve, reject) => {
           uploadTask.on(
             'state_changed',
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              console.log('업로드 진행:', progress.toFixed(0) + '%');
-            },
+            null,
             (error) => reject(error),
             () => resolve()
           );
@@ -299,8 +296,10 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const rentalRef = doc(db, 'rentals', rentalId);
       await updateDoc(rentalRef, {
-        'checkOut.photos': updatedPhotos,
+        'checkOut.photos': updatedPhotos,  // ← 주의: 'checkOut'
       });
+
+      alert('사진 저장 완료!');
 
       // 상태 리셋
       setMemo('');
@@ -308,15 +307,20 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
       setUploading(false);
-
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      alert('사진 저장 완료!');
       
     } catch (error) {
       console.error('업로드 에러:', error);
       alert('업로드 실패: ' + (error as Error).message);
+      
+      // 에러 시에도 확실히 리셋
+      setMemo('');
+      setPendingFile(null);
+      setPreviewImage(null);
+      setShowMemoInput(false);
+      setShowPreview(false);
       setUploading(false);
     }
   };
