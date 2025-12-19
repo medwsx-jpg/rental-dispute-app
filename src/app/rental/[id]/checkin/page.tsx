@@ -310,7 +310,10 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       alert('사진 저장 완료!');
       
     } catch (error) {
-      console.error('업로드 에러:', error);
+      console.error('=== 업로드 에러 상세 ===');
+      console.error('에러 객체:', error);
+      console.error('에러 타입:', typeof error);
+      console.error('에러 내용:', JSON.stringify(error, null, 2));
       
       // 🔥 상태 리셋 먼저
       setMemo('');
@@ -318,11 +321,20 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       setPreviewImage(null);
       setShowMemoInput(false);
       setShowPreview(false);
-      isUploadingRef.current = false; // 🔥 ref 먼저 해제!
+      isUploadingRef.current = false;
       setUploading(false);
       
-      // 🔥 alert는 마지막
-      alert('업로드 실패: ' + (error as Error).message);
+      // 🔥 더 자세한 에러 메시지
+      let errorMsg = '알 수 없는 오류';
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'string') {
+        errorMsg = error;
+      } else if (error && typeof error === 'object') {
+        errorMsg = JSON.stringify(error);
+      }
+      
+      alert('업로드 실패:\n' + errorMsg + '\n\n(개발자 도구 Console을 확인하세요)');
     }
   };
   // ✅ 변경: 특정 사진의 메모 수정
