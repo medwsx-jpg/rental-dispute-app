@@ -55,7 +55,7 @@ export default function BeforePage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+ 
 
   const areas = getAreasForRental(rental);
   const currentArea = areas?.[currentAreaIndex];
@@ -816,17 +816,24 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               {/* ✅ + 사진 추가 버튼 */}
               <button 
   onClick={() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      alert('모바일에서는 영역당 1장만 촬영 가능합니다.\n\nPC 웹 버전(https://rental-dispute-app.vercel.app)을 사용하시면 여러 장 촬영하실 수 있습니다.');
+      return;
+    }
+    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.onchange = (e) => handleFileSelect(e as any);
     input.click();
   }}
-                disabled={uploading} 
-                className="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
-              >
-                ➕ 사진 추가
-              </button>
+  disabled={uploading} 
+  className="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
+>
+  ➕ 사진 추가
+</button>
               
             </div>
           ) : (
@@ -925,15 +932,19 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         </div>
 
         <div className="mt-6 bg-yellow-50 rounded-lg p-4">
-          <h3 className="font-medium text-yellow-800 mb-2">💡 촬영 팁</h3>
-          <ul className="text-sm text-yellow-700 space-y-1">
-            <li>• 밝은 곳에서 촬영하세요</li>
-            <li>• 한 영역에 여러 장 촬영 가능합니다</li>
-            <li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
-            <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
-            <li>• GPS가 켜져 있으면 위치가 자동 기록됩니다</li>
-          </ul>
-        </div>
+  <h3 className="font-medium text-yellow-800 mb-2">💡 촬영 팁</h3>
+  <ul className="text-sm text-yellow-700 space-y-1">
+    <li>• 밝은 곳에서 촬영하세요</li>
+    {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
+      <li>• 모바일에서는 영역당 1장씩 촬영됩니다 (PC 웹에서는 여러 장 가능)</li>
+    ) : (
+      <li>• 한 영역에 여러 장 촬영 가능합니다</li>
+    )}
+    <li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
+    <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
+    <li>• GPS가 켜져 있으면 위치가 자동 기록됩니다</li>
+  </ul>
+</div>
       </main>
 
       {/* 이미지 미리보기 모달 */}

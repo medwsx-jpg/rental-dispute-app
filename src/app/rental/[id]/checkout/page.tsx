@@ -55,7 +55,7 @@ export default function AfterPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   const areas = getAreasForRental(rental);
   const currentArea = areas?.[currentAreaIndex];
@@ -832,6 +832,13 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               
               <button 
                 onClick={() => {
+                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  
+                  if (isMobile) {
+                    alert('모바일에서는 영역당 1장만 촬영 가능합니다.\n\nPC 웹 버전(https://rental-dispute-app.vercel.app)을 사용하시면 여러 장 촬영하실 수 있습니다.');
+                    return;
+                  }
+                  
                   const input = document.createElement('input');
                   input.type = 'file';
                   input.accept = 'image/*';
@@ -943,7 +950,11 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           <h3 className="font-medium text-orange-800 mb-2">💡 촬영 팁</h3>
           <ul className="text-sm text-orange-700 space-y-1">
             <li>• Before와 <strong>같은 위치, 같은 구도</strong>로 촬영하세요</li>
-            <li>• 한 영역에 여러 장 촬영 가능합니다</li>
+            {/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? (
+  <li>• 모바일에서는 영역당 1장씩 촬영됩니다 (PC 웹에서는 여러 장 가능)</li>
+) : (
+  <li>• 한 영역에 여러 장 촬영 가능합니다</li>
+)}
             <li>• 새로운 흠집이나 손상이 있다면 메모를 남기세요</li>
             <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
             <li>• 비교가 쉽도록 비슷한 조명에서 촬영하세요</li>
