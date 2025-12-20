@@ -412,21 +412,39 @@ export default function DashboardPage() {
             </div>
             
             {freeUsed >= FREE_RENTAL_LIMIT && (
-              <div className="bg-white rounded-lg p-3 border border-blue-200">
-                <p className="text-sm font-medium text-gray-900 mb-1">
-                  💰 추가 렌탈이 필요하신가요?
-                </p>
-                <p className="text-xs text-gray-600 mb-2">
-                  건당 {PRICE_PER_RENTAL.toLocaleString()}원 • 렌탈 종료 후 1개월 보관
-                </p>
-                <button
-                  onClick={() => router.push('/upgrade')}
-                  className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                >
-                  유료 구매하기
-                </button>
-              </div>
-            )}
+  <div className="bg-white rounded-lg p-3 border border-blue-200">
+    <p className="text-sm font-medium text-gray-900 mb-1">
+      💰 추가 렌탈이 필요하신가요?
+    </p>
+    <p className="text-xs text-gray-600 mb-2">
+      관리자에게 문의해주세요
+    </p>
+    <button
+      onClick={() => router.push('/upgrade')}
+      className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+    >
+      더 알아보기
+    </button>
+  </div>
+)}
+```
+
+---
+
+## 📊 수정 내용
+
+### **Before:**
+```
+💰 추가 렌탈이 필요하신가요?
+건당 2,000원 • 렌탈 종료 후 1개월 보관  ← 삭제
+[유료 구매하기]
+```
+
+### **After:**
+```
+💰 추가 렌탈이 필요하신가요?
+관리자에게 문의해주세요  ← 부드러운 안내
+[더 알아보기]  ← 덜 강압적
           </div>
         )}
 

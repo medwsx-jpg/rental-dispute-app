@@ -101,9 +101,8 @@ export default function NewRentalPage() {
           // 무료 사용량 초과
           const confirmed = confirm(
             '🆓 무료 1건을 모두 사용하셨습니다!\n\n' +
-            '💰 추가 렌탈: 건당 3,000원\n' +
-            '📅 보관 기간: 렌탈 종료 후 1개월\n\n' +
-            '결제 페이지로 이동하시겠습니까?'
+            '추가 렌탈이 필요하시면 관리자에게 문의해주세요.\n\n' +
+            '안내 페이지로 이동하시겠습니까?'
           );
           
           if (confirmed) {
