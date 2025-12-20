@@ -89,9 +89,15 @@ export default function AdminPage() {
       userList.sort((a, b) => b.createdAt - a.createdAt);
       setUsers(userList);
 
-      // 렌탈 데이터 로드
-      const rentalsSnapshot = await getDocs(collection(db, 'rentals'));
-      const totalRentals = rentalsSnapshot.size;
+      // 렌탈 데이터 로드 (deleted 제외)
+const rentalsSnapshot = await getDocs(collection(db, 'rentals'));
+let totalRentals = 0;
+rentalsSnapshot.forEach((doc) => {
+  const data = doc.data();
+  if (data.status !== 'deleted') {
+    totalRentals++;
+  }
+});
 
       // 메시지 데이터 로드
       const messagesSnapshot = await getDocs(collection(db, 'messages'));
