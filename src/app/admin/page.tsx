@@ -264,21 +264,29 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">🔧 관리자 페이지</h1>
-            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-              ADMIN
-            </span>
-          </div>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-          >
-            ← 대시보드
-          </button>
-        </div>
-      </header>
+  <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="flex items-center gap-4">
+      <h1 className="text-2xl font-bold text-gray-900">🔧 관리자 페이지</h1>
+      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+        ADMIN
+      </span>
+    </div>
+    <div className="flex items-center gap-3">
+      <button
+        onClick={() => router.push('/admin/rentals')}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+      >
+        📋 렌탈 관리
+      </button>
+      <button
+        onClick={() => router.push('/dashboard')}
+        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+      >
+        ← 대시보드
+      </button>
+    </div>
+  </div>
+</header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* 통계 카드 */}
