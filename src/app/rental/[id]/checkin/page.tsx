@@ -132,10 +132,7 @@ export default function BeforePage() {
       console.log('파일 크기:', file.size);
       console.log('파일 타입:', file.type);
       
-      const compressedFile = await compressImage(file);
-      console.log('압축 완료, 압축 후 크기:', compressedFile.size);
-      
-      // 🔥 즉시 Base64로 변환 (권한 문제 방지)
+      // 🔥 원본 파일을 즉시 Base64로 변환 (압축 전에!)
       console.log('Base64 변환 시작...');
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -145,20 +142,23 @@ export default function BeforePage() {
         };
         reader.onerror = (error) => {
           console.error('FileReader 에러:', error);
-          console.error('reader.error:', reader.error);
-          reject(new Error('파일 읽기 실패: ' + (reader.error?.message || 'Unknown')));
+          reject(new Error('파일 읽기 실패'));
         };
-        reader.readAsDataURL(compressedFile);
+        reader.readAsDataURL(file);  // ← 원본 파일!
       });
       
       console.log('Base64 길이:', base64.length);
+      
+      // 압축은 나중에 (Base64 변환 후에는 필요 없음)
+      const compressedFile = await compressImage(file);
+      console.log('압축 완료, 압축 후 크기:', compressedFile.size);
     
       // 모바일 감지
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('모바일 감지:', isMobile);
       
       if (isMobile) {
-        // 모바일: 파일 + Base64 저장
+        // 모바일: 원본 파일 + Base64 저장
         setPendingFile({ file: compressedFile, base64 });
         setMemo('');
         setShowMemoInput(true);
@@ -173,14 +173,11 @@ export default function BeforePage() {
       }
     } catch (error) {
       console.error('=== handleFileSelect 에러 ===');
-      console.error('에러 객체:', error);
-      console.error('에러 타입:', typeof error);
+      console.error('에러:', error);
       
       let errorMsg = '알 수 없는 오류';
       if (error instanceof Error) {
         errorMsg = error.message;
-      } else if (typeof error === 'string') {
-        errorMsg = error;
       }
       
       alert('사진 처리 실패:\n' + errorMsg + '\n\n다시 시도해주세요.');
