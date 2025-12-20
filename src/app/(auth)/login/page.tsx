@@ -321,7 +321,7 @@ router.push('/dashboard');
         {/* 로고 */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">📸 Record 365</h1>
-          <p className="mt-2 text-gray-600">렌탈 분쟁, 점검 기록 과정과 사진,영상으로 해결하세요</p>
+          <p className="mt-2 text-gray-600">렌탈 분쟁! 그때 찍어둔 사진, 지금 어디에 있나요?</p>
         </div>
 
         {/* 로그인 폼 */}
@@ -365,8 +365,8 @@ router.push('/dashboard');
         {/* 안내 문구 */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>🚗 렌터카 반납 시 억울한 수리비 청구?</p>
-          <p>🏠 월세 퇴거 시 원상복구 분쟁?</p>
-          <p className="mt-2 font-medium">사진으로 미리 기록하세요!</p>
+          <p>🏠 전월세 퇴거 시 원상복구 분쟁?</p>
+          <p className="mt-2 font-medium">사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?</p>
         </div>
 
         {/* 기능 소개 섹션 */}
@@ -378,8 +378,8 @@ router.push('/dashboard');
             <div className="flex gap-3">
               <span className="text-2xl">📸</span>
               <div>
-                <h4 className="font-bold text-gray-800 text-sm">사진으로 모든 것을 기록</h4>
-                <p className="text-xs text-gray-600">입주 시와 퇴거 시 사진을 찍어 변화를 명확하게 비교하세요</p>
+                <h4 className="font-bold text-gray-800 text-sm">사진,영상으로 모든 것을 기록</h4>
+                <p className="text-xs text-gray-600">입주시와 퇴거시 사진을 찍어 변화를 명확하게 비교하세요</p>
               </div>
             </div>
             <div className="flex gap-3">
