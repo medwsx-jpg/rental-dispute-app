@@ -36,7 +36,7 @@ interface MessageThread {
 }
 
 // 관리자 이메일 목록
-const ADMIN_EMAILS = ['medws@naver.com'];
+const ADMIN_EMAILS = ['medws1@naver.com'];
 
 export default function AdminPage() {
   const router = useRouter();
