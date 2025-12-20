@@ -127,60 +127,33 @@ export default function AfterPage() {
     if (!currentArea) return;
   
     try {
-      console.log('=== 파일 선택 ===');
-      console.log('파일명:', file.name);
-      console.log('파일 크기:', file.size);
-      console.log('파일 타입:', file.type);
-      
-      // 🔥 원본 파일을 즉시 Base64로 변환 (압축 전에!)
-      console.log('Base64 변환 시작...');
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          console.log('Base64 변환 완료');
-          resolve(reader.result as string);
-        };
-        reader.onerror = (error) => {
-          console.error('FileReader 에러:', error);
-          reject(new Error('파일 읽기 실패'));
-        };
-        reader.readAsDataURL(file);  // ← 원본 파일!
-      });
-      
-      console.log('Base64 길이:', base64.length);
-      
-      // 압축은 나중에 (Base64 변환 후에는 필요 없음)
+      // 압축
       const compressedFile = await compressImage(file);
-      console.log('압축 완료, 압축 후 크기:', compressedFile.size);
-    
+      
       // 모바일 감지
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      console.log('모바일 감지:', isMobile);
       
       if (isMobile) {
-        // 모바일: 원본 파일 + Base64 저장
-        setPendingFile({ file: compressedFile, base64 });
+        // 🔥 모바일: FormData 준비 (Base64 변환 안 함!)
+        setPendingFile({ file: compressedFile, base64: '' }); // base64는 빈 문자열
         setMemo('');
         setShowMemoInput(true);
-        console.log('모바일: 메모 입력 화면으로');
       } else {
-        // 웹: 미리보기 표시
+        // 웹: 미리보기용으로만 Base64 변환
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('파일 읽기 실패'));
+          reader.readAsDataURL(compressedFile);
+        });
+        
         setPreviewImage(base64);
         setShowPreview(true);
         setPendingFile({ file: compressedFile, base64 });
         setMemo('');
-        console.log('웹: 미리보기 표시');
       }
     } catch (error) {
-      console.error('=== handleFileSelect 에러 ===');
-      console.error('에러:', error);
-      
-      let errorMsg = '알 수 없는 오류';
-      if (error instanceof Error) {
-        errorMsg = error.message;
-      }
-      
-      alert('사진 처리 실패:\n' + errorMsg + '\n\n다시 시도해주세요.');
+      alert('사진 처리 실패. 다시 시도해주세요.');
     }
   };
 
@@ -271,29 +244,32 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       let downloadURL: string;
 
       if (isMobile) {
-        // 📱 모바일: 서버 업로드
+        // 🔥 모바일: FormData로 전송
+        const formData = new FormData();
+        formData.append('file', pendingFile.file);
+        formData.append('rentalId', rentalId);
+        formData.append('areaId', currentArea.id);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('type', 'before');
+
         const response = await fetch('/api/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: pendingFile.base64,
-            rentalId,
-            areaId: currentArea.id,
-            timestamp,
-            type: 'after',  // ← checkin과 다름!
-          }),
+          body: formData, // 🔥 FormData (Content-Type 자동 설정)
         });
 
-        if (!response.ok) throw new Error('서버 업로드 실패');
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error('서버 업로드 실패: ' + error);
+        }
 
         const data = await response.json();
         downloadURL = data.downloadURL;
 
       } else {
-        // 💻 웹: 클라이언트 직접 업로드
+        // 웹: 클라이언트 직접 업로드
         const storageRef = ref(
           storage,
-          `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`  // ← after!
+          `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
         );
 
         const uploadTask = uploadBytesResumable(storageRef, pendingFile.file);
@@ -323,7 +299,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const rentalRef = doc(db, 'rentals', rentalId);
       await updateDoc(rentalRef, {
-        'checkOut.photos': updatedPhotos,  // ← checkin과 다름!
+        'checkIn.photos': updatedPhotos,
       });
 
       // 상태 리셋
@@ -338,8 +314,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       alert('사진 저장 완료!');
       
     } catch (error) {
-      console.error('=== 업로드 에러 상세 ===');
-      console.error('에러 객체:', error);
+      console.error('업로드 에러:', error);
       
       // 상태 리셋
       setMemo('');

@@ -1,48 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminStorage } from '@/lib/firebase-admin';
 
+export const config = {
+  api: {
+    bodyParser: false, // 🔥 FormData 처리를 위해 비활성화
+  },
+};
+
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
-    const { imageBase64, rentalId, areaId, timestamp, type } = await request.json();
+    // 🔥 FormData 파싱
+    const formData = await request.formData();
+    
+    const file = formData.get('file') as File;
+    const rentalId = formData.get('rentalId') as string;
+    const areaId = formData.get('areaId') as string;
+    const timestamp = formData.get('timestamp') as string;
+    const type = formData.get('type') as string;
 
-    if (!imageBase64 || !rentalId || !areaId || !timestamp || !type) {
+    if (!file || !rentalId || !areaId || !timestamp || !type) {
       return NextResponse.json(
-        { error: '필수 파라미터가 누락되었습니다.' },
+        { error: '필수 파라미터 누락' },
         { status: 400 }
       );
     }
 
-    // Base64 → Buffer 변환
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
+    // 🔥 File을 Buffer로 변환
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    // Storage 경로 설정
-    const filename = `${areaId}_${timestamp}.jpg`;
-    const path = `rentals/${rentalId}/${type}/${filename}`;
-
-    // Firebase Storage에 업로드
+    // Firebase Storage 경로
+    const path = `rentals/${rentalId}/${type}/${areaId}_${timestamp}.jpg`;
     const bucket = adminStorage.bucket();
-    const file = bucket.file(path);
+    const storageFile = bucket.file(path);
 
-    await file.save(buffer, {
+    // 🔥 Stream으로 업로드
+    await storageFile.save(buffer, {
       metadata: {
-        contentType: 'image/jpeg',
+        contentType: file.type || 'image/jpeg',
       },
       public: true,
     });
 
-    // 다운로드 URL 생성
+    // Public URL 생성
     const downloadURL = `https://storage.googleapis.com/${bucket.name}/${path}`;
 
-    return NextResponse.json({ 
-      success: true, 
-      downloadURL 
+    return NextResponse.json({
+      success: true,
+      downloadURL,
     });
 
-  } catch (error: any) {
-    console.error('서버 업로드 에러:', error);
+  } catch (error) {
+    console.error('Upload error:', error);
     return NextResponse.json(
-      { error: error.message || '업로드 실패' },
+      { error: '업로드 실패: ' + (error as Error).message },
       { status: 500 }
     );
   }
