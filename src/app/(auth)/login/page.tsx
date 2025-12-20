@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,32 +70,62 @@ export default function LoginPage() {
                 const email = kakaoAccount.email || `kakao_${kakaoId}@record365.app`;
                 const nickname = kakaoAccount.profile?.nickname || '카카오 사용자';
 
-                console.log('🔵 Firebase 익명 로그인 시작');
+                // 🔥 중복 체크 로직 추가
+                console.log('🔍 이메일 중복 체크:', email);
                 
-                const firebaseUser = await signInAnonymously(auth);
-                
-                console.log('✅ Firebase 익명 로그인 완료:', firebaseUser.user.uid);
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('email', '==', email));
+                const snapshot = await getDocs(q);
 
-                await setDoc(doc(db, 'users', firebaseUser.user.uid), {
-                  email: email,
-                  nickname: nickname,
-                  kakaoId: kakaoId,
-                  provider: 'kakao',
-                  createdAt: Date.now(),
-                  freeRentalsUsed: 0,
-                  isPremium: false,
-                }, { merge: true });
+                let userId: string;
+                let isNewUser = false;
 
-                console.log('✅ Firestore 저장 완료');
+                if (!snapshot.empty) {
+                  // 🔥 기존 사용자 → 로그인만
+                  const existingUser = snapshot.docs[0];
+                  userId = existingUser.id;
+                  console.log('✅ 기존 사용자 로그인:', userId);
+                  
+                  // 마지막 로그인 시간 업데이트
+                  await updateDoc(doc(db, 'users', userId), {
+                    lastLoginAt: Date.now(),
+                  });
+                } else {
+                  // 🔥 신규 사용자 → 회원가입
+                  console.log('🆕 신규 사용자 회원가입');
+                  
+                  const firebaseUser = await signInAnonymously(auth);
+                  userId = firebaseUser.user.uid;
+                  
+                  await setDoc(doc(db, 'users', userId), {
+                    email: email,
+                    nickname: nickname,
+                    kakaoId: kakaoId,
+                    provider: 'kakao',
+                    createdAt: Date.now(),
+                    lastLoginAt: Date.now(),
+                    freeRentalsUsed: 0,
+                    isPremium: false,
+                  });
+                  
+                  isNewUser = true;
+                }
+
+                console.log('✅ Firestore 처리 완료');
 
                 sessionStorage.setItem('kakao_user', JSON.stringify({
-                  userId: firebaseUser.user.uid,
+                  userId: userId,
                   kakaoId: kakaoId,
                   email,
                   nickname,
                 }));
 
                 console.log('✅ 세션 저장 완료, 대시보드로 이동');
+                
+                if (isNewUser) {
+                  alert('회원가입이 완료되었습니다! 🎉');
+                }
+                
                 router.push('/dashboard');
               },
               fail: (error: any) => {
