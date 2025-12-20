@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
@@ -78,55 +78,81 @@ export default function LoginPage() {
                 const snapshot = await getDocs(q);
 
                 let userId: string;
-                let isNewUser = false;
+let isNewUser = false;
 
-                if (!snapshot.empty) {
-                  // 🔥 기존 사용자 → 로그인만
-                  const existingUser = snapshot.docs[0];
-                  userId = existingUser.id;
-                  console.log('✅ 기존 사용자 로그인:', userId);
-                  
-                  // 마지막 로그인 시간 업데이트
-                  await updateDoc(doc(db, 'users', userId), {
-                    lastLoginAt: Date.now(),
-                  });
-                } else {
-                  // 🔥 신규 사용자 → 회원가입
-                  console.log('🆕 신규 사용자 회원가입');
-                  
-                  const firebaseUser = await signInAnonymously(auth);
-                  userId = firebaseUser.user.uid;
-                  
-                  await setDoc(doc(db, 'users', userId), {
-                    email: email,
-                    nickname: nickname,
-                    kakaoId: kakaoId,
-                    provider: 'kakao',
-                    createdAt: Date.now(),
-                    lastLoginAt: Date.now(),
-                    freeRentalsUsed: 0,
-                    isPremium: false,
-                  });
-                  
-                  isNewUser = true;
-                }
+if (!snapshot.empty) {
+  // 기존 사용자
+  const existingUser = snapshot.docs[0];
+  userId = existingUser.id;
+  console.log('✅ 기존 사용자 로그인:', userId);
+  
+  // 마지막 로그인 시간 업데이트
+  await updateDoc(doc(db, 'users', userId), {
+    lastLoginAt: Date.now(),
+  });
+} else {
+  // 신규 사용자
+  console.log('🆕 신규 사용자 회원가입');
+  isNewUser = true;
+}
 
-                console.log('✅ Firestore 처리 완료');
+// 🔥 Custom Token 발급
+console.log('🔑 Custom Token 요청...');
+const tokenResponse = await fetch('/api/create-custom-token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: email,
+    kakaoId: kakaoId,
+    provider: 'kakao',
+  }),
+});
 
-                sessionStorage.setItem('kakao_user', JSON.stringify({
-                  userId: userId,
-                  kakaoId: kakaoId,
-                  email,
-                  nickname,
-                }));
+if (!tokenResponse.ok) {
+  throw new Error('Custom Token 발급 실패');
+}
 
-                console.log('✅ 세션 저장 완료, 대시보드로 이동');
-                
-                if (isNewUser) {
-                  alert('회원가입이 완료되었습니다! 🎉');
-                }
-                
-                router.push('/dashboard');
+const tokenData = await tokenResponse.json();
+const { customToken, uid } = tokenData;
+
+console.log('✅ Custom Token 받음:', uid);
+
+// 🔥 Firebase Auth 로그인 (영구)
+await signInWithCustomToken(auth, customToken);
+console.log('✅ Firebase Auth 로그인 완료');
+
+userId = uid;
+
+// 신규 사용자인 경우 Firestore 저장
+if (isNewUser) {
+  await setDoc(doc(db, 'users', userId), {
+    email: email,
+    nickname: nickname,
+    kakaoId: kakaoId,
+    provider: 'kakao',
+    createdAt: Date.now(),
+    lastLoginAt: Date.now(),
+    freeRentalsUsed: 0,
+    isPremium: false,
+  });
+}
+
+console.log('✅ Firestore 처리 완료');
+
+sessionStorage.setItem('kakao_user', JSON.stringify({
+  userId: userId,
+  kakaoId: kakaoId,
+  email,
+  nickname,
+}));
+
+console.log('✅ 세션 저장 완료, 대시보드로 이동');
+
+if (isNewUser) {
+  alert('회원가입이 완료되었습니다! 🎉');
+}
+
+router.push('/dashboard');
               },
               fail: (error: any) => {
                 console.error('❌ 사용자 정보 요청 실패:', error);
@@ -217,7 +243,66 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (result.success) {
-        // 인증 성공 - Dashboard로 이동
+        // 🔥 중복 체크
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
+        const snapshot = await getDocs(q);
+      
+        let userId: string;
+        let isNewUser = false;
+      
+        if (!snapshot.empty) {
+          // 기존 사용자
+          userId = snapshot.docs[0].id;
+          await updateDoc(doc(db, 'users', userId), {
+            lastLoginAt: Date.now(),
+          });
+        } else {
+          // 신규 사용자
+          isNewUser = true;
+        }
+      
+        // 🔥 Custom Token 발급
+        const tokenResponse = await fetch('/api/create-custom-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phoneNumber: phoneNumber,
+            provider: 'phone',
+          }),
+        });
+      
+        if (!tokenResponse.ok) {
+          throw new Error('Custom Token 발급 실패');
+        }
+      
+        const tokenData = await tokenResponse.json();
+        const { customToken, uid } = tokenData;
+      
+        // 🔥 Firebase Auth 로그인 (영구)
+        await signInWithCustomToken(auth, customToken);
+      
+        userId = uid;
+      
+        // 신규 사용자인 경우 Firestore 저장
+        if (isNewUser) {
+          await setDoc(doc(db, 'users', userId), {
+            phoneNumber: phoneNumber,
+            provider: 'phone',
+            createdAt: Date.now(),
+            lastLoginAt: Date.now(),
+            freeRentalsUsed: 0,
+            isPremium: false,
+          });
+          
+          alert('회원가입이 완료되었습니다! 🎉');
+        }
+      
+        sessionStorage.setItem('phone_user', JSON.stringify({
+          userId: userId,
+          phoneNumber: phoneNumber,
+        }));
+      
         router.push('/dashboard');
       } else {
         throw new Error(result.error || '인증번호가 올바르지 않습니다');
@@ -270,14 +355,11 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              계정이 없으신가요?{' '}
-              <Link href="/signup" className="text-blue-600 font-medium hover:underline">
-                회원가입
-              </Link>
-            </p>
-          </div>
+<div className="mt-6 text-center">
+  <p className="text-sm text-gray-500">
+    카카오톡 또는 휴대폰으로 간편하게 시작하세요
+  </p>
+</div>
         </div>
 
         {/* 안내 문구 */}
