@@ -7,6 +7,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy, doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
+import InAppBrowserGuide from '@/components/InAppBrowserGuide';
 
 interface UserData {
   email: string;
@@ -337,6 +338,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <InAppBrowserGuide />
+      
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">

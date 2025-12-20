@@ -138,6 +138,155 @@ export default function GuidePage() {
             </div>
           </div>
 
+{/* 홈 화면 추가 가이드 */}
+<div className="bg-white rounded-lg shadow-sm p-6">
+  <h2 className="text-xl font-bold text-gray-900 mb-4">📱 앱처럼 사용하기</h2>
+  
+  <div className="bg-orange-50 rounded-lg p-4 mb-6">
+    <p className="text-sm text-orange-800 leading-relaxed">
+      홈 화면에 추가하면 앱처럼 바로 실행할 수 있고,<br />
+      알림도 받을 수 있어서 훨씬 편리해요!
+    </p>
+  </div>
+
+  <div className="space-y-6">
+    {/* iOS 가이드 */}
+    <div className="border-2 border-blue-200 rounded-lg p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-2xl">🍎</span>
+        <h3 className="font-bold text-blue-900 text-lg">iPhone (iOS)</h3>
+      </div>
+      
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            1
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            <strong>Safari</strong> 브라우저로 사이트 열기
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            2
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            하단 <strong>공유 버튼 (📤)</strong> 탭
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            3
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            <strong>"홈 화면에 추가"</strong> 선택
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            4
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            우측 상단 <strong>"추가"</strong> 탭
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            ✓
+          </div>
+          <p className="text-green-700 pt-0.5 font-medium">
+            홈 화면에 아이콘 생성 완료! 🎉
+          </p>
+        </div>
+      </div>
+      
+      <div className="mt-4 bg-blue-50 rounded-lg p-3">
+        <p className="text-xs text-blue-700">
+          💡 <strong>카카오톡에서 링크를 열었다면?</strong><br />
+          우측 상단 <strong>⋮</strong> 메뉴 → <strong>"Safari에서 열기"</strong>를 먼저 선택하세요!
+        </p>
+      </div>
+    </div>
+
+    {/* Android 가이드 */}
+    <div className="border-2 border-green-200 rounded-lg p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-2xl">🤖</span>
+        <h3 className="font-bold text-green-900 text-lg">Android</h3>
+      </div>
+      
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            1
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            <strong>Chrome</strong> 브라우저로 사이트 열기
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            2
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            우측 상단 <strong>⋮ 메뉴</strong> 탭
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            3
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            <strong>"홈 화면에 추가"</strong> 또는 <strong>"설치"</strong> 선택
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            4
+          </div>
+          <p className="text-gray-700 pt-0.5">
+            <strong>"추가"</strong> 또는 <strong>"설치"</strong> 탭
+          </p>
+        </div>
+        
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            ✓
+          </div>
+          <p className="text-green-700 pt-0.5 font-medium">
+            홈 화면에 아이콘 생성 완료! 🎉
+          </p>
+        </div>
+      </div>
+      
+      <div className="mt-4 bg-green-50 rounded-lg p-3">
+        <p className="text-xs text-green-700">
+          💡 <strong>카카오톡에서 링크를 열었다면?</strong><br />
+          우측 상단 <strong>⋮</strong> 메뉴 → <strong>"Chrome에서 열기"</strong>를 먼저 선택하세요!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* 추가 팁 */}
+  <div className="mt-6 bg-purple-50 rounded-lg p-4">
+    <h4 className="font-medium text-purple-900 mb-2">✨ 홈 화면 추가의 장점</h4>
+    <ul className="text-sm text-purple-800 space-y-1">
+      <li>✅ 앱처럼 전체화면으로 사용 가능</li>
+      <li>✅ 홈 화면에서 바로 실행 (카톡 찾을 필요 없음!)</li>
+      <li>✅ 알림 기능 사용 가능 (계약 만료일 알림)</li>
+      <li>✅ 더 빠른 로딩 속도</li>
+    </ul>
+  </div>
+</div>
+
           {/* Additional Tips */}
           <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-6">
             <h3 className="text-lg font-bold text-yellow-900 mb-3">🌟 추가 기능</h3>
