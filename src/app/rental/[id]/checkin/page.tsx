@@ -850,19 +850,36 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               </div>
               
               {/* ✅ + 사진 추가 버튼 */}
-              <button 
-  onClick={() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => handleFileSelect(e as any);
-    input.click();
-  }}
-  disabled={uploading} 
-  className="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
->
-  ➕ 사진 추가
-</button>
+              <div className="flex gap-3">
+  <button 
+    onClick={() => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment';
+      input.onchange = (e) => handleFileSelect(e as any);
+      input.click();
+    }}
+    disabled={uploading} 
+    className="flex-1 py-3 border-2 border-blue-300 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition disabled:opacity-50"
+  >
+    📷 촬영 추가
+  </button>
+  
+  <button 
+    onClick={() => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => handleFileSelect(e as any);
+      input.click();
+    }}
+    disabled={uploading} 
+    className="flex-1 py-3 border-2 border-green-300 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition disabled:opacity-50"
+  >
+    📂 갤러리 추가
+  </button>
+</div>
               
             </div>
           ) : (
