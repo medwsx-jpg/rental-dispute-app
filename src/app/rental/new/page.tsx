@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
 
 export default function NewRentalPage() {
@@ -65,30 +65,56 @@ export default function NewRentalPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!title.trim()) {
       alert('제목을 입력해주세요.');
       return;
     }
-
+  
     if (!startDate) {
       alert('계약 시작일을 선택해주세요.');
       return;
     }
-
+  
     if (!endDate) {
       alert('계약 종료일을 선택해주세요.');
       return;
     }
-
+  
     if (new Date(startDate) > new Date(endDate)) {
       alert('종료일은 시작일 이후여야 합니다.');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
+      // 사용자 정보 확인
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+  
+      // 무료 사용자 체크
+      if (!userData?.isPremium) {
+        const freeRentalsUsed = userData?.freeRentalsUsed || 0;
+        
+        if (freeRentalsUsed >= 1) {
+          // 무료 사용량 초과
+          const confirmed = confirm(
+            '🆓 무료 1건을 모두 사용하셨습니다!\n\n' +
+            '💰 추가 렌탈: 건당 3,000원\n' +
+            '📅 보관 기간: 렌탈 종료 후 1개월\n\n' +
+            '결제 페이지로 이동하시겠습니까?'
+          );
+          
+          if (confirmed) {
+            router.push('/upgrade');
+          }
+          
+          setLoading(false);
+          return;
+        }
+      }
+  
       const rentalData: any = {
         userId: user.uid,
         type,
@@ -106,14 +132,23 @@ export default function NewRentalPage() {
         },
         createdAt: Date.now(),
       };
-
+  
       // 생활용품일 경우 커스텀 영역 저장
       if (type === 'goods' && customAreas.length > 0) {
         rentalData.customAreas = customAreas;
       }
-
+  
       const docRef = await addDoc(collection(db, 'rentals'), rentalData);
-
+  
+      // 무료 사용자인 경우 카운팅 증가
+      if (!userData?.isPremium) {
+        await updateDoc(doc(db, 'users', user.uid), {
+          freeRentalsUsed: (userData?.freeRentalsUsed || 0) + 1
+        });
+        
+        console.log('✅ 무료 사용 횟수 증가:', (userData?.freeRentalsUsed || 0) + 1);
+      }
+  
       router.push(`/rental/${docRef.id}/checkin`);
     } catch (error) {
       console.error('렌탈 생성 실패:', error);
