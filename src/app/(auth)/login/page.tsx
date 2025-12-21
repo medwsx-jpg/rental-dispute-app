@@ -218,102 +218,140 @@ router.push('/dashboard');
   };
 
   // 📱 인증번호 확인
-  const handleVerifyCode = async () => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      setError('6자리 인증번호를 입력해주세요');
-      return;
-    }
+  // 📱 인증번호 확인
+const handleVerifyCode = async () => {
+  if (!verificationCode || verificationCode.length !== 6) {
+    setError('6자리 인증번호를 입력해주세요');
+    return;
+  }
 
-    try {
-      setLoading(true);
-      setError('');
+  try {
+    setLoading(true);
+    setError('');
+    
+    console.log('1️⃣ 인증번호 확인 API 호출 시작');
+    
+    const response = await fetch('/api/send-sms', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone: phoneNumber,
+        code: verificationCode,
+        type: 'verify'
+      }),
+    });
+
+    console.log('2️⃣ API 응답:', response.status);
+    
+    const result = await response.json();
+    console.log('3️⃣ API 결과:', result);
+
+    if (result.success) {
+      console.log('4️⃣ 인증 성공, 중복 체크 시작');
       
-      const response = await fetch('/api/send-sms', {
+      // 🔥 중복 체크
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
+      const snapshot = await getDocs(q);
+      
+      console.log('5️⃣ 중복 체크 완료:', snapshot.empty ? '신규 사용자' : '기존 사용자');
+    
+      let userId: string;
+      let isNewUser = false;
+    
+      if (!snapshot.empty) {
+        // 기존 사용자
+        userId = snapshot.docs[0].id;
+        console.log('6️⃣ 기존 사용자:', userId);
+        
+        await updateDoc(doc(db, 'users', userId), {
+          lastLoginAt: Date.now(),
+        });
+      } else {
+        // 신규 사용자
+        isNewUser = true;
+        console.log('6️⃣ 신규 사용자 - Custom Token 필요');
+      }
+    
+      console.log('7️⃣ Custom Token 요청 시작');
+      
+      // 🔥 Custom Token 발급
+      const tokenResponse = await fetch('/api/create-custom-token', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: phoneNumber,
-          code: verificationCode,
-          type: 'verify'
+          phoneNumber: phoneNumber,
+          provider: 'phone',
         }),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // 🔥 중복 체크
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
-        const snapshot = await getDocs(q);
       
-        let userId: string;
-        let isNewUser = false;
-      
-        if (!snapshot.empty) {
-          // 기존 사용자
-          userId = snapshot.docs[0].id;
-          await updateDoc(doc(db, 'users', userId), {
-            lastLoginAt: Date.now(),
-          });
-        } else {
-          // 신규 사용자
-          isNewUser = true;
-        }
-      
-        // 🔥 Custom Token 발급
-        const tokenResponse = await fetch('/api/create-custom-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phoneNumber: phoneNumber,
-            provider: 'phone',
-          }),
-        });
-      
-        if (!tokenResponse.ok) {
-          throw new Error('Custom Token 발급 실패');
-        }
-      
-        const tokenData = await tokenResponse.json();
-        const { customToken, uid } = tokenData;
-      
-        // 🔥 Firebase Auth 로그인 (영구)
-        await signInWithCustomToken(auth, customToken);
-      
-        userId = uid;
-      
-        // 신규 사용자인 경우 Firestore 저장
-        if (isNewUser) {
-          await setDoc(doc(db, 'users', userId), {
-            phoneNumber: phoneNumber,
-            provider: 'phone',
-            createdAt: Date.now(),
-            lastLoginAt: Date.now(),
-            freeRentalsUsed: 0,
-            isPremium: false,
-          });
-          
-          alert('회원가입이 완료되었습니다! 🎉');
-        }
-      
-        sessionStorage.setItem('phone_user', JSON.stringify({
-          userId: userId,
-          phoneNumber: phoneNumber,
-        }));
-      
-        router.push('/dashboard');
-      } else {
-        throw new Error(result.error || '인증번호가 올바르지 않습니다');
+      console.log('8️⃣ Custom Token 응답:', tokenResponse.status);
+    
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        console.error('❌ Custom Token 에러:', errorData);
+        throw new Error('Custom Token 발급 실패');
       }
-    } catch (err: any) {
-      console.error('인증 오류:', err);
-      setError(err.message || '인증에 실패했습니다');
-    } finally {
-      setLoading(false);
+    
+      const tokenData = await tokenResponse.json();
+      const { customToken, uid } = tokenData;
+      
+      console.log('9️⃣ Custom Token 받음, UID:', uid);
+    
+      // 🔥 Firebase Auth 로그인 (영구)
+      console.log('🔟 Firebase 로그인 시작...');
+      
+      await signInWithCustomToken(auth, customToken);
+      
+      console.log('1️⃣1️⃣ Firebase 로그인 완료!');
+    
+      userId = uid;
+    
+      // 신규 사용자인 경우 Firestore 저장
+      if (isNewUser) {
+        console.log('1️⃣2️⃣ 신규 사용자 Firestore 저장 시작');
+        
+        await setDoc(doc(db, 'users', userId), {
+          phoneNumber: phoneNumber,
+          provider: 'phone',
+          createdAt: Date.now(),
+          lastLoginAt: Date.now(),
+          freeRentalsUsed: 0,
+          isPremium: false,
+        });
+        
+        console.log('1️⃣3️⃣ Firestore 저장 완료');
+        
+        alert('회원가입이 완료되었습니다! 🎉');
+      }
+    
+      console.log('1️⃣4️⃣ sessionStorage 저장');
+      
+      sessionStorage.setItem('phone_user', JSON.stringify({
+        userId: userId,
+        phoneNumber: phoneNumber,
+      }));
+      
+      console.log('1️⃣5️⃣ 대시보드로 이동 시작');
+    
+      router.push('/dashboard');
+      
+      console.log('1️⃣6️⃣ router.push 호출 완료');
+      
+    } else {
+      console.error('❌ 인증 실패:', result.error);
+      throw new Error(result.error || '인증번호가 올바르지 않습니다');
     }
-  };
+  } catch (err: any) {
+    console.error('❌❌ 전체 오류:', err);
+    setError(err.message || '인증에 실패했습니다');
+  } finally {
+    console.log('✅ finally 블록 - loading: false');
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

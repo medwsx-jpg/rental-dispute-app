@@ -66,58 +66,47 @@ export async function POST(request: NextRequest) {
     }
 
     // 인증번호 확인
-    else if (type === 'verify') {
-      if (!phone || !code) {
-        return NextResponse.json(
-          { success: false, error: '전화번호와 인증번호를 입력해주세요' },
-          { status: 400 }
-        );
-      }
+    // 인증번호 확인
+else if (type === 'verify') {
+  if (!phone || !code) {
+    return NextResponse.json(
+      { success: false, error: '전화번호와 인증번호를 입력해주세요' },
+      { status: 400 }
+    );
+  }
 
-      const stored = verificationCodes.get(phone);
+  const stored = verificationCodes.get(phone);
 
-      if (!stored) {
-        return NextResponse.json(
-          { success: false, error: '인증번호를 먼저 요청해주세요' },
-          { status: 400 }
-        );
-      }
+  if (!stored) {
+    return NextResponse.json(
+      { success: false, error: '인증번호를 먼저 요청해주세요' },
+      { status: 400 }
+    );
+  }
 
-      if (Date.now() > stored.expires) {
-        verificationCodes.delete(phone);
-        return NextResponse.json(
-          { success: false, error: '인증번호가 만료되었습니다' },
-          { status: 400 }
-        );
-      }
+  if (Date.now() > stored.expires) {
+    verificationCodes.delete(phone);
+    return NextResponse.json(
+      { success: false, error: '인증번호가 만료되었습니다' },
+      { status: 400 }
+    );
+  }
 
-      if (stored.code !== code) {
-        return NextResponse.json(
-          { success: false, error: '인증번호가 일치하지 않습니다' },
-          { status: 400 }
-        );
-      }
+  if (stored.code !== code) {
+    return NextResponse.json(
+      { success: false, error: '인증번호가 일치하지 않습니다' },
+      { status: 400 }
+    );
+  }
 
-      // Firebase 익명 인증
-      const userCredential = await signInAnonymously(auth);
-      const userId = userCredential.user.uid;
+  // ✅ 인증 성공 - Firebase 인증은 login 페이지에서 처리
+  verificationCodes.delete(phone);
 
-      await setDoc(doc(db, 'users', userId), {
-        phoneNumber: phone,
-        provider: 'phone',
-        createdAt: Date.now(),
-        freeRentalsUsed: 0,
-        isPremium: false,
-      });
-
-      verificationCodes.delete(phone);
-
-      return NextResponse.json({ 
-        success: true,
-        userId: userId,
-        message: '인증이 완료되었습니다'
-      });
-    }
+  return NextResponse.json({ 
+    success: true,
+    message: '인증이 완료되었습니다'
+  });
+}
 
     return NextResponse.json(
       { success: false, error: 'Invalid request type' },
