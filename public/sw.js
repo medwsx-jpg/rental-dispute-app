@@ -35,6 +35,18 @@ self.addEventListener('activate', (event) => {
 
 // Fetch 이벤트 (네트워크 우선, 실패 시 캐시)
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // API 요청 또는 POST 요청은 캐시하지 않음
+  if (
+    event.request.method !== 'GET' ||
+    url.pathname.startsWith('/api/')
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
+  // GET 요청만 캐시
   event.respondWith(
     fetch(event.request)
       .then((response) => {
