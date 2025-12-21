@@ -237,9 +237,10 @@ rentalsSnapshot.forEach((doc) => {
   };
 
   const filteredUsers = users.filter(user => 
-  (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-  (user.nickname?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-);
+    (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (user.nickname?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (user.phoneNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -359,12 +360,23 @@ rentalsSnapshot.forEach((doc) => {
                   return (
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {user.email}
-                        {user.provider === 'kakao' && (
-                          <span className="ml-2 text-xs text-yellow-600">💬</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{user.nickname}</td>
+  {user.provider === 'phone' 
+    ? user.phoneNumber?.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    : user.email
+  }
+  {user.provider === 'kakao' && (
+    <span className="ml-2 text-xs text-yellow-600">💬</span>
+  )}
+  {user.provider === 'phone' && (
+    <span className="ml-2 text-xs text-blue-600">📱</span>
+  )}
+</td>
+<td className="px-4 py-3 text-sm text-gray-600">
+  {user.provider === 'phone'
+    ? '-'
+    : user.nickname || '-'
+  }
+</td>
                       <td className="px-4 py-3 text-center">
                         {user.isPremium ? (
                           <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
