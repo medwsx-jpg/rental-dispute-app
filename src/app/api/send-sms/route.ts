@@ -4,6 +4,9 @@ import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
+// 솔라피 SDK 임포트
+const { SolapiMessageService } = require('solapi');
+
 // 6자리 랜덤 코드 생성
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -28,24 +31,22 @@ export async function POST(request: NextRequest) {
 
       const verificationCode = generateCode();
       
-      // 솔라피 SMS 발송 (수정된 부분)
-      const solapiResponse = await fetch('https://api.solapi.com/messages/v4/send-one', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SOLAPI_API_KEY}`,
-        },
-        body: JSON.stringify({
+      try {
+        // 솔라피 메시지 서비스 초기화
+        const messageService = new SolapiMessageService(
+          process.env.SOLAPI_API_KEY,
+          process.env.SOLAPI_API_SECRET
+        );
+
+        // SMS 발송
+        const result = await messageService.sendOne({
           to: phone,
           from: process.env.SOLAPI_SENDER_PHONE,
           text: `[Record 365] 인증번호는 ${verificationCode} 입니다. 3분 내에 입력해주세요.`,
-        }),
-      });
+        });
 
-      const result = await solapiResponse.json();
-      console.log('솔라피 응답:', result);
+        console.log('솔라피 발송 성공:', result);
 
-      if (solapiResponse.ok) {
         verificationCodes.set(phone, {
           code: verificationCode,
           expires: Date.now() + 3 * 60 * 1000, // 3분
@@ -55,10 +56,10 @@ export async function POST(request: NextRequest) {
           success: true,
           message: '인증번호가 발송되었습니다'
         });
-      } else {
-        console.error('솔라피 에러:', result);
+      } catch (error: any) {
+        console.error('솔라피 발송 실패:', error);
         return NextResponse.json(
-          { success: false, error: result.errorMessage || 'SMS 발송에 실패했습니다' },
+          { success: false, error: error.message || 'SMS 발송에 실패했습니다' },
           { status: 500 }
         );
       }
