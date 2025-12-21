@@ -28,21 +28,17 @@ export async function POST(request: NextRequest) {
 
       const verificationCode = generateCode();
       
-      // 솔라피 SMS 발송
-      const solapiResponse = await fetch('https://api.solapi.com/messages/v4/send', {
+      // 솔라피 SMS 발송 (수정된 부분)
+      const solapiResponse = await fetch('https://api.solapi.com/messages/v4/send-one', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${Buffer.from(
-            `${process.env.SOLAPI_API_KEY}:${process.env.SOLAPI_API_SECRET}`
-          ).toString('base64')}`,
+          'Authorization': `Bearer ${process.env.SOLAPI_API_KEY}`,
         },
         body: JSON.stringify({
-          message: {
-            to: phone,
-            from: process.env.SOLAPI_SENDER_PHONE,
-            text: `[Record 365] 인증번호는 ${verificationCode} 입니다. 3분 내에 입력해주세요.`,
-          },
+          to: phone,
+          from: process.env.SOLAPI_SENDER_PHONE,
+          text: `[Record 365] 인증번호는 ${verificationCode} 입니다. 3분 내에 입력해주세요.`,
         }),
       });
 
