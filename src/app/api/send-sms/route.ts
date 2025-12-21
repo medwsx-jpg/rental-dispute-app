@@ -28,30 +28,31 @@ export async function POST(request: NextRequest) {
 
       const verificationCode = generateCode();
       
-      // FormData 생성 (URLSearchParams 대신!)
-      const formData = new FormData();
-      formData.append('key', 'lfhvdcpywuez79gv6da8hsoagsex2u75');
-      formData.append('user_id', 'dioplywoood');
-      formData.append('sender', '01064707876');
-      formData.append('receiver', phone);
-      formData.append('msg', `[Record 365] 인증번호는 ${verificationCode} 입니다.`);
-      formData.append('msg_type', 'SMS');
-      formData.append('title', '');
-
-      // 알리고 SMS 발송
-      const aligoResponse = await fetch('https://apis.aligo.in/send/', {
+      // 솔라피 SMS 발송
+      const solapiResponse = await fetch('https://api.solapi.com/messages/v4/send', {
         method: 'POST',
-        body: formData,  // FormData 사용!
-        // headers는 자동으로 설정됨
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(
+            `${process.env.SOLAPI_API_KEY}:${process.env.SOLAPI_API_SECRET}`
+          ).toString('base64')}`,
+        },
+        body: JSON.stringify({
+          message: {
+            to: phone,
+            from: process.env.SOLAPI_SENDER_PHONE,
+            text: `[Record 365] 인증번호는 ${verificationCode} 입니다. 3분 내에 입력해주세요.`,
+          },
+        }),
       });
 
-      const result = await aligoResponse.json();
-      console.log('알리고 응답:', result);
+      const result = await solapiResponse.json();
+      console.log('솔라피 응답:', result);
 
-      if (result.result_code === '1') {
+      if (solapiResponse.ok) {
         verificationCodes.set(phone, {
           code: verificationCode,
-          expires: Date.now() + 5 * 60 * 1000,
+          expires: Date.now() + 3 * 60 * 1000, // 3분
         });
 
         return NextResponse.json({ 
@@ -59,8 +60,9 @@ export async function POST(request: NextRequest) {
           message: '인증번호가 발송되었습니다'
         });
       } else {
+        console.error('솔라피 에러:', result);
         return NextResponse.json(
-          { success: false, error: result.message || 'SMS 발송에 실패했습니다' },
+          { success: false, error: result.errorMessage || 'SMS 발송에 실패했습니다' },
           { status: 500 }
         );
       }
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Firebase 인증
+      // Firebase 익명 인증
       const userCredential = await signInAnonymously(auth);
       const userId = userCredential.user.uid;
 
