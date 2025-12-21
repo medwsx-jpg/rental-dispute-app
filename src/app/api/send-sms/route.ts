@@ -1,8 +1,7 @@
 // src/app/api/send-sms/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { signInAnonymously } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // 솔라피 SDK 임포트
 const { SolapiMessageService } = require('solapi');
@@ -11,9 +10,6 @@ const { SolapiMessageService } = require('solapi');
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
-// 임시 저장소
-const verificationCodes = new Map<string, { code: string; expires: number }>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,9 +43,11 @@ export async function POST(request: NextRequest) {
 
         console.log('솔라피 발송 성공:', result);
 
-        verificationCodes.set(phone, {
+        // 🔥 Firestore에 인증번호 저장 (3분 후 만료)
+        await setDoc(doc(db, 'verification_codes', phone), {
           code: verificationCode,
           expires: Date.now() + 3 * 60 * 1000, // 3분
+          createdAt: Date.now(),
         });
 
         return NextResponse.json({ 
@@ -66,47 +64,50 @@ export async function POST(request: NextRequest) {
     }
 
     // 인증번호 확인
-    // 인증번호 확인
-else if (type === 'verify') {
-  if (!phone || !code) {
-    return NextResponse.json(
-      { success: false, error: '전화번호와 인증번호를 입력해주세요' },
-      { status: 400 }
-    );
-  }
+    else if (type === 'verify') {
+      if (!phone || !code) {
+        return NextResponse.json(
+          { success: false, error: '전화번호와 인증번호를 입력해주세요' },
+          { status: 400 }
+        );
+      }
 
-  const stored = verificationCodes.get(phone);
+      // 🔥 Firestore에서 인증번호 가져오기
+      const verificationDoc = await getDoc(doc(db, 'verification_codes', phone));
 
-  if (!stored) {
-    return NextResponse.json(
-      { success: false, error: '인증번호를 먼저 요청해주세요' },
-      { status: 400 }
-    );
-  }
+      if (!verificationDoc.exists()) {
+        return NextResponse.json(
+          { success: false, error: '인증번호를 먼저 요청해주세요' },
+          { status: 400 }
+        );
+      }
 
-  if (Date.now() > stored.expires) {
-    verificationCodes.delete(phone);
-    return NextResponse.json(
-      { success: false, error: '인증번호가 만료되었습니다' },
-      { status: 400 }
-    );
-  }
+      const stored = verificationDoc.data();
 
-  if (stored.code !== code) {
-    return NextResponse.json(
-      { success: false, error: '인증번호가 일치하지 않습니다' },
-      { status: 400 }
-    );
-  }
+      if (Date.now() > stored.expires) {
+        // 만료된 인증번호 삭제
+        await deleteDoc(doc(db, 'verification_codes', phone));
+        return NextResponse.json(
+          { success: false, error: '인증번호가 만료되었습니다' },
+          { status: 400 }
+        );
+      }
 
-  // ✅ 인증 성공 - Firebase 인증은 login 페이지에서 처리
-  verificationCodes.delete(phone);
+      if (stored.code !== code) {
+        return NextResponse.json(
+          { success: false, error: '인증번호가 일치하지 않습니다' },
+          { status: 400 }
+        );
+      }
 
-  return NextResponse.json({ 
-    success: true,
-    message: '인증이 완료되었습니다'
-  });
-}
+      // ✅ 인증 성공 - 사용된 인증번호 삭제
+      await deleteDoc(doc(db, 'verification_codes', phone));
+
+      return NextResponse.json({ 
+        success: true,
+        message: '인증이 완료되었습니다'
+      });
+    }
 
     return NextResponse.json(
       { success: false, error: 'Invalid request type' },
