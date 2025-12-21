@@ -272,9 +272,10 @@ const handleVerifyCode = async () => {
       } else {
         // 신규 사용자
         isNewUser = true;
+        userId = '';  // 신규는 API에서 생성
         console.log('6️⃣ 신규 사용자 - Custom Token 필요');
       }
-    
+      
       console.log('7️⃣ Custom Token 요청 시작');
       
       // 🔥 Custom Token 발급
@@ -284,6 +285,7 @@ const handleVerifyCode = async () => {
         body: JSON.stringify({
           phoneNumber: phoneNumber,
           provider: 'phone',
+          uid: userId || undefined,  // 🔥 기존 사용자면 UID 전달
         }),
       });
       
@@ -310,17 +312,20 @@ const handleVerifyCode = async () => {
       userId = uid;
     
       // 신규 사용자인 경우 Firestore 저장
-      if (isNewUser) {
-        console.log('1️⃣2️⃣ 신규 사용자 Firestore 저장 시작');
-        
-        await setDoc(doc(db, 'users', userId), {
-          phoneNumber: phoneNumber,
-          provider: 'phone',
-          createdAt: Date.now(),
-          lastLoginAt: Date.now(),
-          freeRentalsUsed: 0,
-          isPremium: false,
-        });
+     // 신규 사용자인 경우 Firestore 저장
+if (isNewUser) {
+  console.log('1️⃣2️⃣ 신규 사용자 Firestore 저장 시작');
+  
+  await setDoc(doc(db, 'users', userId), {
+    phoneNumber: phoneNumber,
+    email: `phone_${phoneNumber}@record365.app`,  // 🔥 추가
+    nickname: phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),  // 🔥 추가
+    provider: 'phone',
+    createdAt: Date.now(),
+    lastLoginAt: Date.now(),
+    freeRentalsUsed: 0,
+    isPremium: false,
+  });
         
         console.log('1️⃣3️⃣ Firestore 저장 완료');
         

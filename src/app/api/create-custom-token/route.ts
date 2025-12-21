@@ -5,20 +5,29 @@ import crypto from 'crypto';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, kakaoId, phoneNumber, provider } = body;
+    const { email, kakaoId, phoneNumber, provider, uid: providedUid } = body;
 
     // UID 생성 (일관성 있게)
     let uid: string;
     
-    if (provider === 'kakao' && kakaoId) {
-      // 카카오: kakaoId 기반 UID
+    // 🔥 이미 UID가 제공된 경우 (기존 사용자)
+    if (providedUid) {
+      uid = providedUid;
+      console.log(`✅ 기존 사용자 UID 사용: ${uid}`);
+    }
+    // 카카오 로그인
+    else if (provider === 'kakao' && kakaoId) {
       uid = `kakao_${kakaoId}`;
-    } else if (provider === 'phone' && phoneNumber) {
-      // 휴대폰: 전화번호 해시 기반 UID
+      console.log(`✅ 카카오 UID 생성: ${uid}`);
+    }
+    // 전화번호 로그인 (신규)
+    else if (provider === 'phone' && phoneNumber) {
       uid = `phone_${crypto.createHash('sha256').update(phoneNumber).digest('hex').substring(0, 20)}`;
-    } else {
+      console.log(`✅ 전화번호 UID 생성: ${uid}`);
+    }
+    else {
       return NextResponse.json(
-        { error: 'Invalid provider' },
+        { error: 'Invalid provider or missing uid' },
         { status: 400 }
       );
     }
@@ -26,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Custom Token 생성
     const customToken = await adminAuth.createCustomToken(uid);
 
-    console.log(`✅ Custom Token 생성: ${uid}`);
+    console.log(`✅ Custom Token 생성 완료: ${uid}`);
 
     return NextResponse.json({ 
       success: true, 
