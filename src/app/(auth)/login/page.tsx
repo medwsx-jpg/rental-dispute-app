@@ -218,7 +218,7 @@ router.push('/dashboard');
   };
 
   // 📱 인증번호 확인
-  // 📱 인증번호 확인
+// 📱 인증번호 확인
 const handleVerifyCode = async () => {
   if (!verificationCode || verificationCode.length !== 6) {
     setError('6자리 인증번호를 입력해주세요');
@@ -249,34 +249,9 @@ const handleVerifyCode = async () => {
     console.log('3️⃣ API 결과:', result);
 
     if (result.success) {
-      console.log('4️⃣ 인증 성공, 중복 체크 시작');
+      console.log('4️⃣ 인증 성공, Custom Token 요청');
       
-      // 🔥 중복 체크
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
-      const snapshot = await getDocs(q);
-      
-      console.log('5️⃣ 중복 체크 완료:', snapshot.empty ? '신규 사용자' : '기존 사용자');
-    
-      let userId: string;
-      let isNewUser = false;
-    
-      if (!snapshot.empty) {
-        // 기존 사용자
-        userId = snapshot.docs[0].id;
-        console.log('6️⃣ 기존 사용자:', userId);
-        
-        await updateDoc(doc(db, 'users', userId), {
-          lastLoginAt: Date.now(),
-        });
-      } else {
-        // 신규 사용자
-        isNewUser = true;
-        userId = '';  // 신규는 API에서 생성
-        console.log('6️⃣ 신규 사용자 - Custom Token 필요');
-      }
-      
-      console.log('7️⃣ Custom Token 요청 시작');
+      // 🔥 중복 체크 제거 - UID로 자동 처리
       
       // 🔥 Custom Token 발급
       const tokenResponse = await fetch('/api/create-custom-token', {
@@ -285,11 +260,11 @@ const handleVerifyCode = async () => {
         body: JSON.stringify({
           phoneNumber: phoneNumber,
           provider: 'phone',
-          uid: userId || undefined,  // 🔥 기존 사용자면 UID 전달
+          // uid 전달 안 함 - API에서 항상 전화번호 해시로 생성
         }),
       });
       
-      console.log('8️⃣ Custom Token 응답:', tokenResponse.status);
+      console.log('5️⃣ Custom Token 응답:', tokenResponse.status);
     
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
@@ -300,50 +275,40 @@ const handleVerifyCode = async () => {
       const tokenData = await tokenResponse.json();
       const { customToken, uid } = tokenData;
       
-      console.log('9️⃣ Custom Token 받음, UID:', uid);
+      console.log('6️⃣ Custom Token 받음, UID:', uid);
     
-      // 🔥 Firebase Auth 로그인 (영구)
-      console.log('🔟 Firebase 로그인 시작...');
+      // 🔥 Firebase Auth 로그인
+      console.log('7️⃣ Firebase 로그인 시작...');
       
       await signInWithCustomToken(auth, customToken);
       
-      console.log('1️⃣1️⃣ Firebase 로그인 완료!');
+      console.log('8️⃣ Firebase 로그인 완료!');
     
-      userId = uid;
-    
-      // 신규 사용자인 경우 Firestore 저장
-     // 신규 사용자인 경우 Firestore 저장
-if (isNewUser) {
-  console.log('1️⃣2️⃣ 신규 사용자 Firestore 저장 시작');
-  
-  await setDoc(doc(db, 'users', userId), {
-    phoneNumber: phoneNumber,
-    email: `phone_${phoneNumber}@record365.app`,  // 🔥 추가
-    nickname: phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),  // 🔥 추가
-    provider: 'phone',
-    createdAt: Date.now(),
-    lastLoginAt: Date.now(),
-    freeRentalsUsed: 0,
-    isPremium: false,
-  });
-        
-        console.log('1️⃣3️⃣ Firestore 저장 완료');
-        
-        alert('회원가입이 완료되었습니다! 🎉');
-      }
-    
-      console.log('1️⃣4️⃣ sessionStorage 저장');
+      // 🔥 Firestore에 저장 (merge: true로 중복 방지)
+      console.log('9️⃣ Firestore 저장 시작');
       
+      await setDoc(doc(db, 'users', uid), {
+        phoneNumber: phoneNumber,
+        email: `phone_${phoneNumber}@record365.app`,
+        nickname: phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),
+        provider: 'phone',
+        lastLoginAt: Date.now(),
+        freeRentalsUsed: 0,
+        isPremium: false,
+      }, { merge: true });  // 🔥 중복 방지: 이미 있으면 병합
+      
+      console.log('🔟 Firestore 저장 완료');
+    
       sessionStorage.setItem('phone_user', JSON.stringify({
-        userId: userId,
+        userId: uid,
         phoneNumber: phoneNumber,
       }));
       
-      console.log('1️⃣5️⃣ 대시보드로 이동 시작');
+      console.log('1️⃣1️⃣ 대시보드로 이동 시작');
     
       router.push('/dashboard');
       
-      console.log('1️⃣6️⃣ router.push 호출 완료');
+      console.log('1️⃣2️⃣ router.push 호출 완료');
       
     } else {
       console.error('❌ 인증 실패:', result.error);
