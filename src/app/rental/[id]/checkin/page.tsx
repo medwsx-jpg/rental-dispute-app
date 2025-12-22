@@ -722,7 +722,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="text-center mb-6">
-            <span className="text-5xl">{currentArea?.icon}</span>
+            
             <h2 className="text-xl font-bold mt-2">{currentArea?.name}</h2>
             {currentArea?.required && (
               <span className="inline-block mt-1 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">필수 촬영</span>
