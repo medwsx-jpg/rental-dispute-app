@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
 import { signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -284,20 +284,36 @@ const handleVerifyCode = async () => {
       
       console.log('8️⃣ Firebase 로그인 완료!');
     
-      // 🔥 Firestore에 저장 (merge: true로 중복 방지)
-      console.log('9️⃣ Firestore 저장 시작');
-      
-      await setDoc(doc(db, 'users', uid), {
-        phoneNumber: phoneNumber,
-        email: `phone_${phoneNumber}@record365.app`,
-        nickname: phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),
-        provider: 'phone',
-        lastLoginAt: Date.now(),
-        freeRentalsUsed: 0,
-        isPremium: false,
-      }, { merge: true });  // 🔥 중복 방지: 이미 있으면 병합
-      
-      console.log('🔟 Firestore 저장 완료');
+      // 🔥 Firestore에 저장 (신규/기존 구분)
+console.log('9️⃣ Firestore 저장 시작');
+
+const userRef = doc(db, 'users', uid);
+const userSnap = await getDoc(userRef);
+
+const userData = {
+  phoneNumber: phoneNumber,
+  email: `phone_${phoneNumber}@record365.app`,
+  nickname: phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),
+  provider: 'phone',
+  lastLoginAt: Date.now(),
+};
+
+if (!userSnap.exists()) {
+  // 신규 사용자
+  console.log('🔟 신규 사용자 - createdAt 포함 저장');
+  await setDoc(userRef, {
+    ...userData,
+    createdAt: Date.now(),
+    freeRentalsUsed: 0,
+    isPremium: false,
+  });
+} else {
+  // 기존 사용자
+  console.log('🔟 기존 사용자 - lastLoginAt만 업데이트');
+  await updateDoc(userRef, userData);
+}
+
+console.log('1️⃣1️⃣ Firestore 저장 완료');
     
       sessionStorage.setItem('phone_user', JSON.stringify({
         userId: uid,
