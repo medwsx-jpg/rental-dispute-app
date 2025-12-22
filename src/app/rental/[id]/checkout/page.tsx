@@ -717,7 +717,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     : 'bg-gray-100 text-gray-600'
                 }`}
               >
-                {hasPhoto && `✓(${areaPhotos.length}) `}{area.icon} {area.name}
+               {hasPhoto && `✓(${areaPhotos.length}) `}{area.name}
                 {area.required && !hasPhoto && <span className="text-red-500 ml-1">*</span>}
               </button>
             );
