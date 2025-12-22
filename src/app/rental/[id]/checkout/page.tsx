@@ -250,7 +250,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         formData.append('rentalId', rentalId);
         formData.append('areaId', currentArea.id);
         formData.append('timestamp', timestamp.toString());
-        formData.append('type', 'before');
+        formData.append('type', 'after');
 
         const response = await fetch('/api/upload', {
           method: 'POST',
@@ -269,7 +269,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         // 웹: 클라이언트 직접 업로드
         const storageRef = ref(
           storage,
-          `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
+          `rentals/${rentalId}/after/${currentArea.id}_${timestamp}.jpg`
         );
 
         const uploadTask = uploadBytesResumable(storageRef, pendingFile.file);
@@ -299,7 +299,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const rentalRef = doc(db, 'rentals', rentalId);
       await updateDoc(rentalRef, {
-        'checkIn.photos': updatedPhotos,
+        'checkOut.photos': updatedPhotos,
       });
 
       // 상태 리셋
