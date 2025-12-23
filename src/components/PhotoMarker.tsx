@@ -22,17 +22,26 @@ interface Mark {
 }
 
 export default function PhotoMarker({ isOpen, imageUrl, onClose, onSave }: PhotoMarkerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [marks, setMarks] = useState<Mark[]>([]);
-  const [currentTool, setCurrentTool] = useState<Tool>('arrow');
-  const [currentColor, setCurrentColor] = useState<Color>('#FF0000');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // 이미지 로드
-  useEffect(() => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [image, setImage] = useState<HTMLImageElement | null>(null);
+    const [marks, setMarks] = useState<Mark[]>([]);
+    const [currentTool, setCurrentTool] = useState<Tool>('arrow');
+    const [currentColor, setCurrentColor] = useState<Color>('#FF0000');
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
+    const [loading, setLoading] = useState(true);
+  
+    // 🔥 추가: 이미지 변경 시 마킹 초기화
+    useEffect(() => {
+      if (isOpen) {
+        setMarks([]);
+        setCurrentTool('arrow');
+        setCurrentColor('#FF0000');
+      }
+    }, [imageUrl, isOpen]);
+  
+    // 이미지 로드
+    useEffect(() => {
     if (!isOpen || !imageUrl) return;
 
     setLoading(true);
