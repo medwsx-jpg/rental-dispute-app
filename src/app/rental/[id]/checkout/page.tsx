@@ -879,43 +879,44 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
       ✕
     </button>
     
-    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-      탭하여 확대
-    </div>
-    
-    {/* 메모 표시 */}
-    {photo.notes && (
-      <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
-        <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
-        <button
-          onClick={() => handleEditMemo(photo.timestamp, photo.notes)}
-          className="ml-2 text-yellow-600 hover:text-yellow-800 text-xs whitespace-nowrap"
-        >
-          ✏️
-        </button>
-      </div>
-    )}
-    
-    {/* 🔥 메모 추가 & 마킹 추가 버튼 (한 줄에) */}
-    {!photo.notes && (
-      <div className="flex gap-2 mt-2">
-        <button
-          onClick={() => handleEditMemo(photo.timestamp, '')}
-          className="flex-1 py-1 border border-dashed border-gray-300 text-gray-600 rounded text-xs hover:border-gray-400 transition"
-        >
-          📝 메모 추가
-        </button>
-        <button
-          onClick={() => {
-            setMarkingPhoto(photo);
-            setShowPhotoMarker(true);
-          }}
-          className="flex-1 py-1 border border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
-        >
-          🖍️ 마킹 추가
-        </button>
-      </div>
-    )}
+    {/* 🔥 좌측 상단으로 이동 */}
+<div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+  탭하여 확대
+</div>
+
+{/* 메모 추가 & 마킹 추가 버튼 - 🔥 테두리 굵게 (border-2) */}
+{!photo.notes && (
+  <div className="flex gap-2 mt-2">
+    <button
+      onClick={() => handleEditMemo(photo.timestamp, '')}
+      className="flex-1 py-1 border-2 border-dashed border-gray-300 text-gray-600 rounded text-xs hover:border-gray-400 transition"
+    >
+      📝 메모 추가
+    </button>
+    <button
+      onClick={() => {
+        setMarkingPhoto(photo);
+        setShowPhotoMarker(true);
+      }}
+      className="flex-1 py-1 border-2 border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
+    >
+      🖍️ 마킹 추가
+    </button>
+  </div>
+)}
+
+{/* 메모가 있을 때도 마킹 버튼 표시 - 🔥 테두리 굵게 */}
+{photo.notes && (
+  <button
+    onClick={() => {
+      setMarkingPhoto(photo);
+      setShowPhotoMarker(true);
+    }}
+    className="w-full mt-2 py-1 border-2 border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
+  >
+    🖍️ 마킹 추가
+  </button>
+)}
     
     {/* 메모가 있을 때도 마킹 버튼 표시 */}
     {photo.notes && (
