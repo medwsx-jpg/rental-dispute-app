@@ -762,16 +762,11 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="text-center mb-6">
-            
-            <h2 className="text-xl font-bold mt-2">{currentArea?.name}</h2>
-            {currentArea?.required && (
-              <span className="inline-block mt-1 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">필수 촬영</span>
-            )}
-            {currentPhotos.length > 0 && (
-              <p className="text-sm text-gray-600 mt-2">📸 {currentPhotos.length}장 촬영됨</p>
-            )}
-          </div>
+        <div className="text-center mb-6">
+  {currentPhotos.length > 0 && (
+    <p className="text-sm text-gray-600">📸 {currentPhotos.length}장 촬영됨</p>
+  )}
+</div>
 
           {showMemoInput ? (
             <div className="space-y-4">
@@ -844,11 +839,11 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
   <div key={photo.timestamp} className="relative">
     <img 
       src={photo.url} 
-      alt={currentArea?.name} 
+      alt="사진" 
       className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
       onClick={() => {
         setViewerImage(photo.url);
-        setViewerTitle(`${currentArea?.name} - ${new Date(photo.timestamp).toLocaleString('ko-KR')}`);
+        setViewerTitle(`사진 - ${new Date(photo.timestamp).toLocaleString('ko-KR')}`);
         setViewerOpen(true);
       }}
     />
@@ -859,37 +854,56 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
       ✕
     </button>
     
-    {/* 🔥 추가: 마킹 버튼 */}
-    <button
-      onClick={() => {
-        setMarkingPhoto(photo);
-        setShowPhotoMarker(true);
-      }}
-      className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 flex items-center gap-1"
-    >
-      🖍️ 마킹
-    </button>
-                    
-                    {/* 메모 표시 */}
-                    {photo.notes && (
-                      <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
-                        <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
-                        <button
-                          onClick={() => handleEditMemo(photo.timestamp, photo.notes)}
-                          className="ml-2 text-yellow-600 hover:text-yellow-800 text-xs whitespace-nowrap"
-                        >
-                          ✏️
-                        </button>
-                      </div>
-                    )}
-                    {!photo.notes && (
-                      <button
-                        onClick={() => handleEditMemo(photo.timestamp, '')}
-                        className="w-full mt-2 py-1 border border-dashed border-gray-300 text-gray-600 rounded text-xs hover:border-gray-400 transition"
-                      >
-                        📝 메모 추가
-                      </button>
-                    )}
+    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+      탭하여 확대
+    </div>
+    
+    {/* 메모 표시 */}
+    {photo.notes && (
+      <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
+        <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
+        <button
+          onClick={() => handleEditMemo(photo.timestamp, photo.notes)}
+          className="ml-2 text-yellow-600 hover:text-yellow-800 text-xs whitespace-nowrap"
+        >
+          ✏️
+        </button>
+      </div>
+    )}
+    
+    {/* 🔥 메모 추가 & 마킹 추가 버튼 (한 줄에) */}
+    {!photo.notes && (
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => handleEditMemo(photo.timestamp, '')}
+          className="flex-1 py-1 border border-dashed border-gray-300 text-gray-600 rounded text-xs hover:border-gray-400 transition"
+        >
+          📝 메모 추가
+        </button>
+        <button
+          onClick={() => {
+            setMarkingPhoto(photo);
+            setShowPhotoMarker(true);
+          }}
+          className="flex-1 py-1 border border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
+        >
+          🖍️ 마킹 추가
+        </button>
+      </div>
+    )}
+    
+    {/* 메모가 있을 때도 마킹 버튼 표시 */}
+    {photo.notes && (
+      <button
+        onClick={() => {
+          setMarkingPhoto(photo);
+          setShowPhotoMarker(true);
+        }}
+        className="w-full mt-2 py-1 border border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
+      >
+        🖍️ 마킹 추가
+      </button>
+    )}
                     
                     <p className="text-xs text-gray-500 mt-1 text-center">
                       {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
