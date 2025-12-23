@@ -93,7 +93,7 @@ export default function InitSamplesPage() {
     try {
       let count = 0;
       for (const caseData of rentalCases) {
-        await addDoc(collection(db, 'boards', 'rental-cases', 'posts'), {
+        await addDoc(collection(db, 'boards', 'rentalcases', 'posts'), {
           userId: 'admin',
           userNickname: '관리자',
           title: caseData.title,
@@ -122,7 +122,7 @@ export default function InitSamplesPage() {
     try {
       let count = 0;
       for (const caseData of houseCases) {
-        await addDoc(collection(db, 'boards', 'house-cases', 'posts'), {
+        await addDoc(collection(db, 'boards', 'housecases', 'posts'), {
           userId: 'admin',
           userNickname: '관리자',
           title: caseData.title,
