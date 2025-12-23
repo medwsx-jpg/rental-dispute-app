@@ -381,23 +381,23 @@ export default function DashboardPage() {
           💬 채팅
         </button>
         <button
-          onClick={() => {
-            router.push('/board/rental-cases');
-            setShowBoardMenu(false);
-          }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
-        >
-          🚗 렌탈 분쟁사례
-        </button>
-        <button
-          onClick={() => {
-            router.push('/board/house-cases');
-            setShowBoardMenu(false);
-          }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
-        >
-          🏠 부동산 분쟁사례
-        </button>
+  onClick={() => {
+    router.push('/board/rentalcases');  // ✅ 수정됨!
+    setShowBoardMenu(false);
+  }}
+  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+>
+  🚗 렌탈 분쟁사례
+</button>
+<button
+  onClick={() => {
+    router.push('/board/housecases');  // ✅ 수정됨!
+    setShowBoardMenu(false);
+  }}
+  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+>
+  🏠 부동산 분쟁사례
+</button>
       </div>
     )}
   </div>
