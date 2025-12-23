@@ -855,12 +855,25 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
     </button>
     
     {/* 🔥 좌측 상단으로 이동 */}
-<div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
   탭하여 확대
 </div>
 
-{/* 메모 추가 & 마킹 추가 버튼 - 🔥 테두리 굵게 (border-2) */}
-{!photo.notes && (
+{/* 🔥 메모 표시 */}
+{photo.notes && photo.notes.trim() !== '' && (
+  <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
+    <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
+    <button
+      onClick={() => handleEditMemo(photo.timestamp, photo.notes)}
+      className="ml-2 text-yellow-600 hover:text-yellow-800 text-xs whitespace-nowrap"
+    >
+      ✏️
+    </button>
+  </div>
+)}
+
+{/* 🔥 메모 추가 & 마킹 추가 버튼 (메모 없을 때) */}
+{(!photo.notes || photo.notes.trim() === '') && (
   <div className="flex gap-2 mt-2">
     <button
       onClick={() => handleEditMemo(photo.timestamp, '')}
@@ -880,8 +893,8 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
   </div>
 )}
 
-{/* 메모가 있을 때도 마킹 버튼 표시 - 🔥 테두리 굵게 */}
-{photo.notes && (
+{/* 🔥 마킹 추가 버튼 (메모 있을 때) */}
+{photo.notes && photo.notes.trim() !== '' && (
   <button
     onClick={() => {
       setMarkingPhoto(photo);
@@ -892,23 +905,10 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
     🖍️ 마킹 추가
   </button>
 )}
-    
-    {/* 메모가 있을 때도 마킹 버튼 표시 */}
-    {photo.notes && (
-      <button
-        onClick={() => {
-          setMarkingPhoto(photo);
-          setShowPhotoMarker(true);
-        }}
-        className="w-full mt-2 py-1 border border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
-      >
-        🖍️ 마킹 추가
-      </button>
-    )}
-                    
-                    <p className="text-xs text-gray-500 mt-1 text-center">
-                      {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
+
+<p className="text-xs text-gray-500 mt-1 text-center">
+  {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+</p>
                   </div>
                 ))}
               </div>
