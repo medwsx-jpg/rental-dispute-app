@@ -12,6 +12,7 @@ import { compressImage } from '@/lib/imageCompression';
 import ImageViewer from '@/components/ImageViewer';
 import ChecklistSection from '@/components/ChecklistSection';
 import { AreaChecklist } from '@/types/rental';
+import PhotoMarker from '@/components/PhotoMarker'; // 🔥 이 줄 추가!
 
 // 렌탈 타입에 따른 촬영 영역 반환
 const getAreasForRental = (rental: Rental | null): RentalArea[] => {
@@ -55,7 +56,8 @@ export default function BeforePage() {
   const [viewerTitle, setViewerTitle] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-
+  const [showPhotoMarker, setShowPhotoMarker] = useState(false);
+  const [markingPhoto, setMarkingPhoto] = useState<Photo | null>(null);
  
 
   const areas = getAreasForRental(rental);
@@ -365,6 +367,45 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       alert('메모 수정에 실패했습니다.');
     }
   };
+// 🔥 새로 추가: 마킹 저장 함수
+const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
+  if (!markingPhoto || !currentArea) return;
+
+  try {
+    setUploading(true);
+
+    // Firebase Storage에 업로드
+    const storageRef = ref(
+      storage,
+      `rentals/${rentalId}/before/${currentArea.id}_${markingPhoto.timestamp}_marked.jpg`
+    );
+    await uploadBytes(storageRef, markedImageBlob);
+    const newUrl = await getDownloadURL(storageRef);
+
+    // photos 배열에서 URL 업데이트
+    const updatedPhotos = photos.map(p =>
+      p.timestamp === markingPhoto.timestamp
+        ? { ...p, url: newUrl }
+        : p
+    );
+    setPhotos(updatedPhotos);
+
+    // Firestore 업데이트
+    const rentalRef = doc(db, 'rentals', rentalId);
+    await updateDoc(rentalRef, {
+      'checkIn.photos': updatedPhotos,
+    });
+
+    setShowPhotoMarker(false);
+    setMarkingPhoto(null);
+    setUploading(false);
+    alert('마킹이 저장되었습니다!');
+  } catch (error) {
+    console.error('마킹 저장 실패:', error);
+    setUploading(false);
+    alert('마킹 저장에 실패했습니다.');
+  }
+};
 
   const handleSaveSignature = async (signatureData: string) => {
     try {
@@ -799,27 +840,35 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             <div className="space-y-4">
               {/* ✅ 사진 그리드 */}
               <div className="grid grid-cols-2 gap-3">
-                {currentPhotos.map((photo) => (
-                  <div key={photo.timestamp} className="relative">
-                    <img 
-                      src={photo.url} 
-                      alt={currentArea?.name} 
-                      className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
-                      onClick={() => {
-                        setViewerImage(photo.url);
-                        setViewerTitle(`${currentArea?.name} - ${new Date(photo.timestamp).toLocaleString('ko-KR')}`);
-                        setViewerOpen(true);
-                      }}
-                    />
-                    <button
-                      onClick={() => handleDeletePhoto(photo.timestamp)}
-                      className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs hover:bg-red-600"
-                    >
-                      ✕
-                    </button>
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                      탭하여 확대
-                    </div>
+              {currentPhotos.map((photo) => (
+  <div key={photo.timestamp} className="relative">
+    <img 
+      src={photo.url} 
+      alt={currentArea?.name} 
+      className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+      onClick={() => {
+        setViewerImage(photo.url);
+        setViewerTitle(`${currentArea?.name} - ${new Date(photo.timestamp).toLocaleString('ko-KR')}`);
+        setViewerOpen(true);
+      }}
+    />
+    <button
+      onClick={() => handleDeletePhoto(photo.timestamp)}
+      className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs hover:bg-red-600"
+    >
+      ✕
+    </button>
+    
+    {/* 🔥 추가: 마킹 버튼 */}
+    <button
+      onClick={() => {
+        setMarkingPhoto(photo);
+        setShowPhotoMarker(true);
+      }}
+      className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 flex items-center gap-1"
+    >
+      🖍️ 마킹
+    </button>
                     
                     {/* 메모 표시 */}
                     {photo.notes && (
@@ -1032,11 +1081,22 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         title="Before 촬영 서명"
       />
 
-      <ImageViewer
+<ImageViewer
         isOpen={viewerOpen}
         imageUrl={viewerImage}
         onClose={() => setViewerOpen(false)}
         title={viewerTitle}
+      />
+
+      {/* 🔥 추가: PhotoMarker 모달 */}
+      <PhotoMarker
+        isOpen={showPhotoMarker}
+        imageUrl={markingPhoto?.url || ''}
+        onClose={() => {
+          setShowPhotoMarker(false);
+          setMarkingPhoto(null);
+        }}
+        onSave={handleSaveMarkedPhoto}
       />
     </div>
   );
