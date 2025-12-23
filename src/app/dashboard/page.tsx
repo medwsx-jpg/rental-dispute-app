@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showBoardMenu, setShowBoardMenu] = useState(false); // 🔥 추가!
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [messageThread, setMessageThread] = useState<MessageThread | null>(null);
@@ -81,17 +82,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (showUserMenu) {
-        const target = e.target as HTMLElement;
-        if (!target.closest('.user-menu-container')) {
-          setShowUserMenu(false);
-        }
+      const target = e.target as HTMLElement;
+      
+      // 🔥 사용자 메뉴
+      if (showUserMenu && !target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+      
+      // 🔥 추가: 게시판 메뉴
+      if (showBoardMenu && !target.closest('.board-menu-container')) {
+        setShowBoardMenu(false);
       }
     };
     
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [showUserMenu]);
+  }, [showUserMenu, showBoardMenu]); // 🔥 의존성 추가
 
   const loadUserData = async (userId: string) => {
     try {
@@ -342,20 +348,60 @@ export default function DashboardPage() {
       
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => router.push('/guide')}
-              className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-            >
-              📖 사용가이드
-            </button>
-            <button 
-              onClick={() => router.push('/community')}
-              className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-            >
-              📋 게시판
-            </button>
-          </div>
+        <div className="flex items-center gap-4">
+  <button 
+    onClick={() => router.push('/guide')}
+    className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+  >
+    📖 사용가이드
+  </button>
+  
+  {/* 🔥 게시판 드롭다운 */}
+  <div className="relative board-menu-container">
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowBoardMenu(!showBoardMenu);
+      }}
+      className="flex items-center gap-2 text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+    >
+      📋 게시판
+      <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+    </button>
+    
+    {showBoardMenu && (
+      <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+        <button
+          onClick={() => {
+            router.push('/board/chat');
+            setShowBoardMenu(false);
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+        >
+          💬 채팅
+        </button>
+        <button
+          onClick={() => {
+            router.push('/board/rental-cases');
+            setShowBoardMenu(false);
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+        >
+          🚗 렌탈 분쟁사례
+        </button>
+        <button
+          onClick={() => {
+            router.push('/board/house-cases');
+            setShowBoardMenu(false);
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+        >
+          🏠 부동산 분쟁사례
+        </button>
+      </div>
+    )}
+  </div>
+</div>
           <div className="relative user-menu-container">
             <button 
               onClick={(e) => {
