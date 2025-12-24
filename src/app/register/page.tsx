@@ -1,0 +1,411 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<'phone' | 'account' | 'nickname' | 'complete'>('phone');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // 휴대폰 인증
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false);
+
+  // 계정 정보
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+
+  // 닉네임
+  const [nickname, setNickname] = useState('');
+
+  // SMS 발송
+  const handleSendCode = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setError('올바른 전화번호를 입력해주세요');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, type: 'send' }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsCodeSent(true);
+        alert('인증번호가 발송되었습니다');
+      } else {
+        throw new Error(result.error || 'SMS 발송 실패');
+      }
+    } catch (err: any) {
+      setError(err.message || '인증번호 발송 실패');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // SMS 인증
+  const handleVerifyCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError('6자리 인증번호를 입력해주세요');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, code: verificationCode, type: 'verify' }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setStep('account');
+      } else {
+        throw new Error(result.error || '인증번호가 올바르지 않습니다');
+      }
+    } catch (err: any) {
+      setError(err.message || '인증에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 계정 생성
+  const handleCreateAccount = async () => {
+    if (!email || !password || !passwordConfirm) {
+      setError('모든 항목을 입력해주세요');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('비밀번호는 6자 이상이어야 합니다');
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다');
+      return;
+    }
+
+    // 이메일 중복 체크
+    try {
+      setLoading(true);
+      setError('');
+
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        setError('이미 사용 중인 이메일입니다');
+        setLoading(false);
+        return;
+      }
+
+      // Firebase Auth 계정 생성
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Firestore에 기본 정보 저장 (닉네임 제외)
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        email: email,
+        phoneNumber: phoneNumber,
+        provider: 'email',
+        createdAt: Date.now(),
+        freeRentalsUsed: 0,
+        isPremium: false,
+        nickname: '', // 빈 문자열
+      });
+
+      setStep('nickname');
+    } catch (err: any) {
+      console.error('계정 생성 실패:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('이미 사용 중인 이메일입니다');
+      } else {
+        setError('계정 생성에 실패했습니다');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 닉네임 설정
+  const handleSetNickname = async () => {
+    if (!nickname || nickname.length < 2) {
+      setError('닉네임은 2자 이상이어야 합니다');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const user = auth.currentUser;
+      if (!user) {
+        setError('사용자 정보를 찾을 수 없습니다');
+        return;
+      }
+
+      await setDoc(doc(db, 'users', user.uid), {
+        nickname: nickname.trim(),
+      }, { merge: true });
+
+      setStep('complete');
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (err: any) {
+      setError('닉네임 설정에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 1: 휴대폰 인증
+  if (step === 'phone') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">📸 Record 365</h1>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">회원가입</h2>
+            <p className="text-sm text-gray-600">Step 1/3: 본인 인증</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+              {error}
+            </div>
+          )}
+
+          {!isCodeSent ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  휴대폰 번호 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="01012345678"
+                  maxLength={11}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={handleSendCode}
+                disabled={loading || phoneNumber.length < 10}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+              >
+                {loading ? '전송 중...' : '인증번호 받기'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 text-center">
+                {phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}로<br />
+                인증번호를 발송했습니다
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  인증번호 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="인증번호 6자리"
+                  maxLength={6}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={handleVerifyCode}
+                disabled={loading || verificationCode.length !== 6}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+              >
+                {loading ? '확인 중...' : '인증 완료'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsCodeSent(false);
+                  setVerificationCode('');
+                  setError('');
+                }}
+                className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+              >
+                다시 받기
+              </button>
+            </div>
+          )}
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => router.push('/login')}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              ← 로그인으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: 계정 정보
+  if (step === 'account') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">📸 Record 365</h1>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">계정 정보 입력</h2>
+            <p className="text-sm text-gray-600">Step 2/3: 로그인 정보 설정</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                이메일 (아이디) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@email.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                비밀번호 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="6자 이상 입력"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">영문, 숫자 포함 6자 이상</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                비밀번호 확인 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                placeholder="비밀번호 재입력"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {passwordConfirm && password !== passwordConfirm && (
+                <p className="text-xs text-red-500 mt-1">비밀번호가 일치하지 않습니다</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleCreateAccount}
+              disabled={loading || !email || !password || password !== passwordConfirm}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+            >
+              {loading ? '처리 중...' : '다음'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: 닉네임
+  if (step === 'nickname') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">📸 Record 365</h1>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">닉네임 설정</h2>
+            <p className="text-sm text-gray-600">Step 3/3: 거의 다 왔어요!</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                닉네임 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="2-20자 입력"
+                maxLength={20}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">게시판에서 사용될 닉네임 ({nickname.length}/20자)</p>
+            </div>
+
+            <button
+              onClick={handleSetNickname}
+              disabled={loading || nickname.length < 2}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+            >
+              {loading ? '처리 중...' : '완료'}
+            </button>
+          </div>
+
+          <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-800">
+              🆓 회원가입 완료 시 <strong>무료 1건</strong> 렌탈 기록이 제공됩니다!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 4: 완료
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="text-center">
+        <div className="text-6xl mb-4">🎉</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">회원가입 완료!</h2>
+        <p className="text-gray-600 mb-4">환영합니다, {nickname}님!</p>
+        <p className="text-sm text-gray-500">대시보드로 이동합니다...</p>
+      </div>
+    </div>
+  );
+}

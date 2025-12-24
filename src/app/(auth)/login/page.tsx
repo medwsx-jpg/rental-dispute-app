@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
-import { signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
@@ -13,11 +13,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
   
-  // 📱 휴대폰 인증 state
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isCodeSent, setIsCodeSent] = useState(false);
+  // 이메일/비밀번호 로그인
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Kakao SDK 초기화 확인
   useEffect(() => {
@@ -39,6 +37,33 @@ export default function LoginPage() {
 
     initKakao();
   }, []);
+
+  // 이메일 로그인
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('로그인 실패:', err);
+      if (err.code === 'auth/user-not-found') {
+        setError('등록되지 않은 이메일입니다');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('비밀번호가 틀렸습니다');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('올바른 이메일 형식이 아닙니다');
+      } else if (err.code === 'auth/invalid-credential') {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다');
+      } else {
+        setError('로그인에 실패했습니다');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleKakaoLogin = async () => {
     console.log('🔵 카카오 로그인 버튼 클릭됨');
@@ -78,81 +103,81 @@ export default function LoginPage() {
                 const snapshot = await getDocs(q);
 
                 let userId: string;
-let isNewUser = false;
+                let isNewUser = false;
 
-if (!snapshot.empty) {
-  // 기존 사용자
-  const existingUser = snapshot.docs[0];
-  userId = existingUser.id;
-  console.log('✅ 기존 사용자 로그인:', userId);
-  
-  // 마지막 로그인 시간 업데이트
-  await updateDoc(doc(db, 'users', userId), {
-    lastLoginAt: Date.now(),
-  });
-} else {
-  // 신규 사용자
-  console.log('🆕 신규 사용자 회원가입');
-  isNewUser = true;
-}
+                if (!snapshot.empty) {
+                  // 기존 사용자
+                  const existingUser = snapshot.docs[0];
+                  userId = existingUser.id;
+                  console.log('✅ 기존 사용자 로그인:', userId);
+                  
+                  // 마지막 로그인 시간 업데이트
+                  await updateDoc(doc(db, 'users', userId), {
+                    lastLoginAt: Date.now(),
+                  });
+                } else {
+                  // 신규 사용자
+                  console.log('🆕 신규 사용자 회원가입');
+                  isNewUser = true;
+                }
 
-// 🔥 Custom Token 발급
-console.log('🔑 Custom Token 요청...');
-const tokenResponse = await fetch('/api/create-custom-token', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    email: email,
-    kakaoId: kakaoId,
-    provider: 'kakao',
-  }),
-});
+                // 🔥 Custom Token 발급
+                console.log('🔑 Custom Token 요청...');
+                const tokenResponse = await fetch('/api/create-custom-token', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: email,
+                    kakaoId: kakaoId,
+                    provider: 'kakao',
+                  }),
+                });
 
-if (!tokenResponse.ok) {
-  throw new Error('Custom Token 발급 실패');
-}
+                if (!tokenResponse.ok) {
+                  throw new Error('Custom Token 발급 실패');
+                }
 
-const tokenData = await tokenResponse.json();
-const { customToken, uid } = tokenData;
+                const tokenData = await tokenResponse.json();
+                const { customToken, uid } = tokenData;
 
-console.log('✅ Custom Token 받음:', uid);
+                console.log('✅ Custom Token 받음:', uid);
 
-// 🔥 Firebase Auth 로그인 (영구)
-await signInWithCustomToken(auth, customToken);
-console.log('✅ Firebase Auth 로그인 완료');
+                // 🔥 Firebase Auth 로그인 (영구)
+                await signInWithCustomToken(auth, customToken);
+                console.log('✅ Firebase Auth 로그인 완료');
 
-userId = uid;
+                userId = uid;
 
-// 신규 사용자인 경우 Firestore 저장
-if (isNewUser) {
-  await setDoc(doc(db, 'users', userId), {
-    email: email,
-    nickname: nickname,
-    kakaoId: kakaoId,
-    provider: 'kakao',
-    createdAt: Date.now(),
-    lastLoginAt: Date.now(),
-    freeRentalsUsed: 0,
-    isPremium: false,
-  });
-}
+                // 신규 사용자인 경우 Firestore 저장
+                if (isNewUser) {
+                  await setDoc(doc(db, 'users', userId), {
+                    email: email,
+                    nickname: nickname,
+                    kakaoId: kakaoId,
+                    provider: 'kakao',
+                    createdAt: Date.now(),
+                    lastLoginAt: Date.now(),
+                    freeRentalsUsed: 0,
+                    isPremium: false,
+                  });
+                }
 
-console.log('✅ Firestore 처리 완료');
+                console.log('✅ Firestore 처리 완료');
 
-sessionStorage.setItem('kakao_user', JSON.stringify({
-  userId: userId,
-  kakaoId: kakaoId,
-  email,
-  nickname,
-}));
+                sessionStorage.setItem('kakao_user', JSON.stringify({
+                  userId: userId,
+                  kakaoId: kakaoId,
+                  email,
+                  nickname,
+                }));
 
-console.log('✅ 세션 저장 완료, 대시보드로 이동');
+                console.log('✅ 세션 저장 완료, 대시보드로 이동');
 
-if (isNewUser) {
-  alert('회원가입이 완료되었습니다! 🎉');
-}
+                if (isNewUser) {
+                  alert('회원가입이 완료되었습니다! 🎉');
+                }
 
-router.push('/dashboard');
+                router.push('/dashboard');
               },
               fail: (error: any) => {
                 console.error('❌ 사용자 정보 요청 실패:', error);
@@ -179,166 +204,6 @@ router.push('/dashboard');
     }
   };
 
-  // 📱 알리고 SMS 인증번호 발송
-  const handleSendCode = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
-      setError('올바른 전화번호를 입력해주세요');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phoneNumber,
-          type: 'send'
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setIsCodeSent(true);
-        alert('인증번호가 발송되었습니다');
-      } else {
-        throw new Error(result.error || 'SMS 발송 실패');
-      }
-    } catch (err: any) {
-      console.error('인증번호 발송 오류:', err);
-      setError(err.message || '인증번호 발송 실패. 다시 시도해주세요.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 📱 인증번호 확인
-// 📱 인증번호 확인
-const handleVerifyCode = async () => {
-  if (!verificationCode || verificationCode.length !== 6) {
-    setError('6자리 인증번호를 입력해주세요');
-    return;
-  }
-
-  try {
-    setLoading(true);
-    setError('');
-    
-    console.log('1️⃣ 인증번호 확인 API 호출 시작');
-    
-    const response = await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        phone: phoneNumber,
-        code: verificationCode,
-        type: 'verify'
-      }),
-    });
-
-    console.log('2️⃣ API 응답:', response.status);
-    
-    const result = await response.json();
-    console.log('3️⃣ API 결과:', result);
-
-    if (result.success) {
-      console.log('4️⃣ 인증 성공, Custom Token 요청');
-      
-      // 🔥 중복 체크 제거 - UID로 자동 처리
-      
-      // 🔥 Custom Token 발급
-      const tokenResponse = await fetch('/api/create-custom-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phoneNumber: phoneNumber,
-          provider: 'phone',
-          // uid 전달 안 함 - API에서 항상 전화번호 해시로 생성
-        }),
-      });
-      
-      console.log('5️⃣ Custom Token 응답:', tokenResponse.status);
-    
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
-        console.error('❌ Custom Token 에러:', errorData);
-        throw new Error('Custom Token 발급 실패');
-      }
-    
-      const tokenData = await tokenResponse.json();
-      const { customToken, uid } = tokenData;
-      
-      console.log('6️⃣ Custom Token 받음, UID:', uid);
-    
-      // 🔥 Firebase Auth 로그인
-      console.log('7️⃣ Firebase 로그인 시작...');
-      
-      await signInWithCustomToken(auth, customToken);
-      
-      console.log('8️⃣ Firebase 로그인 완료!');
-    
-      // 🔥 Firestore에 저장 (신규/기존 구분)
-console.log('9️⃣ Firestore 저장 시작');
-
-const userRef = doc(db, 'users', uid);
-const userSnap = await getDoc(userRef);
-
-const userData = {
-  phoneNumber: phoneNumber,
-  email: `phone_${phoneNumber}@record365.app`,
-  nickname: phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),
-  provider: 'phone',
-  lastLoginAt: Date.now(),
-};
-
-if (!userSnap.exists()) {
-  // 신규 사용자
-  console.log('🔟 신규 사용자 - createdAt 포함 저장');
-  await setDoc(userRef, {
-    ...userData,
-    createdAt: Date.now(),
-    freeRentalsUsed: 0,
-    isPremium: false,
-  });
-} else {
-  // 기존 사용자
-  console.log('🔟 기존 사용자 - lastLoginAt만 업데이트');
-  await updateDoc(userRef, userData);
-}
-
-console.log('1️⃣1️⃣ Firestore 저장 완료');
-    
-      sessionStorage.setItem('phone_user', JSON.stringify({
-        userId: uid,
-        phoneNumber: phoneNumber,
-      }));
-      
-      console.log('1️⃣1️⃣ 대시보드로 이동 시작');
-    
-      router.push('/dashboard');
-      
-      console.log('1️⃣2️⃣ router.push 호출 완료');
-      
-    } else {
-      console.error('❌ 인증 실패:', result.error);
-      throw new Error(result.error || '인증번호가 올바르지 않습니다');
-    }
-  } catch (err: any) {
-    console.error('❌❌ 전체 오류:', err);
-    setError(err.message || '인증에 실패했습니다');
-  } finally {
-    console.log('✅ finally 블록 - loading: false');
-    setLoading(false);
-  }
-};
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full">
@@ -352,38 +217,88 @@ console.log('1️⃣1️⃣ Firestore 저장 완료');
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-xl font-semibold text-center mb-6">로그인</h2>
 
-          {/* 소셜 로그인 버튼들 */}
-          <div className="space-y-3 mb-6">
-            <button
-              onClick={handleKakaoLogin}
-              disabled={loading || !kakaoReady}
-              className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#000000] py-3 rounded-lg font-medium hover:bg-[#FDD835] transition disabled:opacity-50"
-            >
-              <span className="text-xl">💬</span>
-              카카오톡으로 계속 진행
-            </button>
-
-            <button
-              onClick={() => setShowPhoneModal(true)}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition disabled:opacity-50"
-            >
-              <span className="text-xl">📱</span>
-              휴대폰 번호로 시작하기
-            </button>
-          </div>
-
           {error && (
             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
               {error}
             </div>
           )}
 
-<div className="mt-6 text-center">
-  <p className="text-sm text-gray-500">
-    카카오톡 또는 휴대폰으로 간편하게 시작하세요
-  </p>
-</div>
+          {/* 이메일/비밀번호 로그인 폼 */}
+          <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                이메일 (아이디)
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@email.com"
+                required
+                disabled={loading}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                비밀번호
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {loading ? '로그인 중...' : '로그인'}
+            </button>
+          </form>
+
+          {/* 또는 */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">또는</span>
+            </div>
+          </div>
+
+          {/* 카카오 로그인 */}
+          <button
+            onClick={handleKakaoLogin}
+            disabled={loading || !kakaoReady}
+            className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#000000] py-3 rounded-lg font-medium hover:bg-[#FDD835] transition disabled:opacity-50 mb-6"
+          >
+            <span className="text-xl">💬</span>
+            카카오톡으로 계속 진행
+          </button>
+
+          {/* 회원가입 / 비밀번호 찾기 */}
+          <div className="flex items-center justify-between text-sm">
+            <button
+              onClick={() => router.push('/reset-password')}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              비밀번호 찾기
+            </button>
+            <button
+              onClick={() => router.push('/register')}
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              회원가입
+            </button>
+          </div>
         </div>
 
         {/* 안내 문구 */}
@@ -430,103 +345,6 @@ console.log('1️⃣1️⃣ Firestore 저장 완료');
           </div>
         </div>
       </div>
-
-      {/* 휴대폰 번호 입력 모달 */}
-      {showPhoneModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-5"
-          onClick={() => setShowPhoneModal(false)}
-        >
-          <div
-            className="bg-white rounded-xl p-8 max-w-md w-full relative shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => {
-                setShowPhoneModal(false);
-                setIsCodeSent(false);
-                setPhoneNumber('');
-                setVerificationCode('');
-                setError('');
-              }}
-              className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-
-            <div className="text-center mb-6">
-              <span className="text-4xl block mb-2">📱</span>
-              <h3 className="text-xl font-bold text-gray-800">
-                휴대폰 번호로 시작
-              </h3>
-            </div>
-
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm text-center">
-                {error}
-              </div>
-            )}
-
-            {!isCodeSent ? (
-              <>
-                <input
-                  type="tel"
-                  placeholder="휴대폰 번호 입력 (예: 01012345678)"
-                  value={phoneNumber}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9]/g, '');
-                    setPhoneNumber(value);
-                  }}
-                  maxLength={11}
-                  className="w-full p-3.5 border-2 border-gray-300 rounded-lg mb-3 text-base focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={handleSendCode}
-                  disabled={loading || phoneNumber.length < 10}
-                  className="w-full py-3.5 bg-blue-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-all"
-                >
-                  {loading ? '전송 중...' : '인증번호 받기'}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-gray-600 text-center mb-5 leading-relaxed">
-                  {phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}로<br />
-                  인증번호를 발송했습니다
-                </p>
-                <input
-                  type="text"
-                  placeholder="인증번호 6자리"
-                  value={verificationCode}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9]/g, '');
-                    setVerificationCode(value);
-                  }}
-                  maxLength={6}
-                  className="w-full p-3.5 border-2 border-gray-300 rounded-lg mb-3 text-base focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={handleVerifyCode}
-                  disabled={loading || verificationCode.length !== 6}
-                  className="w-full py-3.5 bg-blue-500 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-all"
-                >
-                  {loading ? '확인 중...' : '인증 완료'}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsCodeSent(false);
-                    setVerificationCode('');
-                    setError('');
-                  }}
-                  className="w-full py-3.5 bg-transparent text-blue-500 border-2 border-blue-500 rounded-lg font-bold mt-2 hover:bg-blue-50 transition-all"
-                >
-                  다시 받기
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
