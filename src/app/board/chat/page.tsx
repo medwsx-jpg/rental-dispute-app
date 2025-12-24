@@ -24,7 +24,7 @@ interface Post {
   views: number;
 }
 
-const ADMIN_EMAILS = ['medws@naver.com'];
+const ADMIN_EMAILS = ['medws1@naver.com'];
 
 export default function ChatBoardPage() {
   const router = useRouter();
