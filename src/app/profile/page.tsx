@@ -62,7 +62,7 @@ export default function ProfilePage() {
       }, { merge: true });
 
       alert('닉네임이 저장되었습니다!');
-      router.push('/community');
+      router.push('/dashboard');
     } catch (error) {
       console.error('닉네임 저장 실패:', error);
       alert('닉네임 저장에 실패했습니다.');
