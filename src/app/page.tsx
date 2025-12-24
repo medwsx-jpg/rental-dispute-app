@@ -245,12 +245,14 @@ export default function HomePage() {
       <section className="bg-gradient-to-b from-green-50 to-white py-12 sm:py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-              렌탈 분쟁! 손해 배상! <br />그때 찍어둔 사진, 지금 어디에 있나요?
+            <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
+              렌탈 분쟁! 손해 배상!<br />
+              <span className="inline-block">그때 찍어둔 사진, 지금 어디에 있나요?</span>
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
-              렌터카 반납 시 억울한 수리비 청구?,<br className="sm:hidden" /> 전월세 퇴거 시 원상복구 분쟁?<br />
-              사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
+              렌터카 반납 시 억울한 수리비 청구?,<br className="sm:hidden" />
+              전월세 퇴거 시 원상복구 분쟁?<br />
+              사진 찍어놨는데, 폰 바꿔먼서 다 사라진 적 있죠?
             </p>
             <button
               onClick={handleStartNow}
