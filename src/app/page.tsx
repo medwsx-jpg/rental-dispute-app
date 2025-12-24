@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import Image from 'next/image';
 
 interface UserData {
   email: string;
@@ -24,13 +25,11 @@ export default function HomePage() {
   const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
-    // PWA 모드 감지
     const isPWAMode = window.matchMedia('(display-mode: standalone)').matches || 
                       (window.navigator as any).standalone === true;
     setIsPWA(isPWAMode);
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log('🔐 Auth state:', currentUser?.email || 'not logged in');
       setUser(currentUser);
       
       if (currentUser) {
@@ -64,22 +63,16 @@ export default function HomePage() {
 
   const loadUserData = async (userId: string) => {
     try {
-      console.log('📂 Loading user data for:', userId);
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
-        const data = userDoc.data() as UserData;
-        console.log('✅ User data loaded:', data.nickname);
-        setUserData(data);
-      } else {
-        console.log('⚠️ User document not found');
+        setUserData(userDoc.data() as UserData);
       }
     } catch (error) {
-      console.error('❌ Failed to load user data:', error);
+      console.error('Failed to load user data:', error);
     }
   };
 
   const handleMyRentals = () => {
-    console.log('🎯 내 렌탈 클릭, user:', user?.email || 'not logged in');
     if (user) {
       router.push('/dashboard');
     } else {
@@ -119,7 +112,6 @@ export default function HomePage() {
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
-            {/* 로고 - PWA 모드에서는 숨김 */}
             {!isPWA && (
               <div className="flex items-center">
                 <button 
@@ -131,9 +123,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* 메뉴 - PWA 모드에서는 전체 너비 */}
             <div className={`flex items-center gap-3 sm:gap-6 ${isPWA ? 'w-full justify-around' : ''}`}>
-              {/* 사용가이드 */}
               <button
                 onClick={() => router.push('/guide')}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
@@ -141,7 +131,6 @@ export default function HomePage() {
                 사용가이드
               </button>
 
-              {/* 내 렌탈 */}
               <button
                 onClick={handleMyRentals}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
@@ -149,7 +138,6 @@ export default function HomePage() {
                 내 렌탈
               </button>
 
-              {/* 게시판 드롭다운 */}
               <div className="relative board-menu-container">
                 <button
                   onClick={(e) => {
@@ -195,7 +183,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* 로그인 안된 상태: 로그인 버튼 */}
               {!user && (
                 <button
                   onClick={() => router.push('/login')}
@@ -205,7 +192,6 @@ export default function HomePage() {
                 </button>
               )}
 
-              {/* 로그인 된 상태: 내정보 드롭다운 */}
               {user && (
                 <div className="relative user-menu-container">
                   <button
@@ -255,16 +241,16 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - 모바일 최적화 */}
+      {/* Hero Section */}
       <section className="bg-gradient-to-b from-green-50 to-white py-12 sm:py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-              손해배상 분쟁을<br />줄이기 시작하세요
+              렌탈 분쟁! 손해 배상! <br />그때 찍어둔 사진, 지금 어디에 있나요?
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
-              렌탈 전후 상태를 명확히 기록하고,<br className="sm:hidden" /> 전자 서명으로 증거를 확보하세요.<br />
-              더 이상 억울한 손해배상을 물지 마세요.
+              렌터카 반납 시 억울한 수리비 청구?,<br className="sm:hidden" /> 전월세 퇴거 시 원상복구 분쟁?<br />
+              사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?
             </p>
             <button
               onClick={handleStartNow}
@@ -276,7 +262,95 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 기능 설명 - 모바일 최적화 */}
+      {/* 실제 사용 예시 - 스마트폰 목업 섹션 */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              실제 사용 화면
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              스마트폰으로 간편하게 촬영하고, 손상 부위를 체크하세요
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 items-center">
+            {/* 좌측: 촬영 화면 */}
+            <div className="relative">
+              <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
+                {/* 스마트폰 프레임 */}
+                <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-[3rem] p-3 shadow-2xl">
+                  {/* 노치 */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
+                  
+                  {/* 화면 */}
+                  <div className="relative bg-white rounded-[2.5rem] overflow-hidden">
+                    <Image 
+                      src="/images/screenshot-capture.png" 
+                      alt="촬영 화면"
+                      width={300}
+                      height={650}
+                      className="w-full h-auto"
+                    />
+                  </div>
+                </div>
+
+                {/* 설명 텍스트 */}
+                <div className="mt-6 text-center">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                    📸 손상 부위 촬영
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    빨간 원으로 체크하고 메모를 남기세요
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 우측: 비교 화면 */}
+            <div className="relative">
+              <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
+                {/* 스마트폰 프레임 */}
+                <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-[3rem] p-3 shadow-2xl">
+                  {/* 노치 */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
+                  
+                  {/* 화면 */}
+                  <div className="relative bg-white rounded-[2.5rem] overflow-hidden">
+                    <Image 
+                      src="/images/screenshot-compare.png" 
+                      alt="비교 화면"
+                      width={300}
+                      height={650}
+                      className="w-full h-auto"
+                    />
+                  </div>
+                </div>
+
+                {/* 설명 텍스트 */}
+                <div className="mt-6 text-center">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                    🔍 Before/After 비교
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    한눈에 차이를 확인하고 증거를 확보하세요
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 하단 강조 문구 */}
+          <div className="mt-12 sm:mt-16 text-center">
+            <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-6 py-3 rounded-full text-sm sm:text-base font-medium">
+              <span className="text-xl">✓</span>
+              <span>사진은 GPS 위치와 시간이 자동으로 기록됩니다</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 기능 설명 */}
       <section className="py-12 sm:py-16 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8 sm:mb-12 md:mb-16">
@@ -284,7 +358,6 @@ export default function HomePage() {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12">
-            {/* Before */}
             <div className="text-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <span className="text-3xl sm:text-4xl">📸</span>
@@ -296,7 +369,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* After */}
             <div className="text-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <span className="text-3xl sm:text-4xl">📤</span>
@@ -308,7 +380,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* 서명 */}
             <div className="text-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <span className="text-3xl sm:text-4xl">✍️</span>
@@ -323,7 +394,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 통계 - 모바일 최적화 */}
+      {/* 통계 */}
       <section className="py-12 sm:py-16 md:py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-3 gap-4 sm:gap-8 text-center">
@@ -343,7 +414,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 고객 후기 - 모바일 최적화 */}
+      {/* 고객 후기 */}
       <section className="py-12 sm:py-16 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8 sm:mb-12 md:mb-16">
@@ -418,7 +489,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA - 모바일 최적화 */}
+      {/* CTA */}
       <section className="py-12 sm:py-16 md:py-20 bg-green-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">
