@@ -12,21 +12,26 @@ export default function GuidePage() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        router.push('/login');
-      }
+      console.log('Guide page - Auth state:', currentUser?.email || 'not logged in');
+      setUser(currentUser);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [router]);
 
+  const handleBack = () => {
+    if (user) {
+      router.push('/dashboard');
+    } else {
+      router.push('/');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
       </div>
     );
   }
@@ -35,7 +40,7 @@ export default function GuidePage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
+          <button onClick={handleBack} className="text-gray-600 hover:text-gray-900">
             ← 뒤로
           </button>
           <h1 className="text-xl font-bold text-gray-900">📖 사용 가이드</h1>
@@ -44,17 +49,17 @@ export default function GuidePage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-8 text-white mb-6">
-          <h2 className="text-2xl font-bold mb-2">Record 365에 오신 것을 환영합니다! 🎉</h2>
-          <p className="text-blue-100">렌탈 분쟁을 예방하는 가장 쉬운 방법</p>
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-8 text-white mb-6">
+          <h2 className="text-2xl font-bold mb-2">Record365.co.kr에 오신 것을 환영합니다! 🎉</h2>
+          <p className="text-green-100">렌탈 분쟁을 예방하는 가장 쉬운 방법</p>
         </div>
 
         <div className="space-y-4">
           {/* Step 1 */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-xl font-bold text-blue-600">1</span>
+              <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-xl font-bold text-green-600">1</span>
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">📝 새 렌탈 등록</h3>
@@ -73,17 +78,17 @@ export default function GuidePage() {
           {/* Step 2 */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-xl font-bold text-green-600">2</span>
+              <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                <span className="text-xl font-bold text-emerald-600">2</span>
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">📥 Before 촬영</h3>
                 <p className="text-gray-600 mb-3">
                   렌탈 시작 전, 차량/주택의 현재 상태를 사진으로 기록하세요.
                 </p>
-                <div className="bg-blue-50 rounded-lg p-4 mb-3">
-                  <p className="text-sm font-medium text-blue-900 mb-2">💡 촬영 팁</p>
-                  <ul className="text-sm text-blue-700 space-y-1">
+                <div className="bg-green-50 rounded-lg p-4 mb-3">
+                  <p className="text-sm font-medium text-green-900 mb-2">💡 촬영 팁</p>
+                  <ul className="text-sm text-green-700 space-y-1">
                     <li>• 밝은 곳에서 촬영하세요</li>
                     <li>• 기존 흠집이나 손상은 꼭 메모를 남기세요</li>
                     <li>• 사진은 자동으로 압축되어 저장됩니다</li>
@@ -151,15 +156,15 @@ export default function GuidePage() {
 
   <div className="space-y-6">
     {/* iOS 가이드 */}
-    <div className="border-2 border-blue-200 rounded-lg p-5">
+    <div className="border-2 border-green-200 rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-2xl">🍎</span>
-        <h3 className="font-bold text-blue-900 text-lg">iPhone (iOS)</h3>
+        <h3 className="font-bold text-green-900 text-lg">iPhone (iOS)</h3>
       </div>
       
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             1
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -168,7 +173,7 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             2
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -177,7 +182,7 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             3
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -186,7 +191,7 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             4
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -195,17 +200,17 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             ✓
           </div>
-          <p className="text-green-700 pt-0.5 font-medium">
+          <p className="text-emerald-700 pt-0.5 font-medium">
             홈 화면에 아이콘 생성 완료! 🎉
           </p>
         </div>
       </div>
       
-      <div className="mt-4 bg-blue-50 rounded-lg p-3">
-        <p className="text-xs text-blue-700">
+      <div className="mt-4 bg-green-50 rounded-lg p-3">
+        <p className="text-xs text-green-700">
           💡 <strong>카카오톡에서 링크를 열었다면?</strong><br />
           우측 상단 <strong>⋮</strong> 메뉴 → <strong>"Safari에서 열기"</strong>를 먼저 선택하세요!
         </p>
@@ -213,15 +218,15 @@ export default function GuidePage() {
     </div>
 
     {/* Android 가이드 */}
-    <div className="border-2 border-green-200 rounded-lg p-5">
+    <div className="border-2 border-emerald-200 rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-2xl">🤖</span>
-        <h3 className="font-bold text-green-900 text-lg">Android</h3>
+        <h3 className="font-bold text-emerald-900 text-lg">Android</h3>
       </div>
       
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             1
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -230,7 +235,7 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             2
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -239,7 +244,7 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             3
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -248,7 +253,7 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             4
           </div>
           <p className="text-gray-700 pt-0.5">
@@ -257,17 +262,17 @@ export default function GuidePage() {
         </div>
         
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+          <div className="flex-shrink-0 w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
             ✓
           </div>
-          <p className="text-green-700 pt-0.5 font-medium">
+          <p className="text-emerald-700 pt-0.5 font-medium">
             홈 화면에 아이콘 생성 완료! 🎉
           </p>
         </div>
       </div>
       
-      <div className="mt-4 bg-green-50 rounded-lg p-3">
-        <p className="text-xs text-green-700">
+      <div className="mt-4 bg-emerald-50 rounded-lg p-3">
+        <p className="text-xs text-emerald-700">
           💡 <strong>카카오톡에서 링크를 열었다면?</strong><br />
           우측 상단 <strong>⋮</strong> 메뉴 → <strong>"Chrome에서 열기"</strong>를 먼저 선택하세요!
         </p>
@@ -300,15 +305,24 @@ export default function GuidePage() {
           </div>
 
           {/* CTA */}
-          <div className="bg-blue-600 rounded-lg p-6 text-center">
+          <div className="bg-green-600 rounded-lg p-6 text-center">
             <h3 className="text-xl font-bold text-white mb-2">준비되셨나요? 🚀</h3>
-            <p className="text-blue-100 mb-4">지금 바로 첫 렌탈을 등록하고 안전하게 기록하세요!</p>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-8 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
-            >
-              시작하기
-            </button>
+            <p className="text-green-100 mb-4">지금 바로 첫 렌탈을 등록하고 안전하게 기록하세요!</p>
+            {user ? (
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-8 py-3 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50 transition"
+              >
+                내 렌탈 보기
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/login')}
+                className="px-8 py-3 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50 transition"
+              >
+                시작하기
+              </button>
+            )}
           </div>
         </div>
       </main>
