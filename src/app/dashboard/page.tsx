@@ -414,19 +414,37 @@ export default function DashboardPage() {
               <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
             </button>
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-xs text-gray-500">로그인 계정</p>
-                  <p className="text-sm text-gray-900 truncate">{user?.email}</p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
-                >
-                  🚪 로그아웃
-                </button>
-              </div>
-            )}
+  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+    <div className="px-4 py-2 border-b border-gray-100">
+      <p className="text-xs text-gray-500">로그인 계정</p>
+      <p className="text-sm text-gray-900 truncate">{user?.email}</p>
+    </div>
+    
+    {/* 🔥 닉네임 표시 추가 */}
+    <div className="px-4 py-2 border-b border-gray-100">
+      <p className="text-xs text-gray-500">닉네임</p>
+      <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
+    </div>
+    
+    {/* 🔥 닉네임 변경 버튼 추가 */}
+    <button
+      onClick={() => {
+        router.push('/profile');
+        setShowUserMenu(false);
+      }}
+      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+    >
+      ✏️ 닉네임 변경
+    </button>
+    
+    <button
+      onClick={handleLogout}
+      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+    >
+      🚪 로그아웃
+    </button>
+  </div>
+)}
           </div>
         </div>
       </header>
