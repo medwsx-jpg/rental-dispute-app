@@ -21,6 +21,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [userType, setUserType] = useState<'individual' | 'business'>('individual');
+  const [businessType, setBusinessType] = useState<'car_rental' | 'real_estate' | 'goods_rental'>('car_rental');
+  const [companyName, setCompanyName] = useState('');
 
   // 닉네임
   const [nickname, setNickname] = useState('');
@@ -105,6 +108,12 @@ export default function RegisterPage() {
       return;
     }
 
+    // 🔥 추가
+    if (userType === 'business' && !companyName.trim()) {
+      setError('상호명 또는 이름을 입력해주세요');
+      return;
+    }
+
     // 이메일 중복 체크
     try {
       setLoading(true);
@@ -124,15 +133,25 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
       // Firestore에 기본 정보 저장 (닉네임 제외)
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
+      const userData: any = {
         email: email,
         phoneNumber: phoneNumber,
         provider: 'email',
         createdAt: Date.now(),
         freeRentalsUsed: 0,
         isPremium: false,
-        nickname: '', // 빈 문자열
-      });
+        nickname: '',
+        userType: userType,
+      };
+
+      if (userType === 'business') {
+        userData.businessInfo = {
+          businessType: businessType,
+          companyName: companyName.trim(),
+        };
+      }
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), userData);
 
       setStep('nickname');
     } catch (err: any) {
@@ -288,7 +307,75 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <div className="space-y-4">
+<div className="space-y-4">
+            {/* 🔥 여기부터 추가 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                어떻게 사용하시나요? <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUserType('individual')}
+                  className={`px-4 py-3 rounded-lg border-2 transition ${
+                    userType === 'individual'
+                      ? 'border-green-600 bg-green-50 text-green-700'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🙋‍♂️</div>
+                  <div className="font-medium">빌리는</div>
+                  <div className="text-xs text-gray-500">차량/집 렌트</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserType('business')}
+                  className={`px-4 py-3 rounded-lg border-2 transition ${
+                    userType === 'business'
+                      ? 'border-green-600 bg-green-50 text-green-700'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🤝</div>
+                  <div className="font-medium">빌려주는</div>
+                  <div className="text-xs text-gray-500">렌트카/부동산</div>
+                </button>
+              </div>
+            </div>
+
+            {userType === 'business' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    무엇을 빌려주시나요? <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value as any)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="car_rental">🚗 차량 (렌트카)</option>
+                    <option value="real_estate">🏠 부동산 (전월세)</option>
+                    <option value="goods_rental">📦 물품 대여</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    상호명 또는 이름 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="예) OO렌트카, 홍길동"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </>
+            )}
+            {/* 🔥 여기까지 추가, 아래는 기존 이메일 입력 그대로 */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 이메일 (아이디) <span className="text-red-500">*</span>

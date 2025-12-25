@@ -1,3 +1,5 @@
+
+
 // src/app/api/send-sms/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
@@ -12,9 +14,16 @@ function generateCode(): string {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { phone, code, type } = body;
+   // 🔥 환경변수 확인 (이 부분만 추가)
+   console.log('===== 환경변수 확인 =====');
+   console.log('SOLAPI_API_KEY:', process.env.SOLAPI_API_KEY);
+   console.log('SOLAPI_API_SECRET:', process.env.SOLAPI_API_SECRET);
+   console.log('SOLAPI_SENDER_PHONE:', process.env.SOLAPI_SENDER_PHONE);
+   console.log('=======================');
+   
+   try {
+     const body = await request.json();
+     const { phone, code, type } = body;
 
     // 인증번호 발송
     if (type === 'send') {
