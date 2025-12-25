@@ -252,7 +252,7 @@ export default function HomePage() {
             <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
               렌터카 반납 시 억울한 수리비 청구?,<br className="sm:hidden" />
               전월세 퇴거 시 원상복구 분쟁?<br />
-              사진 찍어놨는데, 폰 바꿔먼서 다 사라진 적 있죠?
+              사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?
             </p>
             <button
               onClick={handleStartNow}
