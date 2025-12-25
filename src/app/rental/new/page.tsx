@@ -14,6 +14,7 @@ export default function NewRentalPage() {
 
   const [type, setType] = useState<'car' | 'house' | 'goods'>('car');
   const [title, setTitle] = useState('');
+  const [carModel, setCarModel] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
@@ -131,6 +132,10 @@ export default function NewRentalPage() {
         },
         createdAt: Date.now(),
       };
+      // 렌터카인 경우 자동차 모델 추가
+      if (type === 'car' && carModel.trim()) {
+        rentalData.carModel = carModel.trim();
+      }
   
       // 생활용품일 경우 커스텀 영역 저장
       if (type === 'goods' && customAreas.length > 0) {
@@ -233,6 +238,20 @@ export default function NewRentalPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+               {/* 🔥 여기부터 추가 */}
+               {type === 'car' && (
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">자동차 모델</label>
+                  <input
+                    type="text"
+                    value={carModel}
+                    onChange={(e) => setCarModel(e.target.value)}
+                    placeholder="예: 소나타, K5, 아반떼 등"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+              {/* 🔥 여기까지 추가 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">계약 시작일</label>
