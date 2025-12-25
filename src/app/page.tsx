@@ -15,6 +15,30 @@ interface UserData {
   createdAt: number;
 }
 
+// 개별 슬라이드 (4개)
+const slides = [
+  {
+    image: '/images/screenshot-capture.png',
+    title: '🚗 자동차 손상 촬영',
+    description: '빨간 원으로 체크하고 메모를 남기세요'
+  },
+  {
+    image: '/images/screenshot-compare.png',
+    title: '🚗 자동차 Before/After',
+    description: '한눈에 차이를 확인하고 증거를 확보하세요'
+  },
+  {
+    image: '/images/screenshot-house-capture.png',
+    title: '🏠 부동산 손상 촬영',
+    description: '벽지, 바닥 손상을 명확히 기록하세요'
+  },
+  {
+    image: '/images/screenshot-house-compare.png',
+    title: '🏠 부동산 Before/After',
+    description: '입주 전후를 비교해 분쟁을 예방하세요'
+  }
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -23,6 +47,7 @@ export default function HomePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showBoardMenu, setShowBoardMenu] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const isPWAMode = window.matchMedia('(display-mode: standalone)').matches || 
@@ -42,6 +67,15 @@ export default function HomePage() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // 자동 슬라이더 (3초마다, 1장씩 이동)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 4000);
+
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -94,6 +128,15 @@ export default function HomePage() {
     setUserData(null);
     setShowUserMenu(false);
   };
+
+  // 현재 보이는 2개의 슬라이드 인덱스 계산
+  const getVisibleSlides = () => {
+    const first = currentSlide;
+    const second = (currentSlide + 1) % slides.length;
+    return [first, second];
+  };
+
+  const [firstIndex, secondIndex] = getVisibleSlides();
 
   if (loading) {
     return (
@@ -252,7 +295,8 @@ export default function HomePage() {
             <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
               렌터카 반납 시 억울한 수리비 청구?,<br className="sm:hidden" />
               전월세 퇴거 시 원상복구 분쟁?<br />
-              사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?
+              사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?<br />
+              그때 찍어둔 사진,영상 지금 어디에 있나요?
             </p>
             <button
               onClick={handleStartNow}
@@ -264,7 +308,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 실제 사용 예시 - 스마트폰 목업 섹션 */}
+      {/* 실제 사용 예시 - 1장씩 슬라이드 캐러셀 */}
       <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
@@ -272,74 +316,87 @@ export default function HomePage() {
               실제 사용 화면
             </h2>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-              스마트폰으로 간편하게 촬영하고, 손상 부위를 체크하세요
+              자동차와 부동산, 모두 간편하게 기록하세요
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 items-center">
-            {/* 좌측: 촬영 화면 */}
-            <div className="relative">
-              <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
-                {/* 스마트폰 프레임 */}
-                <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-[3rem] p-3 shadow-2xl">
-                  {/* 노치 */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
-                  
-                  {/* 화면 */}
-                  <div className="relative bg-white rounded-[2.5rem] overflow-hidden">
-                    <Image 
-                      src="/images/screenshot-capture.png" 
-                      alt="촬영 화면"
-                      width={300}
-                      height={650}
-                      className="w-full h-auto"
-                    />
+          {/* 캐러셀 컨테이너 */}
+          <div className="relative overflow-hidden">
+            {/* 슬라이드 래퍼 */}
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentSlide * 50}%)` }}
+            >
+              {/* 무한 루프를 위해 슬라이드를 3번 반복 */}
+              {[...slides, ...slides, ...slides].map((slide, index) => (
+                <div key={index} className="w-1/2 flex-shrink-0 px-4">
+                  <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
+                    {/* 스마트폰 프레임 */}
+                    <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-[3rem] p-3 shadow-2xl">
+                      {/* 노치 */}
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
+                      
+                      {/* 화면 */}
+                      <div className="relative bg-white rounded-[2.5rem] overflow-hidden">
+                        <Image 
+                          src={slide.image}
+                          alt={slide.title}
+                          width={300}
+                          height={650}
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 설명 텍스트 */}
+                    <div className="mt-6 text-center">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                        {slide.title}
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600">
+                        {slide.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
-
-                {/* 설명 텍스트 */}
-                <div className="mt-6 text-center">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-                    📸 손상 부위 촬영
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    빨간 원으로 체크하고 메모를 남기세요
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* 우측: 비교 화면 */}
-            <div className="relative">
-              <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
-                {/* 스마트폰 프레임 */}
-                <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-[3rem] p-3 shadow-2xl">
-                  {/* 노치 */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
-                  
-                  {/* 화면 */}
-                  <div className="relative bg-white rounded-[2.5rem] overflow-hidden">
-                    <Image 
-                      src="/images/screenshot-compare.png" 
-                      alt="비교 화면"
-                      width={300}
-                      height={650}
-                      className="w-full h-auto"
-                    />
-                  </div>
-                </div>
+            {/* 좌우 화살표 */}
+            <button
+              onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition z-10 ml-2"
+              aria-label="이전 슬라이드"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition z-10 mr-2"
+              aria-label="다음 슬라이드"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
 
-                {/* 설명 텍스트 */}
-                <div className="mt-6 text-center">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-                    🔍 Before/After 비교
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    한눈에 차이를 확인하고 증거를 확보하세요
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* 진행 표시 점 */}
+          <div className="flex justify-center gap-2 mt-8">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentSlide 
+                    ? 'bg-green-600 w-8' 
+                    : 'bg-gray-300 hover:bg-gray-400'
+                }`}
+                aria-label={`슬라이드 ${index + 1}`}
+              />
+            ))}
           </div>
 
           {/* 하단 강조 문구 */}
