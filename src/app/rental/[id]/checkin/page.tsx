@@ -12,7 +12,7 @@ import { compressImage } from '@/lib/imageCompression';
 import ImageViewer from '@/components/ImageViewer';
 import ChecklistSection from '@/components/ChecklistSection';
 import { AreaChecklist } from '@/types/rental';
-import PhotoMarker from '@/components/PhotoMarker'; // 🔥 이 줄 추가!
+import PhotoMarker from '@/components/PhotoMarker';
 
 // 렌탈 타입에 따른 촬영 영역 반환
 const getAreasForRental = (rental: Rental | null): RentalArea[] => {
@@ -39,14 +39,14 @@ export default function BeforePage() {
   const [rental, setRental] = useState<Rental | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const isUploadingRef = useRef(false); // 🔥 추가!
+  const isUploadingRef = useRef(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAreaIndex, setCurrentAreaIndex] = useState(0);
   const [memo, setMemo] = useState('');
  
   const [showMemoInput, setShowMemoInput] = useState(false);
   const [editingMemo, setEditingMemo] = useState(false);
-  const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null); // ← 추가
+  const [editingPhotoTimestamp, setEditingPhotoTimestamp] = useState<number | null>(null);
   const [checklists, setChecklists] = useState<AreaChecklist[]>([]);
   const [pendingFile, setPendingFile] = useState<{ file: File; base64: string } | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
@@ -58,6 +58,7 @@ export default function BeforePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [showPhotoMarker, setShowPhotoMarker] = useState(false);
   const [markingPhoto, setMarkingPhoto] = useState<Photo | null>(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false); // 🔥 추가
  
 
   const areas = getAreasForRental(rental);
@@ -129,19 +130,14 @@ export default function BeforePage() {
     if (!currentArea) return;
   
     try {
-      // 압축
       const compressedFile = await compressImage(file);
-      
-      // 모바일 감지
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       
       if (isMobile) {
-        // 🔥 모바일: FormData 준비 (Base64 변환 안 함!)
-        setPendingFile({ file: compressedFile, base64: '' }); // base64는 빈 문자열
+        setPendingFile({ file: compressedFile, base64: '' });
         setMemo('');
         setShowMemoInput(true);
       } else {
-        // 웹: 미리보기용으로만 Base64 변환
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve, reject) => {
           reader.onloadend = () => resolve(reader.result as string);
@@ -175,16 +171,16 @@ export default function BeforePage() {
 
       const uploadTask = uploadBytesResumable(storageRef, compressedFile);
 
-await new Promise<void>((resolve, reject) => {
-  uploadTask.on(
-    'state_changed',
-    null,
-    (error) => reject(error),
-    () => resolve()
-  );
-});
+      await new Promise<void>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          null,
+          (error) => reject(error),
+          () => resolve()
+        );
+      });
 
-const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+      const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
       const newPhoto: Photo = {
         url: downloadURL,
@@ -208,7 +204,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       alert('사진 업로드에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setUploading(false);
-      
     }
   };
 
@@ -221,7 +216,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
     setShowPreview(false);
     setPreviewImage(null);
     setPendingFile(null);
-    
   };
 
   const handleUploadWithMemo = async () => {
@@ -246,7 +240,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       let downloadURL: string;
 
       if (isMobile) {
-        // 🔥 모바일: FormData로 전송
         const formData = new FormData();
         formData.append('file', pendingFile.file);
         formData.append('rentalId', rentalId);
@@ -256,7 +249,7 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
         const response = await fetch('/api/upload', {
           method: 'POST',
-          body: formData, // 🔥 FormData (Content-Type 자동 설정)
+          body: formData,
         });
 
         if (!response.ok) {
@@ -268,7 +261,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         downloadURL = data.downloadURL;
 
       } else {
-        // 웹: 클라이언트 직접 업로드
         const storageRef = ref(
           storage,
           `rentals/${rentalId}/before/${currentArea.id}_${timestamp}.jpg`
@@ -304,7 +296,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         'checkIn.photos': updatedPhotos,
       });
 
-      // 상태 리셋
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
@@ -318,7 +309,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
     } catch (error) {
       console.error('업로드 에러:', error);
       
-      // 상태 리셋
       setMemo('');
       setPendingFile(null);
       setPreviewImage(null);
@@ -336,7 +326,6 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
     }
   };
 
-  // ✅ 변경: 특정 사진의 메모 수정
   const handleEditMemo = (photoTimestamp: number, currentNotes: string) => {
     setEditingPhotoTimestamp(photoTimestamp);
     setMemo(currentNotes);
@@ -367,45 +356,42 @@ const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
       alert('메모 수정에 실패했습니다.');
     }
   };
-// 🔥 새로 추가: 마킹 저장 함수
-const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
-  if (!markingPhoto || !currentArea) return;
 
-  try {
-    setUploading(true);
+  const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
+    if (!markingPhoto || !currentArea) return;
 
-    // Firebase Storage에 업로드
-    const storageRef = ref(
-      storage,
-      `rentals/${rentalId}/before/${currentArea.id}_${markingPhoto.timestamp}_marked.jpg`
-    );
-    await uploadBytes(storageRef, markedImageBlob);
-    const newUrl = await getDownloadURL(storageRef);
+    try {
+      setUploading(true);
 
-    // photos 배열에서 URL 업데이트
-    const updatedPhotos = photos.map(p =>
-      p.timestamp === markingPhoto.timestamp
-        ? { ...p, url: newUrl }
-        : p
-    );
-    setPhotos(updatedPhotos);
+      const storageRef = ref(
+        storage,
+        `rentals/${rentalId}/before/${currentArea.id}_${markingPhoto.timestamp}_marked.jpg`
+      );
+      await uploadBytes(storageRef, markedImageBlob);
+      const newUrl = await getDownloadURL(storageRef);
 
-    // Firestore 업데이트
-    const rentalRef = doc(db, 'rentals', rentalId);
-    await updateDoc(rentalRef, {
-      'checkIn.photos': updatedPhotos,
-    });
+      const updatedPhotos = photos.map(p =>
+        p.timestamp === markingPhoto.timestamp
+          ? { ...p, url: newUrl }
+          : p
+      );
+      setPhotos(updatedPhotos);
 
-    setShowPhotoMarker(false);
-    setMarkingPhoto(null);
-    setUploading(false);
-    alert('마킹이 저장되었습니다!');
-  } catch (error) {
-    console.error('마킹 저장 실패:', error);
-    setUploading(false);
-    alert('마킹 저장에 실패했습니다.');
-  }
-};
+      const rentalRef = doc(db, 'rentals', rentalId);
+      await updateDoc(rentalRef, {
+        'checkIn.photos': updatedPhotos,
+      });
+
+      setShowPhotoMarker(false);
+      setMarkingPhoto(null);
+      setUploading(false);
+      alert('마킹이 저장되었습니다!');
+    } catch (error) {
+      console.error('마킹 저장 실패:', error);
+      setUploading(false);
+      alert('마킹 저장에 실패했습니다.');
+    }
+  };
 
   const handleSaveSignature = async (signatureData: string) => {
     try {
@@ -424,8 +410,8 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
     }
   };
 
+  // 🔥 수정: 완료 처리 - 모달 표시로 변경
   const handleComplete = async () => {
-    // 생활용품 자유 촬영 모드
     if (rental?.type === 'goods' && areas.length === 0) {
       if (photos.length === 0) {
         alert('최소 1장 이상의 사진을 촬영해주세요.');
@@ -446,8 +432,7 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
           'checkIn.checklists': checklists,
         });
 
-        alert('Before 사진 등록이 완료되었습니다!');
-        router.push('/dashboard');
+        setShowCompletionModal(true); // 🔥 변경
       } catch (error) {
         console.error('완료 처리 실패:', error);
         alert('완료 처리에 실패했습니다.');
@@ -455,9 +440,8 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
       return;
     }
 
-    // 일반 모드: 필수 영역별로 최소 1장씩 확인
     const requiredAreas = areas.filter(a => a.required);
-    const uploadedAreaIds = [...new Set(photos.map(p => p.area))]; // 중복 제거
+    const uploadedAreaIds = [...new Set(photos.map(p => p.area))];
     const missingAreas = requiredAreas.filter(a => !uploadedAreaIds.includes(a.id));
 
     if (missingAreas.length > 0) {
@@ -479,20 +463,27 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
         'checkIn.checklists': checklists,
       });
 
-      alert('Before 사진 등록이 완료되었습니다!');
-      router.push('/dashboard');
+      setShowCompletionModal(true); // 🔥 변경
     } catch (error) {
       console.error('완료 처리 실패:', error);
       alert('완료 처리에 실패했습니다.');
     }
   };
 
-  // ✅ 변경: 단일 사진 → 여러 사진 배열
+  // 🔥 신규: 대시보드로 이동
+  const handleGoToDashboard = () => {
+    router.push('/dashboard');
+  };
+
+  // 🔥 신규: 서명 요청 페이지로 이동
+  const handleRequestSignature = () => {
+    router.push(`/rental/${rentalId}/request-signature`);
+  };
+
   const getPhotosForArea = (areaId: string): Photo[] => {
     return photos.filter(p => p.area === areaId);
   };
 
-  // ✅ 변경: timestamp로 삭제
   const handleDeletePhoto = async (photoTimestamp: number) => {
     const confirmed = confirm('이 사진을 삭제하시겠습니까?');
     if (!confirmed) return;
@@ -564,7 +555,7 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="mt-4 text-gray-600">압축 및 업로드 중...</p>
-<p className="mt-2 text-xs text-gray-500">고화질 사진은 1-2분 소요될 수 있습니다</p>
+                  <p className="mt-2 text-xs text-gray-500">고화질 사진은 1-2분 소요될 수 있습니다</p>
                 </div>
               ) : (
                 <div>
@@ -583,24 +574,22 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
                       📷 촬영하기
                     </button>
                     <button
-  onClick={() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => handleFileSelect(e as any);
-    input.click();
-  }}
-  className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
->
-  📂 갤러리
-</button>
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => handleFileSelect(e as any);
+                        input.click();
+                      }}
+                      className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+                    >
+                      📂 갤러리
+                    </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-3 text-center">자동으로 압축되어 저장됩니다</p>
                 </div>
               )}
             </div>
-
-            
           </div>
 
           {photos.length > 0 && (
@@ -690,6 +679,45 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
           onClose={() => setViewerOpen(false)}
           title={viewerTitle}
         />
+
+        {/* 🔥 완료 모달 추가 */}
+        {showCompletionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">✅ Before 촬영 완료!</h2>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  상대방에게 서명을 요청하시겠습니까?
+                </p>
+                
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 font-medium mb-2">💡 서명을 받으면</p>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• 양측이 렌탈 시작 상태에 동의</li>
+                    <li>• 법적 효력 있는 계약서 생성</li>
+                    <li>• 분쟁 시 증거로 활용</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleGoToDashboard}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
+                >
+                  나중에 하기
+                </button>
+                <button
+                  onClick={handleRequestSignature}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                >
+                  서명 요청하기 →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -735,17 +763,16 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
             const hasPhoto = areaPhotos.length > 0;
             return (
               <button
-  key={area.id}
-  onClick={() => {
-    setCurrentAreaIndex(index);
-    // 상태 초기화
-    setUploading(false);
-    setPendingFile(null);
-    setShowMemoInput(false);
-    setShowPreview(false);
-    setPreviewImage(null);
-    setMemo('');
-  }}
+                key={area.id}
+                onClick={() => {
+                  setCurrentAreaIndex(index);
+                  setUploading(false);
+                  setPendingFile(null);
+                  setShowMemoInput(false);
+                  setShowPreview(false);
+                  setPreviewImage(null);
+                  setMemo('');
+                }}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
                   currentAreaIndex === index
                     ? 'bg-blue-600 text-white'
@@ -762,11 +789,11 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="text-center mb-6">
-  {currentPhotos.length > 0 && (
-    <p className="text-sm text-gray-600">📸 {currentPhotos.length}장 촬영됨</p>
-  )}
-</div>
+          <div className="text-center mb-6">
+            {currentPhotos.length > 0 && (
+              <p className="text-sm text-gray-600">📸 {currentPhotos.length}장 촬영됨</p>
+            )}
+          </div>
 
           {showMemoInput ? (
             <div className="space-y-4">
@@ -833,118 +860,111 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
             </div>
           ) : currentPhotos.length > 0 ? (
             <div className="space-y-4">
-              {/* ✅ 사진 그리드 */}
               <div className="grid grid-cols-2 gap-3">
-              {currentPhotos.map((photo) => (
-  <div key={photo.timestamp} className="relative">
-    <img 
-      src={photo.url} 
-      alt="사진" 
-      className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
-      onClick={() => {
-        setViewerImage(photo.url);
-        setViewerTitle(`사진 - ${new Date(photo.timestamp).toLocaleString('ko-KR')}`);
-        setViewerOpen(true);
-      }}
-    />
-    <button
-      onClick={() => handleDeletePhoto(photo.timestamp)}
-      className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs hover:bg-red-600"
-    >
-      ✕
-    </button>
-    
-    {/* 🔥 좌측 상단으로 이동 */}
-    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-  탭하여 확대
-</div>
+                {currentPhotos.map((photo) => (
+                  <div key={photo.timestamp} className="relative">
+                    <img 
+                      src={photo.url} 
+                      alt="사진" 
+                      className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                      onClick={() => {
+                        setViewerImage(photo.url);
+                        setViewerTitle(`사진 - ${new Date(photo.timestamp).toLocaleString('ko-KR')}`);
+                        setViewerOpen(true);
+                      }}
+                    />
+                    <button
+                      onClick={() => handleDeletePhoto(photo.timestamp)}
+                      className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                    
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      탭하여 확대
+                    </div>
 
-{/* 🔥 메모 표시 */}
-{photo.notes && photo.notes.trim() !== '' && (
-  <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
-    <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
-    <button
-      onClick={() => handleEditMemo(photo.timestamp, photo.notes)}
-      className="ml-2 text-yellow-600 hover:text-yellow-800 text-xs whitespace-nowrap"
-    >
-      ✏️
-    </button>
-  </div>
-)}
+                    {photo.notes && photo.notes.trim() !== '' && (
+                      <div className="mt-2 bg-yellow-50 rounded-lg p-2 flex items-start justify-between">
+                        <p className="text-xs text-yellow-800 flex-1">📝 {photo.notes}</p>
+                        <button
+                          onClick={() => handleEditMemo(photo.timestamp, photo.notes)}
+                          className="ml-2 text-yellow-600 hover:text-yellow-800 text-xs whitespace-nowrap"
+                        >
+                          ✏️
+                        </button>
+                      </div>
+                    )}
 
-{/* 🔥 메모 추가 & 마킹 추가 버튼 (메모 없을 때) */}
-{(!photo.notes || photo.notes.trim() === '') && (
-  <div className="flex gap-2 mt-2">
-    <button
-      onClick={() => handleEditMemo(photo.timestamp, '')}
-      className="flex-1 py-1 border-2 border-dashed border-gray-300 text-gray-600 rounded text-xs hover:border-gray-400 transition"
-    >
-      📝 메모 추가
-    </button>
-    <button
-      onClick={() => {
-        setMarkingPhoto(photo);
-        setShowPhotoMarker(true);
-      }}
-      className="flex-1 py-1 border-2 border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
-    >
-      🖍️ 마킹 추가
-    </button>
-  </div>
-)}
+                    {(!photo.notes || photo.notes.trim() === '') && (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleEditMemo(photo.timestamp, '')}
+                          className="flex-1 py-1 border-2 border-dashed border-gray-300 text-gray-600 rounded text-xs hover:border-gray-400 transition"
+                        >
+                          📝 메모 추가
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMarkingPhoto(photo);
+                            setShowPhotoMarker(true);
+                          }}
+                          className="flex-1 py-1 border-2 border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
+                        >
+                          🖍️ 마킹 추가
+                        </button>
+                      </div>
+                    )}
 
-{/* 🔥 마킹 추가 버튼 (메모 있을 때) */}
-{photo.notes && photo.notes.trim() !== '' && (
-  <button
-    onClick={() => {
-      setMarkingPhoto(photo);
-      setShowPhotoMarker(true);
-    }}
-    className="w-full mt-2 py-1 border-2 border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
-  >
-    🖍️ 마킹 추가
-  </button>
-)}
+                    {photo.notes && photo.notes.trim() !== '' && (
+                      <button
+                        onClick={() => {
+                          setMarkingPhoto(photo);
+                          setShowPhotoMarker(true);
+                        }}
+                        className="w-full mt-2 py-1 border-2 border-dashed border-blue-300 text-blue-600 rounded text-xs hover:border-blue-400 transition"
+                      >
+                        🖍️ 마킹 추가
+                      </button>
+                    )}
 
-<p className="text-xs text-gray-500 mt-1 text-center">
-  {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-</p>
+                    <p className="text-xs text-gray-500 mt-1 text-center">
+                      {new Date(photo.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
                 ))}
               </div>
               
-              {/* ✅ + 사진 추가 버튼 */}
               <div className="flex gap-3">
-  <button 
-    onClick={() => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      input.onchange = (e) => handleFileSelect(e as any);
-      input.click();
-    }}
-    disabled={uploading} 
-    className="flex-1 py-3 border-2 border-blue-300 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition disabled:opacity-50"
-  >
-    📷 촬영 추가
-  </button>
-  
-  <button 
-    onClick={() => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (e) => handleFileSelect(e as any);
-      input.click();
-    }}
-    disabled={uploading} 
-    className="flex-1 py-3 border-2 border-green-300 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition disabled:opacity-50"
-  >
-    📂 갤러리 추가
-  </button>
-</div>
-              
+                <button 
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.capture = 'environment';
+                    input.onchange = (e) => handleFileSelect(e as any);
+                    input.click();
+                  }}
+                  disabled={uploading} 
+                  className="flex-1 py-3 border-2 border-blue-300 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition disabled:opacity-50"
+                >
+                  📷 촬영 추가
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => handleFileSelect(e as any);
+                    input.click();
+                  }}
+                  disabled={uploading} 
+                  className="flex-1 py-3 border-2 border-green-300 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition disabled:opacity-50"
+                >
+                  📂 갤러리 추가
+                </button>
+              </div>
             </div>
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
@@ -971,13 +991,13 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
                       📷 촬영
                     </button>
                     <button
-  onClick={() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => handleFileSelect(e as any);
-    input.click();
-  }}
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => handleFileSelect(e as any);
+                        input.click();
+                      }}
                       className="flex-1 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
                     >
                       📂 갤러리
@@ -988,7 +1008,6 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
               )}
             </div>
           )}
-
         </div>
 
         {rental?.type !== 'goods' && currentArea && (
@@ -1042,18 +1061,17 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
         </div>
 
         <div className="mt-6 bg-yellow-50 rounded-lg p-4">
-  <h3 className="font-medium text-yellow-800 mb-2">💡 촬영 팁</h3>
-  <ul className="text-sm text-yellow-700 space-y-1">
-  <li>• 밝은 곳에서 촬영하세요</li>
-<li>• 한 영역에 여러 장 촬영 가능합니다</li>
-<li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
-    <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
-    <li>• GPS가 켜져 있으면 위치가 자동 기록됩니다</li>
-  </ul>
-</div>
+          <h3 className="font-medium text-yellow-800 mb-2">💡 촬영 팁</h3>
+          <ul className="text-sm text-yellow-700 space-y-1">
+            <li>• 밝은 곳에서 촬영하세요</li>
+            <li>• 한 영역에 여러 장 촬영 가능합니다</li>
+            <li>• 기존 흠집이나 손상은 꼭 촬영하고 메모를 남기세요</li>
+            <li>• 사진을 탭하면 확대하여 자세히 볼 수 있습니다</li>
+            <li>• GPS가 켜져 있으면 위치가 자동 기록됩니다</li>
+          </ul>
+        </div>
       </main>
 
-      {/* 이미지 미리보기 모달 */}
       {showPreview && previewImage && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
           <div className="flex-1 flex items-center justify-center p-4">
@@ -1096,14 +1114,13 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
         title="Before 촬영 서명"
       />
 
-<ImageViewer
+      <ImageViewer
         isOpen={viewerOpen}
         imageUrl={viewerImage}
         onClose={() => setViewerOpen(false)}
         title={viewerTitle}
       />
 
-      {/* 🔥 추가: PhotoMarker 모달 */}
       <PhotoMarker
         isOpen={showPhotoMarker}
         imageUrl={markingPhoto?.url || ''}
@@ -1113,6 +1130,45 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
         }}
         onSave={handleSaveMarkedPhoto}
       />
+
+      {/* 🔥 완료 모달 추가 */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">✅ Before 촬영 완료!</h2>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-4">
+                상대방에게 서명을 요청하시겠습니까?
+              </p>
+              
+              <div className="bg-blue-50 rounded-lg p-4">
+                <p className="text-sm text-blue-800 font-medium mb-2">💡 서명을 받으면</p>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• 양측이 렌탈 시작 상태에 동의</li>
+                  <li>• 법적 효력 있는 계약서 생성</li>
+                  <li>• 분쟁 시 증거로 활용</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleGoToDashboard}
+                className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                나중에 하기
+              </button>
+              <button
+                onClick={handleRequestSignature}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+              >
+                서명 요청하기 →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
