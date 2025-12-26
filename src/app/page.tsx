@@ -166,7 +166,7 @@ export default function HomePage() {
               </div>
             )}
 
-            <div className={`flex items-center gap-3 sm:gap-6 ${isPWA ? 'w-full justify-around' : ''}`}>
+<div className="flex items-center gap-3 sm:gap-6 w-full justify-around">
               <button
                 onClick={() => router.push('/guide')}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
