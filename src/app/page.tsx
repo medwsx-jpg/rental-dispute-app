@@ -156,7 +156,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             {!isPWA && (
-              <div className="flex items-center">
+              <div className="hidden md:flex items-center">
                 <button 
                   onClick={() => router.push('/')}
                   className="text-xl md:text-2xl font-bold text-green-600 hover:text-green-700 transition"
