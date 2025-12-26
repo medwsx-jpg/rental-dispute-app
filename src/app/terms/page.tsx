@@ -300,7 +300,7 @@ export default function TermsPage() {
           {/* 하단 */}
           <div className="border-t border-gray-200 pt-6 text-center">
             <p className="text-sm text-gray-500">
-              본 약관과 관련하여 문의사항이 있으시면 medws1@naver.com으로 연락 주시기 바랍니다.
+              본 약관과 관련하여 문의사항이 있으시면 medws@naver.com으로 연락 주시기 바랍니다.
             </p>
           </div>
         </div>
