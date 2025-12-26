@@ -79,6 +79,9 @@ export default function AdminPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   
+  // 🔥 렌탈 데이터 저장 (CSV용)
+  const [rentalsData, setRentalsData] = useState<any[]>([]);
+  
   // 🔥 필터 상태 추가
   const [filterProvider, setFilterProvider] = useState<'all' | 'email' | 'kakao'>('all');
   const [filterUserType, setFilterUserType] = useState<'all' | 'individual' | 'business'>('all');
@@ -125,6 +128,7 @@ export default function AdminPage() {
       let expiringContracts = 0;
       let completedContracts = 0;
       const carModels: { [key: string]: number } = {};
+      const rentalsList: any[] = [];  // 🔥 렌탈 데이터 저장용
 
       const now = Date.now();
       const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
@@ -133,6 +137,12 @@ export default function AdminPage() {
         const data = doc.data();
         if (data.status !== 'deleted') {
           totalRentals++;
+
+          // 🔥 렌탈 데이터 저장
+          rentalsList.push({
+            id: doc.id,
+            ...data,
+          });
 
           // 렌탈 유형별 집계
           if (data.type === 'car') {
@@ -160,6 +170,16 @@ export default function AdminPage() {
           }
         }
       });
+
+      // 🔥 렌탈 데이터에 사용자 이메일 추가
+      const rentalsWithUserEmail = rentalsList.map(rental => {
+        const user = userList.find(u => u.id === rental.userId);
+        return {
+          ...rental,
+          userEmail: user?.email || user?.userId || '-',
+        };
+      });
+      setRentalsData(rentalsWithUserEmail);
 
       // 인기 차량 모델 TOP 5
       const topCarModels = Object.entries(carModels)
@@ -283,6 +303,67 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
 
     alert(`${exportUsers.length}명의 데이터를 다운로드했습니다.`);
+  };
+
+  // 🔥 렌탈 CSV 다운로드 함수
+  const downloadRentalsCSV = (type: 'all' | 'car') => {
+    let exportRentals = rentalsData;
+    
+    if (type === 'car') {
+      exportRentals = rentalsData.filter(r => r.type === 'car');
+    }
+
+    if (exportRentals.length === 0) {
+      alert('다운로드할 렌탈 데이터가 없습니다.');
+      return;
+    }
+
+    // 계약 현황 계산 함수
+    const getContractStatus = (rental: any) => {
+      const now = Date.now();
+      const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
+      const endDate = rental.endDate || 0;
+      
+      if (rental.status === 'completed') return '완료';
+      if (endDate < now) return '완료';
+      if (endDate <= sevenDaysFromNow) return '만료예정(7일)';
+      return '진행중';
+    };
+
+    // CSV 헤더
+    const headers = type === 'car' 
+      ? ['제목', '렌탈유형', '자동차모델', '계약시작일', '계약종료일', '계약현황', '사용자이메일', '생성일'].join(',')
+      : ['제목', '렌탈유형', '계약시작일', '계약종료일', '계약현황', '사용자이메일', '생성일'].join(',');
+
+    // CSV 데이터
+    const rows = exportRentals.map(r => {
+      const rentalType = r.type === 'car' ? '렌터카' : r.type === 'house' ? '부동산' : r.type === 'goods' ? '물품' : '-';
+      const baseData = [
+        r.title || '-',
+        rentalType,
+        ...(type === 'car' ? [r.carModel || '-'] : []),
+        new Date(r.startDate).toLocaleDateString('ko-KR'),
+        new Date(r.endDate).toLocaleDateString('ko-KR'),
+        getContractStatus(r),
+        r.userEmail || '-',
+        new Date(r.createdAt).toLocaleDateString('ko-KR')
+      ];
+      return baseData.join(',');
+    });
+
+    const csv = [headers, ...rows].join('\n');
+
+    // BOM 추가 (한글 깨짐 방지)
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `렌탈목록_${type === 'car' ? '렌터카' : '전체'}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    alert(`${exportRentals.length}건의 렌탈 데이터를 다운로드했습니다.`);
   };
 
   const togglePremium = async (userId: string, currentStatus: boolean) => {
@@ -595,19 +676,43 @@ export default function AdminPage() {
         {/* 🔥 CSV 다운로드 버튼 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">💾 데이터 내보내기</h3>
-          <div className="flex gap-3">
-            <button
-              onClick={() => downloadCSV('all')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
-            >
-              📥 전체 회원 CSV 다운로드 ({users.length}명)
-            </button>
-            <button
-              onClick={() => downloadCSV('marketing')}
-              className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition"
-            >
-              📧 마케팅 동의자만 CSV 다운로드 ({stats.marketingAgreedUsers}명)
-            </button>
+          
+          {/* 회원 데이터 */}
+          <div className="mb-4">
+            <p className="text-xs text-gray-600 mb-2 font-medium">👥 회원 데이터</p>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => downloadCSV('all')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition text-sm"
+              >
+                📥 전체 회원 CSV ({users.length}명)
+              </button>
+              <button
+                onClick={() => downloadCSV('marketing')}
+                className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition text-sm"
+              >
+                📧 마케팅 동의자 CSV ({stats.marketingAgreedUsers}명)
+              </button>
+            </div>
+          </div>
+
+          {/* 렌탈 데이터 */}
+          <div>
+            <p className="text-xs text-gray-600 mb-2 font-medium">📋 렌탈 데이터</p>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => downloadRentalsCSV('all')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition text-sm"
+              >
+                📥 전체 렌탈 CSV ({stats.totalRentals}건)
+              </button>
+              <button
+                onClick={() => downloadRentalsCSV('car')}
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition text-sm"
+              >
+                🚗 렌터카만 CSV ({stats.carRentals}건)
+              </button>
+            </div>
           </div>
         </div>
 
