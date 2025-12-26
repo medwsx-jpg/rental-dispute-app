@@ -365,20 +365,6 @@ export default function SignaturePage() {
 
             <div>
               <label className="block text-sm text-gray-600 mb-2">
-                이름 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={signerName}
-                onChange={(e) => setSignerName(e.target.value)}
-                placeholder="예: 김철수"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                maxLength={20}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">
                 주소
               </label>
               <input
@@ -454,6 +440,30 @@ export default function SignaturePage() {
                 ))}
               </div>
             </div>
+
+            {/* 체크리스트 표시 */}
+            {signData?.rental?.checkIn?.checklists && signData.rental.checkIn.checklists.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-medium text-gray-900 mb-3">✅ 체크리스트</h3>
+                <div className="space-y-2">
+                  {signData.rental.checkIn.checklists.map((checklist: any, index: number) => (
+                    <div key={index} className="flex items-start gap-2 text-sm">
+                      <span className={checklist.checked ? 'text-green-600' : 'text-gray-400'}>
+                        {checklist.checked ? '✅' : '☐'}
+                      </span>
+                      <div className="flex-1">
+                        <span className={checklist.checked ? 'text-gray-900' : 'text-gray-400'}>
+                          {checklist.label}
+                        </span>
+                        {checklist.memo && (
+                          <p className="text-xs text-gray-500 mt-1">📝 {checklist.memo}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
