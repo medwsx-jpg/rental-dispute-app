@@ -84,6 +84,17 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (result.success) {
+        // 🔥 전화번호 중복 체크 추가
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          setError('이미 가입된 전화번호입니다');
+          setLoading(false);
+          return;
+        }
+
         setStep('account');
       } else {
         throw new Error(result.error || '인증번호가 올바르지 않습니다');
