@@ -15,6 +15,7 @@ export default function NewRentalPage() {
   const [type, setType] = useState<'car' | 'house' | 'goods'>('car');
   const [title, setTitle] = useState('');
   const [carModel, setCarModel] = useState('');
+  const [rentalAddress, setRentalAddress] = useState(''); // 🔥 추가
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
@@ -72,6 +73,12 @@ export default function NewRentalPage() {
       return;
     }
   
+    // 🔥 추가: 월세 타입일 때 집주소 필수 검증
+    if (type === 'house' && !rentalAddress.trim()) {
+      alert('렌탈 집 주소를 입력해주세요.');
+      return;
+    }
+
     if (!startDate) {
       alert('계약 시작일을 선택해주세요.');
       return;
@@ -132,9 +139,15 @@ export default function NewRentalPage() {
         },
         createdAt: Date.now(),
       };
+      
       // 렌터카인 경우 자동차 모델 추가
       if (type === 'car' && carModel.trim()) {
         rentalData.carModel = carModel.trim();
+      }
+
+      // 🔥 추가: 월세인 경우 집주소 추가
+      if (type === 'house' && rentalAddress.trim()) {
+        rentalData.rentalAddress = rentalAddress.trim();
       }
   
       // 생활용품일 경우 커스텀 영역 저장
@@ -238,8 +251,8 @@ export default function NewRentalPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-               {/* 🔥 여기부터 추가 */}
-               {type === 'car' && (
+
+              {type === 'car' && (
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">자동차 모델</label>
                   <input
@@ -251,7 +264,23 @@ export default function NewRentalPage() {
                   />
                 </div>
               )}
-              {/* 🔥 여기까지 추가 */}
+
+              {/* 🔥 추가: 월세 타입일 때 집주소 입력란 */}
+              {type === 'house' && (
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">
+                    렌탈 집 주소 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={rentalAddress}
+                    onChange={(e) => setRentalAddress(e.target.value)}
+                    placeholder="예: 서울시 강남구 역삼동 123-45"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">계약 시작일</label>

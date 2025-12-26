@@ -130,7 +130,14 @@ export default function SignaturePage() {
 
       // 인증번호 저장 (실제로는 서버에 저장해야 함)
       setSavedVerificationCode(data.verificationCode);
-      alert('인증번호가 발송되었습니다.');
+      console.log('📱 인증번호:', data.verificationCode);
+      
+      // 개발 환경에서는 인증번호를 팝업으로 표시
+      alert(
+        data.smsSuccess 
+          ? '인증번호가 문자로 발송되었습니다.' 
+          : `인증번호가 생성되었습니다.\n\n🔢 인증번호: ${data.verificationCode}\n\n(SMS API 미설정 - 개발 모드)`
+      );
     } catch (error) {
       console.error('전화번호 검증 실패:', error);
       alert('전화번호 검증에 실패했습니다.');
@@ -162,10 +169,11 @@ export default function SignaturePage() {
       return;
     }
 
-    if (signData?.rental?.type === 'house' && !signerAddress.trim()) {
-      alert('렌탈할 집 주소를 입력해주세요.');
-      return;
-    }
+    // 주소는 선택사항으로 변경
+    // if (signData?.rental?.type === 'house' && !signerAddress.trim()) {
+    //   alert('렌탈할 집 주소를 입력해주세요.');
+    //   return;
+    // }
 
     if (!agreedToTerms) {
       alert('개인정보 수집 및 이용에 동의해주세요.');
@@ -218,7 +226,7 @@ export default function SignaturePage() {
         body: JSON.stringify({
           signId,
           signerName,
-          signerAddress: signData?.rental?.type === 'house' ? signerAddress : null,
+          signerAddress: signerAddress.trim() || null, // 입력 안 하면 null
           signatureImage,
           ipAddress,
           userAgent,
@@ -355,21 +363,33 @@ export default function SignaturePage() {
               />
             </div>
 
-            {signData?.rental?.type === 'house' && (
-              <div>
-                <label className="block text-sm text-gray-600 mb-2">
-                  렌탈할 집 주소 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={signerAddress}
-                  onChange={(e) => setSignerAddress(e.target.value)}
-                  placeholder="예: 서울시 강남구 역삼동 123-45"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  maxLength={100}
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                이름 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                placeholder="예: 김철수"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxLength={20}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                주소
+              </label>
+              <input
+                type="text"
+                value={signerAddress}
+                onChange={(e) => setSignerAddress(e.target.value)}
+                placeholder="예: 서울시 강남구 역삼동 123-45"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxLength={100}
+              />
+            </div>
 
             <label className="flex items-start gap-2 cursor-pointer">
               <input
