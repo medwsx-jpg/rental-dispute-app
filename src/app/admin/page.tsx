@@ -64,6 +64,14 @@ export default function AdminPage() {
     kakaoUsers: 0,
     individualUsers: 0,
     businessUsers: 0,
+    // 🔥 렌탈 통계
+    carRentals: 0,
+    houseRentals: 0,
+    goodsRentals: 0,
+    activeContracts: 0,
+    expiringContracts: 0,
+    completedContracts: 0,
+    topCarModels: [] as Array<{ model: string; count: number }>,
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -107,15 +115,57 @@ export default function AdminPage() {
       userList.sort((a, b) => b.createdAt - a.createdAt);
       setUsers(userList);
 
-      // 렌탈 데이터 로드
+      // 🔥 렌탈 데이터 로드 (deleted 제외)
       const rentalsSnapshot = await getDocs(collection(db, 'rentals'));
       let totalRentals = 0;
+      let carRentals = 0;
+      let houseRentals = 0;
+      let goodsRentals = 0;
+      let activeContracts = 0;
+      let expiringContracts = 0;
+      let completedContracts = 0;
+      const carModels: { [key: string]: number } = {};
+
+      const now = Date.now();
+      const sevenDaysFromNow = now + (7 * 24 * 60 * 60 * 1000);
+
       rentalsSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.status !== 'deleted') {
           totalRentals++;
+
+          // 렌탈 유형별 집계
+          if (data.type === 'car') {
+            carRentals++;
+            // 자동차 모델 집계
+            if (data.carModel) {
+              carModels[data.carModel] = (carModels[data.carModel] || 0) + 1;
+            }
+          } else if (data.type === 'house') {
+            houseRentals++;
+          } else if (data.type === 'goods') {
+            goodsRentals++;
+          }
+
+          // 계약 현황 집계
+          const endDate = data.endDate || 0;
+          if (data.status === 'completed') {
+            completedContracts++;
+          } else if (endDate < now) {
+            completedContracts++;
+          } else if (endDate <= sevenDaysFromNow) {
+            expiringContracts++;
+          } else {
+            activeContracts++;
+          }
         }
       });
+
+      // 인기 차량 모델 TOP 5
+      const topCarModels = Object.entries(carModels)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([model, count]) => ({ model, count }));
 
       // 메시지 데이터 로드
       const messagesSnapshot = await getDocs(collection(db, 'messages'));
@@ -131,10 +181,10 @@ export default function AdminPage() {
       setUserMessages(messagesMap);
 
       // 🔥 확장된 통계 계산
-      const now = Date.now();
+      const now2 = Date.now();
       const todayStart = new Date().setHours(0, 0, 0, 0);
-      const weekStart = now - (7 * 24 * 60 * 60 * 1000);
-      const monthStart = now - (30 * 24 * 60 * 60 * 1000);
+      const weekStart = now2 - (7 * 24 * 60 * 60 * 1000);
+      const monthStart = now2 - (30 * 24 * 60 * 60 * 1000);
 
       const freeUsers = userList.filter(u => !u.isPremium).length;
       const premiumUsers = userList.filter(u => u.isPremium).length;
@@ -164,6 +214,14 @@ export default function AdminPage() {
         kakaoUsers,
         individualUsers,
         businessUsers,
+        // 🔥 렌탈 통계 추가
+        carRentals,
+        houseRentals,
+        goodsRentals,
+        activeContracts,
+        expiringContracts,
+        completedContracts,
+        topCarModels,
       });
     } catch (error) {
       console.error('데이터 로드 실패:', error);
@@ -464,6 +522,71 @@ export default function AdminPage() {
               <div className="space-y-1">
                 <p className="text-sm text-indigo-900">개인: <strong>{stats.individualUsers}</strong>명</p>
                 <p className="text-sm text-indigo-900">사업자: <strong>{stats.businessUsers}</strong>명</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 🔥 렌탈 통계 섹션 추가 */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">📋 렌탈 통계</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* 렌탈 유형별 */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <p className="text-sm text-gray-600 mb-3 font-semibold">📊 렌탈 유형별</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">🚗 렌터카</span>
+                  <span className="text-lg font-bold text-blue-900">{stats.carRentals}건</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">🏠 부동산</span>
+                  <span className="text-lg font-bold text-green-900">{stats.houseRentals}건</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">📦 물품</span>
+                  <span className="text-lg font-bold text-purple-900">{stats.goodsRentals}건</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 계약 현황 */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <p className="text-sm text-gray-600 mb-3 font-semibold">📅 계약 현황</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">✅ 진행중</span>
+                  <span className="text-lg font-bold text-blue-900">{stats.activeContracts}건</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">⚠️ 만료 예정(7일)</span>
+                  <span className="text-lg font-bold text-orange-900">{stats.expiringContracts}건</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">🏁 완료</span>
+                  <span className="text-lg font-bold text-gray-900">{stats.completedContracts}건</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 인기 차량 모델 */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <p className="text-sm text-gray-600 mb-3 font-semibold">🚗 인기 차량 모델 TOP 5</p>
+              <div className="space-y-2">
+                {stats.topCarModels.length > 0 ? (
+                  stats.topCarModels.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">
+                        {index + 1}. {item.model}
+                      </span>
+                      <span className="text-sm font-bold text-blue-900">{item.count}건</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500 text-center py-4">
+                    렌터카 데이터가 없습니다
+                  </p>
+                )}
               </div>
             </div>
           </div>
