@@ -8,13 +8,17 @@ import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc, getDoc,
 
 interface User {
   id: string;
-  email?: string;           // ← ? 추가!
-  nickname?: string;        // ← ? 추가!
-  phoneNumber?: string;     // ← 새로 추가!
+  email?: string;
+  userId?: string;            // 🔥 추가
+  nickname?: string;
+  phoneNumber?: string;
   freeRentalsUsed: number;
   isPremium: boolean;
   createdAt: number;
   provider?: string;
+  userType?: 'individual' | 'business';  // 🔥 추가
+  marketingAgreed?: boolean;   // 🔥 추가
+  marketingAgreedAt?: number;  // 🔥 추가
 }
 
 interface Message {
@@ -51,12 +55,26 @@ export default function AdminPage() {
     premiumUsers: 0,
     totalRentals: 0,
     unreadMessages: 0,
+    // 🔥 신규 통계
+    marketingAgreedUsers: 0,
+    newUsersToday: 0,
+    newUsersThisWeek: 0,
+    newUsersThisMonth: 0,
+    emailUsers: 0,
+    kakaoUsers: 0,
+    individualUsers: 0,
+    businessUsers: 0,
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedUserThread, setSelectedUserThread] = useState<MessageThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  
+  // 🔥 필터 상태 추가
+  const [filterProvider, setFilterProvider] = useState<'all' | 'email' | 'kakao'>('all');
+  const [filterUserType, setFilterUserType] = useState<'all' | 'individual' | 'business'>('all');
+  const [filterMarketing, setFilterMarketing] = useState<'all' | 'agreed' | 'not_agreed'>('all');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -89,15 +107,15 @@ export default function AdminPage() {
       userList.sort((a, b) => b.createdAt - a.createdAt);
       setUsers(userList);
 
-      // 렌탈 데이터 로드 (deleted 제외)
-const rentalsSnapshot = await getDocs(collection(db, 'rentals'));
-let totalRentals = 0;
-rentalsSnapshot.forEach((doc) => {
-  const data = doc.data();
-  if (data.status !== 'deleted') {
-    totalRentals++;
-  }
-});
+      // 렌탈 데이터 로드
+      const rentalsSnapshot = await getDocs(collection(db, 'rentals'));
+      let totalRentals = 0;
+      rentalsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.status !== 'deleted') {
+          totalRentals++;
+        }
+      });
 
       // 메시지 데이터 로드
       const messagesSnapshot = await getDocs(collection(db, 'messages'));
@@ -112,9 +130,25 @@ rentalsSnapshot.forEach((doc) => {
       
       setUserMessages(messagesMap);
 
-      // 통계 계산
+      // 🔥 확장된 통계 계산
+      const now = Date.now();
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+      const weekStart = now - (7 * 24 * 60 * 60 * 1000);
+      const monthStart = now - (30 * 24 * 60 * 60 * 1000);
+
       const freeUsers = userList.filter(u => !u.isPremium).length;
       const premiumUsers = userList.filter(u => u.isPremium).length;
+      
+      const marketingAgreedUsers = userList.filter(u => u.marketingAgreed === true).length;
+      const newUsersToday = userList.filter(u => u.createdAt >= todayStart).length;
+      const newUsersThisWeek = userList.filter(u => u.createdAt >= weekStart).length;
+      const newUsersThisMonth = userList.filter(u => u.createdAt >= monthStart).length;
+      
+      const emailUsers = userList.filter(u => u.provider === 'email').length;
+      const kakaoUsers = userList.filter(u => u.provider === 'kakao').length;
+      
+      const individualUsers = userList.filter(u => u.userType === 'individual').length;
+      const businessUsers = userList.filter(u => u.userType === 'business').length;
 
       setStats({
         totalUsers: userList.length,
@@ -122,11 +156,75 @@ rentalsSnapshot.forEach((doc) => {
         premiumUsers,
         totalRentals,
         unreadMessages: totalUnread,
+        marketingAgreedUsers,
+        newUsersToday,
+        newUsersThisWeek,
+        newUsersThisMonth,
+        emailUsers,
+        kakaoUsers,
+        individualUsers,
+        businessUsers,
       });
     } catch (error) {
       console.error('데이터 로드 실패:', error);
       alert('데이터 로드에 실패했습니다.');
     }
+  };
+
+  // 🔥 CSV 다운로드 함수
+  const downloadCSV = (type: 'all' | 'marketing') => {
+    let exportUsers = users;
+    
+    if (type === 'marketing') {
+      exportUsers = users.filter(u => u.marketingAgreed === true);
+    }
+
+    if (exportUsers.length === 0) {
+      alert('다운로드할 데이터가 없습니다.');
+      return;
+    }
+
+    // CSV 헤더
+    const headers = [
+      '아이디',
+      '이메일',
+      '전화번호',
+      '닉네임',
+      '가입경로',
+      '사용자타입',
+      '마케팅동의',
+      '프리미엄',
+      '무료사용',
+      '가입일'
+    ].join(',');
+
+    // CSV 데이터
+    const rows = exportUsers.map(u => [
+      u.userId || '-',
+      u.email || '-',
+      u.phoneNumber || '-',
+      u.nickname || '-',
+      u.provider === 'kakao' ? '카카오' : u.provider === 'email' ? '이메일' : '-',
+      u.userType === 'individual' ? '개인' : u.userType === 'business' ? '사업자' : '-',
+      u.marketingAgreed ? '동의' : '미동의',
+      u.isPremium ? '프리미엄' : '무료',
+      `${u.freeRentalsUsed}/1`,
+      new Date(u.createdAt).toLocaleDateString('ko-KR')
+    ].join(','));
+
+    const csv = [headers, ...rows].join('\n');
+
+    // BOM 추가 (한글 깨짐 방지)
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `회원목록_${type === 'marketing' ? '마케팅동의자' : '전체'}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    alert(`${exportUsers.length}명의 데이터를 다운로드했습니다.`);
   };
 
   const togglePremium = async (userId: string, currentStatus: boolean) => {
@@ -178,7 +276,6 @@ rentalsSnapshot.forEach((doc) => {
     setSelectedUserThread(thread);
     setShowMessageModal(true);
 
-    // 메시지를 열면 안읽은 메시지를 읽음 처리
     if (thread.unreadByAdmin > 0) {
       try {
         const messageRef = doc(db, 'messages', userId);
@@ -192,7 +289,7 @@ rentalsSnapshot.forEach((doc) => {
           unreadByAdmin: 0
         });
         
-        await loadData(); // 통계 새로고침
+        await loadData();
       } catch (error) {
         console.error('읽음 처리 실패:', error);
       }
@@ -221,13 +318,12 @@ rentalsSnapshot.forEach((doc) => {
       
       setNewMessage('');
       
-      // 스레드 새로고침
       const updatedDoc = await getDoc(messageRef);
       if (updatedDoc.exists()) {
         setSelectedUserThread(updatedDoc.data() as MessageThread);
       }
       
-      await loadData(); // 전체 데이터 새로고침
+      await loadData();
     } catch (error) {
       console.error('메시지 전송 실패:', error);
       alert('메시지 전송에 실패했습니다. 다시 시도해주세요.');
@@ -236,11 +332,29 @@ rentalsSnapshot.forEach((doc) => {
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (user.nickname?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (user.phoneNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  // 🔥 필터링된 사용자 목록
+  const filteredUsers = users.filter(user => {
+    // 검색어 필터
+    const matchSearch = 
+      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.userId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.nickname?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.phoneNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+    if (!matchSearch) return false;
+
+    // 가입 경로 필터
+    if (filterProvider !== 'all' && user.provider !== filterProvider) return false;
+
+    // 사용자 타입 필터
+    if (filterUserType !== 'all' && user.userType !== filterUserType) return false;
+
+    // 마케팅 동의 필터
+    if (filterMarketing === 'agreed' && !user.marketingAgreed) return false;
+    if (filterMarketing === 'not_agreed' && user.marketingAgreed) return false;
+
+    return true;
+  });
 
   if (loading) {
     return (
@@ -271,64 +385,189 @@ rentalsSnapshot.forEach((doc) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-  <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-    <div className="flex items-center gap-4">
-      <h1 className="text-2xl font-bold text-gray-900">🔧 관리자 페이지</h1>
-      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-        ADMIN
-      </span>
-    </div>
-    <div className="flex items-center gap-3">
-      <button
-        onClick={() => router.push('/admin/rentals')}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-      >
-        📋 렌탈 관리
-      </button>
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-      >
-        ← 대시보드
-      </button>
-    </div>
-  </div>
-</header>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">🔧 관리자 페이지</h1>
+            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+              ADMIN
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/admin/rentals')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+            >
+              📋 렌탈 관리
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            >
+              ← 대시보드
+            </button>
+          </div>
+        </div>
+      </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* 통계 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <p className="text-sm text-gray-600 mb-1">👥 총 사용자</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
+        {/* 🔥 확장된 통계 카드 */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">📊 전체 통계</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <p className="text-sm text-gray-600 mb-1">👥 총 사용자</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-blue-600 mb-1">🆓 무료 사용자</p>
+              <p className="text-3xl font-bold text-blue-900">{stats.freeUsers}</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-purple-600 mb-1">⭐ 프리미엄</p>
+              <p className="text-3xl font-bold text-purple-900">{stats.premiumUsers}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-green-600 mb-1">📋 렌탈 기록</p>
+              <p className="text-3xl font-bold text-green-900">{stats.totalRentals}</p>
+            </div>
+            <div className="bg-orange-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-orange-600 mb-1">💬 안읽은 메시지</p>
+              <p className="text-3xl font-bold text-orange-900">{stats.unreadMessages}</p>
+            </div>
           </div>
-          <div className="bg-blue-50 rounded-lg shadow-sm p-4">
-            <p className="text-sm text-blue-600 mb-1">🆓 무료 사용자</p>
-            <p className="text-3xl font-bold text-blue-900">{stats.freeUsers}</p>
-          </div>
-          <div className="bg-purple-50 rounded-lg shadow-sm p-4">
-            <p className="text-sm text-purple-600 mb-1">⭐ 프리미엄</p>
-            <p className="text-3xl font-bold text-purple-900">{stats.premiumUsers}</p>
-          </div>
-          <div className="bg-green-50 rounded-lg shadow-sm p-4">
-            <p className="text-sm text-green-600 mb-1">📋 렌탈 기록</p>
-            <p className="text-3xl font-bold text-green-900">{stats.totalRentals}</p>
-          </div>
-          <div className="bg-orange-50 rounded-lg shadow-sm p-4">
-            <p className="text-sm text-orange-600 mb-1">💬 안읽은 메시지</p>
-            <p className="text-3xl font-bold text-orange-900">{stats.unreadMessages}</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-pink-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-pink-600 mb-1">📧 마케팅 동의자</p>
+              <p className="text-3xl font-bold text-pink-900">{stats.marketingAgreedUsers}</p>
+              <p className="text-xs text-pink-600 mt-1">
+                {stats.totalUsers > 0 ? Math.round((stats.marketingAgreedUsers / stats.totalUsers) * 100) : 0}% 동의율
+              </p>
+            </div>
+            <div className="bg-cyan-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-cyan-600 mb-1">🆕 신규 가입</p>
+              <div className="space-y-1">
+                <p className="text-sm text-cyan-900">오늘: <strong>{stats.newUsersToday}</strong>명</p>
+                <p className="text-sm text-cyan-900">이번 주: <strong>{stats.newUsersThisWeek}</strong>명</p>
+                <p className="text-sm text-cyan-900">이번 달: <strong>{stats.newUsersThisMonth}</strong>명</p>
+              </div>
+            </div>
+            <div className="bg-yellow-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-yellow-600 mb-1">🔑 가입 경로</p>
+              <div className="space-y-1">
+                <p className="text-sm text-yellow-900">이메일: <strong>{stats.emailUsers}</strong>명</p>
+                <p className="text-sm text-yellow-900">카카오: <strong>{stats.kakaoUsers}</strong>명</p>
+              </div>
+            </div>
+            <div className="bg-indigo-50 rounded-lg shadow-sm p-4">
+              <p className="text-sm text-indigo-600 mb-1">👤 사용자 타입</p>
+              <div className="space-y-1">
+                <p className="text-sm text-indigo-900">개인: <strong>{stats.individualUsers}</strong>명</p>
+                <p className="text-sm text-indigo-900">사업자: <strong>{stats.businessUsers}</strong>명</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 검색 */}
+        {/* 🔥 CSV 다운로드 버튼 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <input
-            type="text"
-            placeholder="🔍 이메일 또는 닉네임 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">💾 데이터 내보내기</h3>
+          <div className="flex gap-3">
+            <button
+              onClick={() => downloadCSV('all')}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+            >
+              📥 전체 회원 CSV 다운로드 ({users.length}명)
+            </button>
+            <button
+              onClick={() => downloadCSV('marketing')}
+              className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition"
+            >
+              📧 마케팅 동의자만 CSV 다운로드 ({stats.marketingAgreedUsers}명)
+            </button>
+          </div>
+        </div>
+
+        {/* 검색 및 필터 */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="🔍 아이디, 이메일, 닉네임, 전화번호 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            
+            {/* 🔥 필터 버튼 */}
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-600">가입경로:</span>
+                <button
+                  onClick={() => setFilterProvider('all')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterProvider === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setFilterProvider('email')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterProvider === 'email' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  이메일
+                </button>
+                <button
+                  onClick={() => setFilterProvider('kakao')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterProvider === 'kakao' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  카카오
+                </button>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-600">타입:</span>
+                <button
+                  onClick={() => setFilterUserType('all')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterUserType === 'all' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setFilterUserType('individual')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterUserType === 'individual' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  개인
+                </button>
+                <button
+                  onClick={() => setFilterUserType('business')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterUserType === 'business' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  사업자
+                </button>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-gray-600">마케팅:</span>
+                <button
+                  onClick={() => setFilterMarketing('all')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterMarketing === 'all' ? 'bg-pink-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setFilterMarketing('agreed')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterMarketing === 'agreed' ? 'bg-pink-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  동의
+                </button>
+                <button
+                  onClick={() => setFilterMarketing('not_agreed')}
+                  className={`px-3 py-1 text-sm rounded-lg transition ${filterMarketing === 'not_agreed' ? 'bg-pink-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  미동의
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 사용자 목록 */}
@@ -343,8 +582,11 @@ rentalsSnapshot.forEach((doc) => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">아이디/이메일</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">전화번호</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">닉네임</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">타입</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">마케팅</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상태</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">무료 사용</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">메시지</th>
@@ -359,24 +601,50 @@ rentalsSnapshot.forEach((doc) => {
                   
                   return (
                     <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-900">
-  {user.provider === 'phone' 
-    ? user.phoneNumber?.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
-    : user.email
-  }
-  {user.provider === 'kakao' && (
-    <span className="ml-2 text-xs text-yellow-600">💬</span>
-  )}
-  {user.provider === 'phone' && (
-    <span className="ml-2 text-xs text-blue-600">📱</span>
-  )}
-</td>
-<td className="px-4 py-3 text-sm text-gray-600">
-  {user.provider === 'phone'
-    ? '-'
-    : user.nickname || '-'
-  }
-</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div>
+                          <p className="text-gray-900 font-medium">
+                            {user.userId || user.email?.split('@')[0] || '-'}
+                          </p>
+                          <p className="text-gray-500 text-xs">{user.email}</p>
+                        </div>
+                        {user.provider === 'kakao' && (
+                          <span className="ml-2 text-xs text-yellow-600">💬</span>
+                        )}
+                        {user.provider === 'email' && (
+                          <span className="ml-2 text-xs text-blue-600">📧</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {user.phoneNumber?.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3') || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {user.nickname || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {user.userType === 'individual' ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                            🙋 개인
+                          </span>
+                        ) : user.userType === 'business' ? (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            🏢 사업자
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {user.marketingAgreed ? (
+                          <span className="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full">
+                            ✅ 동의
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
+                            ❌ 미동의
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-center">
                         {user.isPremium ? (
                           <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
@@ -454,12 +722,13 @@ rentalsSnapshot.forEach((doc) => {
             <li>• 프리미엄 전환: 사용자를 무료 ↔ 프리미엄으로 전환</li>
             <li>• 초기화: 무료 사용 횟수를 0으로 재설정 (테스트용)</li>
             <li>• 메시지: 💬 아이콘 클릭하여 사용자와 대화</li>
+            <li>• CSV 다운로드: 엑셀에서 열어서 확인 가능 (한글 지원)</li>
             <li>• 통계는 실시간으로 업데이트됩니다</li>
           </ul>
         </div>
       </main>
 
-      {/* 메시지 모달 */}
+      {/* 메시지 모달 (기존과 동일) */}
       {showMessageModal && selectedUserThread && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
