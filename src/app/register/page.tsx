@@ -43,6 +43,18 @@ export default function RegisterPage() {
       setLoading(true);
       setError('');
       
+      // 🔥 SMS 발송 전에 전화번호 중복 체크!
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        setError('이미 가입된 전화번호입니다. 로그인 페이지로 이동해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      // 중복 없으면 SMS 발송
       const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,17 +96,6 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (result.success) {
-        // 🔥 전화번호 중복 체크 추가
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          setError('이미 가입된 전화번호입니다');
-          setLoading(false);
-          return;
-        }
-
         setStep('account');
       } else {
         throw new Error(result.error || '인증번호가 올바르지 않습니다');
@@ -242,7 +243,15 @@ export default function RegisterPage() {
 
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
-              {error}
+              <p>{error}</p>
+              {error.includes('이미 가입된 전화번호') && (
+                <button
+                  onClick={() => router.push('/login')}
+                  className="w-full mt-3 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
+                >
+                  로그인 페이지로 이동 →
+                </button>
+              )}
             </div>
           )}
 
