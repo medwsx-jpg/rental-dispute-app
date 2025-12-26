@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -18,7 +19,7 @@ export default function RegisterPage() {
   const [isCodeSent, setIsCodeSent] = useState(false);
 
   // 계정 정보
-  const [email, setEmail] = useState('');
+  const [userId, setUserId] = useState('');  // 🔥 email → userId 변경
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [userType, setUserType] = useState<'individual' | 'business'>('individual');
@@ -27,6 +28,9 @@ export default function RegisterPage() {
 
   // 닉네임
   const [nickname, setNickname] = useState('');
+
+  // 🔥 마케팅 수신 동의 추가
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
 
   // SMS 발송
   const handleSendCode = async () => {
@@ -93,8 +97,19 @@ export default function RegisterPage() {
 
   // 계정 생성
   const handleCreateAccount = async () => {
-    if (!email || !password || !passwordConfirm) {
+    if (!userId || !password || !passwordConfirm) {
       setError('모든 항목을 입력해주세요');
+      return;
+    }
+
+    // 🔥 아이디 형식 검증
+    if (userId.length < 4) {
+      setError('아이디는 4자 이상이어야 합니다');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(userId)) {
+      setError('아이디는 영문, 숫자, 언더바(_)만 사용 가능합니다');
       return;
     }
 
@@ -108,11 +123,13 @@ export default function RegisterPage() {
       return;
     }
 
-    // 🔥 추가
     if (userType === 'business' && !companyName.trim()) {
       setError('상호명 또는 이름을 입력해주세요');
       return;
     }
+
+    // 🔥 아이디를 이메일 형식으로 변환
+    const email = `${userId}@record365.app`;
 
     // 이메일 중복 체크
     try {
@@ -124,7 +141,7 @@ export default function RegisterPage() {
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
-        setError('이미 사용 중인 이메일입니다');
+        setError('이미 사용 중인 아이디입니다');
         setLoading(false);
         return;
       }
@@ -132,9 +149,10 @@ export default function RegisterPage() {
       // Firebase Auth 계정 생성
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Firestore에 기본 정보 저장 (닉네임 제외)
+      // 🔥 Firestore에 기본 정보 저장 (userId 추가)
       const userData: any = {
         email: email,
+        userId: userId,  // 🔥 원본 아이디 저장
         phoneNumber: phoneNumber,
         provider: 'email',
         createdAt: Date.now(),
@@ -142,6 +160,8 @@ export default function RegisterPage() {
         isPremium: false,
         nickname: '',
         userType: userType,
+        marketingAgreed: agreeMarketing,
+        marketingAgreedAt: agreeMarketing ? Date.now() : null,
       };
 
       if (userType === 'business') {
@@ -157,7 +177,7 @@ export default function RegisterPage() {
     } catch (err: any) {
       console.error('계정 생성 실패:', err);
       if (err.code === 'auth/email-already-in-use') {
-        setError('이미 사용 중인 이메일입니다');
+        setError('이미 사용 중인 아이디입니다');
       } else {
         setError('계정 생성에 실패했습니다');
       }
@@ -298,7 +318,7 @@ export default function RegisterPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">📸 Record 365</h1>
             <h2 className="text-xl font-bold text-gray-900 mb-1">계정 정보 입력</h2>
-            <p className="text-sm text-gray-600">Step 2/3: 로그인 정보 설정</p>
+            <p className="text-sm text-gray-600">Step 2/3: 아이디 및 비밀번호 설정</p>
           </div>
 
           {error && (
@@ -307,8 +327,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-<div className="space-y-4">
-            {/* 🔥 여기부터 추가 */}
+          <div className="space-y-4">
+            {/* 사용자 타입 선택 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 어떻게 사용하시나요? <span className="text-red-500">*</span>
@@ -374,19 +394,22 @@ export default function RegisterPage() {
                 </div>
               </>
             )}
-            {/* 🔥 여기까지 추가, 아래는 기존 이메일 입력 그대로 */}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                이메일 (아이디) <span className="text-red-500">*</span>
+                아이디 <span className="text-red-500">*</span>
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
+                type="text"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                placeholder="minsu123 (영문, 숫자, _ 사용)"
+                maxLength={20}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                영문, 숫자, 언더바(_)만 사용 가능 (4-20자)
+              </p>
             </div>
 
             <div>
@@ -419,9 +442,35 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* 🔥 마케팅 수신 동의 추가 */}
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeMarketing}
+                  onChange={(e) => setAgreeMarketing(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <div className="text-sm flex-1">
+                  <span className="text-gray-700">
+                    [선택] 마케팅 정보 수신 동의
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    이벤트, 할인 혜택 등의 마케팅 정보를 SMS/이메일/카카오톡으로 받습니다.
+                    동의하지 않아도 서비스 이용이 가능합니다.
+                  </p>
+                  <div className="mt-2">
+                    <Link href="/privacy-policy" target="_blank" className="text-xs text-blue-600 hover:underline">
+                      개인정보처리방침 보기 →
+                    </Link>
+                  </div>
+                </div>
+              </label>
+            </div>
+
             <button
               onClick={handleCreateAccount}
-              disabled={loading || !email || !password || password !== passwordConfirm}
+              disabled={loading || !userId || !password || password !== passwordConfirm}
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
             >
               {loading ? '처리 중...' : '다음'}
