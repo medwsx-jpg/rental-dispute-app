@@ -351,7 +351,7 @@ export default function DashboardPage() {
             onClick={() => router.push(`/rental/${rental.id}/before-view`)}
             className="flex-1 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700"
           >
-            📋 Before
+            Before 보기
           </button>
 
           {/* After 촬영 */}
@@ -359,7 +359,7 @@ export default function DashboardPage() {
             onClick={() => router.push(`/rental/${rental.id}/checkout`)}
             className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
           >
-            📤 After
+            After 촬영
           </button>
 
           {/* 서명 요청하기 (partnerSignature 없을 때만) */}
@@ -368,7 +368,7 @@ export default function DashboardPage() {
               onClick={() => router.push(`/rental/${rental.id}/request-signature`)}
               className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
             >
-              ✍️ 서명
+              서명요청
             </button>
           )}
         </div>
