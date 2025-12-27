@@ -185,13 +185,15 @@ export default function DashboardPage() {
         }
       });
       setOwnerRentals(rentalList);
+    }, (error) => {
+      console.error('❌ Owner 렌탈 로드 실패:', error);
+      setLoading(false);
     });
 
-    // 🔥 Partner 렌탈 조회
+    // 🔥 Partner 렌탈 조회 (orderBy 제거 - 클라이언트에서 정렬)
     const partnerQuery = query(
       collection(db, 'rentals'),
-      where('checkIn.partnerSignature.userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      where('checkIn.partnerSignature.userId', '==', userId)
     );
 
     const unsubscribePartner = onSnapshot(partnerQuery, (snapshot) => {
@@ -202,7 +204,12 @@ export default function DashboardPage() {
           rentalList.push({ id: doc.id, ...data } as Rental);
         }
       });
+      // 🔥 클라이언트에서 정렬
+      rentalList.sort((a, b) => b.createdAt - a.createdAt);
       setPartnerRentals(rentalList);
+      setLoading(false);
+    }, (error) => {
+      console.error('❌ Partner 렌탈 로드 실패:', error);
       setLoading(false);
     });
 
