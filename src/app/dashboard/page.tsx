@@ -328,7 +328,9 @@ export default function DashboardPage() {
   const getActionButton = (rental: Rental) => {
     const beforeDone = rental.checkIn.completedAt !== null;
     const afterDone = rental.checkOut.completedAt !== null;
+    const hasPartnerSignature = rental.checkIn?.partnerSignature !== undefined;
 
+    // After 촬영 완료 → 비교 보기만
     if (afterDone) {
       return (
         <button
@@ -339,16 +341,41 @@ export default function DashboardPage() {
         </button>
       );
     }
+
+    // Before 촬영 완료 → 여러 버튼
     if (beforeDone) {
       return (
-        <button
-          onClick={() => router.push(`/rental/${rental.id}/checkout`)}
-          className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
-        >
-          📤 After 촬영
-        </button>
+        <div className="space-y-2">
+          {/* Before 보기 */}
+          <button
+            onClick={() => router.push(`/rental/${rental.id}/before-view`)}
+            className="w-full py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700"
+          >
+            📋 Before 보기
+          </button>
+
+          {/* After 촬영 */}
+          <button
+            onClick={() => router.push(`/rental/${rental.id}/checkout`)}
+            className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+          >
+            📤 After 촬영
+          </button>
+
+          {/* 서명 요청하기 (partnerSignature 없을 때만) */}
+          {!hasPartnerSignature && (
+            <button
+              onClick={() => router.push(`/rental/${rental.id}/request-signature`)}
+              className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+            >
+              ✍️ 서명 요청하기
+            </button>
+          )}
+        </div>
       );
     }
+
+    // Before 촬영 안 했으면 → Before 촬영만
     return (
       <button
         onClick={() => router.push(`/rental/${rental.id}/checkin`)}
