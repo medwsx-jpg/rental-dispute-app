@@ -22,7 +22,6 @@ export default function SignaturePage() {
   // Step 1: 전화번호 검증
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [savedVerificationCode, setSavedVerificationCode] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
 
   // Step 2: 서명자 정보
@@ -132,16 +131,9 @@ export default function SignaturePage() {
         return;
       }
 
-      // 인증번호 저장 (실제로는 서버에 저장해야 함)
-      setSavedVerificationCode(data.verificationCode);
-      console.log('📱 인증번호:', data.verificationCode);
+      // ✅ 회원가입과 동일: 인증번호는 받지 않음
+      alert('인증번호가 문자로 발송되었습니다.');
       
-      // 개발 환경에서는 인증번호를 팝업으로 표시
-      alert(
-        data.smsSuccess 
-          ? '인증번호가 문자로 발송되었습니다.' 
-          : `인증번호가 생성되었습니다.\n\n🔢 인증번호: ${data.verificationCode}\n\n(SMS API 미설정 - 개발 모드)`
-      );
     } catch (error) {
       console.error('전화번호 검증 실패:', error);
       alert('전화번호 검증에 실패했습니다.');
@@ -150,20 +142,49 @@ export default function SignaturePage() {
     }
   };
 
-  // 인증번호 확인
-  const handleVerifyCode = () => {
+  // 인증번호 확인 (회원가입과 동일)
+  const handleVerifyCode = async () => {
     if (!verificationCode.trim()) {
       alert('인증번호를 입력해주세요.');
       return;
     }
 
-    if (verificationCode !== savedVerificationCode) {
-      alert('인증번호가 일치하지 않습니다.');
+    if (verificationCode.length !== 6) {
+      alert('6자리 인증번호를 입력해주세요.');
       return;
     }
 
-    setPhoneVerified(true);
-    setStep('info');
+    setLoading(true);
+
+    try {
+      // ✅ 회원가입과 동일: send-sms의 verify 사용
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          code: verificationCode,
+          type: 'verify',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setPhoneVerified(true);
+        setStep('info');
+        alert('인증이 완료되었습니다.');
+      } else {
+        alert(data.error || '인증번호가 올바르지 않습니다.');
+      }
+    } catch (error) {
+      console.error('인증번호 확인 실패:', error);
+      alert('인증번호 확인에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 서명자 정보 확인
@@ -313,7 +334,7 @@ export default function SignaturePage() {
                 </button>
               )}
 
-              {savedVerificationCode && !phoneVerified && (
+{!phoneVerified && (
                 <>
                   <div>
                     <label className="block text-sm text-gray-600 mb-2">인증번호</label>
