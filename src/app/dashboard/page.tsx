@@ -9,6 +9,7 @@ import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 import InAppBrowserGuide from '@/components/InAppBrowserGuide';
 
+// 🔥 수정: userType 추가
 interface UserData {
   email: string;
   nickname: string;
@@ -16,6 +17,11 @@ interface UserData {
   isPremium: boolean;
   createdAt: number;
   notificationDays?: number;
+  userType?: 'individual' | 'business';
+  businessInfo?: {
+    businessType: 'car_rental' | 'real_estate' | 'goods_rental';
+    companyName: string;
+  };
 }
 
 interface Message {
@@ -40,11 +46,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [ownerRentals, setOwnerRentals] = useState<Rental[]>([]);
+  const [partnerRentals, setPartnerRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showBoardMenu, setShowBoardMenu] = useState(false); // 🔥 추가!
+  const [showBoardMenu, setShowBoardMenu] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [messageThread, setMessageThread] = useState<MessageThread | null>(null);
@@ -69,27 +76,26 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    if (rentals.length > 0 && notificationEnabled) {
-      checkExpirationsDaily(rentals, notificationDays);
+    const allRentals = [...ownerRentals, ...partnerRentals];
+    if (allRentals.length > 0 && notificationEnabled) {
+      checkExpirationsDaily(allRentals, notificationDays);
       
       const interval = setInterval(() => {
-        checkExpirationsDaily(rentals, notificationDays);
+        checkExpirationsDaily(allRentals, notificationDays);
       }, 24 * 60 * 60 * 1000);
 
       return () => clearInterval(interval);
     }
-  }, [rentals, notificationEnabled, notificationDays]);
+  }, [ownerRentals, partnerRentals, notificationEnabled, notificationDays]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       
-      // 🔥 사용자 메뉴
       if (showUserMenu && !target.closest('.user-menu-container')) {
         setShowUserMenu(false);
       }
       
-      // 🔥 추가: 게시판 메뉴
       if (showBoardMenu && !target.closest('.board-menu-container')) {
         setShowBoardMenu(false);
       }
@@ -97,7 +103,7 @@ export default function DashboardPage() {
     
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [showUserMenu, showBoardMenu]); // 🔥 의존성 추가
+  }, [showUserMenu, showBoardMenu]);
 
   const loadUserData = async (userId: string) => {
     try {
@@ -138,7 +144,8 @@ export default function DashboardPage() {
     
     if (granted) {
       alert('알림이 활성화되었습니다! 계약 만료 전에 알림을 받을 수 있습니다.');
-      checkExpirationsDaily(rentals, notificationDays);
+      const allRentals = [...ownerRentals, ...partnerRentals];
+      checkExpirationsDaily(allRentals, notificationDays);
     } else {
       alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
     }
@@ -162,13 +169,14 @@ export default function DashboardPage() {
   };
 
   const loadRentals = (userId: string) => {
-    const q = query(
+    // 🔥 Owner 렌탈 조회
+    const ownerQuery = query(
       collection(db, 'rentals'),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeOwner = onSnapshot(ownerQuery, (snapshot) => {
       const rentalList: Rental[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -176,11 +184,32 @@ export default function DashboardPage() {
           rentalList.push({ id: doc.id, ...data } as Rental);
         }
       });
-      setRentals(rentalList);
+      setOwnerRentals(rentalList);
+    });
+
+    // 🔥 Partner 렌탈 조회
+    const partnerQuery = query(
+      collection(db, 'rentals'),
+      where('checkIn.partnerSignature.userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribePartner = onSnapshot(partnerQuery, (snapshot) => {
+      const rentalList: Rental[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.status !== 'deleted') {
+          rentalList.push({ id: doc.id, ...data } as Rental);
+        }
+      });
+      setPartnerRentals(rentalList);
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeOwner();
+      unsubscribePartner();
+    };
   };
 
   const handleOpenMessages = async () => {
@@ -289,65 +318,39 @@ export default function DashboardPage() {
     return { text: '📷 Before 대기중', color: 'text-blue-600' };
   };
 
-  // ✅ 이 함수를 대시보드의 getActionButton 함수와 교체하세요!
+  const getActionButton = (rental: Rental) => {
+    const beforeDone = rental.checkIn.completedAt !== null;
+    const afterDone = rental.checkOut.completedAt !== null;
 
-const getActionButton = (rental: Rental) => {
-  const beforeDone = rental.checkIn.completedAt !== null;
-  const afterDone = rental.checkOut.completedAt !== null;
-  const hasPartnerSignature = rental.checkIn?.partnerSignature;
-
-  if (afterDone) {
+    if (afterDone) {
+      return (
+        <button
+          onClick={() => router.push(`/rental/${rental.id}/compare`)}
+          className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+        >
+          🔍 비교 보기
+        </button>
+      );
+    }
+    if (beforeDone) {
+      return (
+        <button
+          onClick={() => router.push(`/rental/${rental.id}/checkout`)}
+          className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+        >
+          📤 After 촬영
+        </button>
+      );
+    }
     return (
       <button
-        onClick={() => router.push(`/rental/${rental.id}/compare`)}
-        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+        onClick={() => router.push(`/rental/${rental.id}/checkin`)}
+        className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
       >
-        🔍 비교 보기
+        📥 Before 촬영
       </button>
     );
-  }
-  
-  if (beforeDone) {
-    return (
-      <div className="space-y-2">
-        {/* 버튼 2개 나란히 */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => router.push(`/rental/${rental.id}/before-view`)}
-            className="py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600"
-          >
-            📋 Before 보기
-          </button>
-          <button
-            onClick={() => router.push(`/rental/${rental.id}/checkout`)}
-            className="py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
-          >
-            📤 After 촬영 →
-          </button>
-        </div>
-        
-        {/* 서명 요청 버튼 (아직 서명 안 했으면) */}
-        {!hasPartnerSignature && (
-          <button
-            onClick={() => router.push(`/rental/${rental.id}/request-signature`)}
-            className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-          >
-            ✍️ 서명 요청하기
-          </button>
-        )}
-      </div>
-    );
-  }
-  
-  return (
-    <button
-      onClick={() => router.push(`/rental/${rental.id}/checkin`)}
-      className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-    >
-      📥 Before 촬영
-    </button>
-  );
-};
+  };
 
   const getRentalIcon = (type: string) => {
     if (type === 'car') return '🚗';
@@ -374,60 +377,60 @@ const getActionButton = (rental: Rental) => {
       
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-  <button 
-    onClick={() => router.push('/guide')}
-    className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-  >
-    📖 사용가이드
-  </button>
-  
-  {/* 🔥 게시판 드롭다운 */}
-  <div className="relative board-menu-container">
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        setShowBoardMenu(!showBoardMenu);
-      }}
-      className="flex items-center gap-2 text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-    >
-      📋 게시판
-      <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
-    </button>
-    
-    {showBoardMenu && (
-      <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-        <button
-          onClick={() => {
-            router.push('/board/chat');
-            setShowBoardMenu(false);
-          }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
-        >
-          💬 채팅
-        </button>
-        <button
-  onClick={() => {
-    router.push('/board/rentalcases');  // ✅ 수정됨!
-    setShowBoardMenu(false);
-  }}
-  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
->
-  🚗 렌탈 분쟁사례
-</button>
-<button
-  onClick={() => {
-    router.push('/board/housecases');  // ✅ 수정됨!
-    setShowBoardMenu(false);
-  }}
-  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
->
-  🏠 부동산 분쟁사례
-</button>
-      </div>
-    )}
-  </div>
-</div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.push('/guide')}
+              className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+            >
+              📖 사용가이드
+            </button>
+            
+            <div className="relative board-menu-container">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowBoardMenu(!showBoardMenu);
+                }}
+                className="flex items-center gap-2 text-lg font-bold text-gray-900 hover:text-blue-600 transition"
+              >
+                📋 게시판
+                <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+              </button>
+              
+              {showBoardMenu && (
+                <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                  <button
+                    onClick={() => {
+                      router.push('/board/chat');
+                      setShowBoardMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+                  >
+                    💬 채팅
+                  </button>
+                  <button
+                    onClick={() => {
+                      router.push('/board/rentalcases');
+                      setShowBoardMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+                  >
+                    🚗 렌탈 분쟁사례
+                  </button>
+                  <button
+                    onClick={() => {
+                      router.push('/board/housecases');
+                      setShowBoardMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+                  >
+                    🏠 부동산 분쟁사례
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="relative user-menu-container">
             <button 
               onClick={(e) => {
@@ -439,38 +442,45 @@ const getActionButton = (rental: Rental) => {
               <span className="text-lg text-gray-700">내정보</span>
               <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
             </button>
+            
             {showUserMenu && (
-  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-    <div className="px-4 py-2 border-b border-gray-100">
-      <p className="text-xs text-gray-500">로그인 계정</p>
-      <p className="text-sm text-gray-900 truncate">{user?.email}</p>
-    </div>
-    
-    {/* 🔥 닉네임 표시 추가 */}
-    <div className="px-4 py-2 border-b border-gray-100">
-      <p className="text-xs text-gray-500">닉네임</p>
-      <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
-    </div>
-    
-    {/* 🔥 닉네임 변경 버튼 추가 */}
-    <button
-      onClick={() => {
-        router.push('/profile');
-        setShowUserMenu(false);
-      }}
-      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-    >
-      ✏️ 닉네임 변경
-    </button>
-    
-    <button
-      onClick={handleLogout}
-      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
-    >
-      🚪 로그아웃
-    </button>
-  </div>
-)}
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-xs text-gray-500">로그인 계정</p>
+                  <p className="text-sm text-gray-900 truncate">{user?.email}</p>
+                </div>
+                
+                {/* 🔥 수정: 사용자 타입 배지 추가 */}
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-xs text-gray-500">닉네임</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
+                    {userData?.userType === 'business' && (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        🤝 빌려주는
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    router.push('/profile');
+                    setShowUserMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  ✏️ 닉네임 변경
+                </button>
+                
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                >
+                  🚪 로그아웃
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -505,21 +515,21 @@ const getActionButton = (rental: Rental) => {
             </div>
             
             {freeUsed >= FREE_RENTAL_LIMIT && (
-  <div className="bg-white rounded-lg p-3 border border-blue-200">
-    <p className="text-sm font-medium text-gray-900 mb-1">
-      💰 추가 렌탈이 필요하신가요?
-    </p>
-    <p className="text-xs text-gray-600 mb-2">
-      관리자에게 문의해주세요
-    </p>
-    <button
-      onClick={() => router.push('/upgrade')}
-      className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-    >
-      더 알아보기
-    </button>
-  </div>
-)}
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  💰 추가 렌탈이 필요하신가요?
+                </p>
+                <p className="text-xs text-gray-600 mb-2">
+                  관리자에게 문의해주세요
+                </p>
+                <button
+                  onClick={() => router.push('/upgrade')}
+                  className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                >
+                  더 알아보기
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -608,66 +618,126 @@ const getActionButton = (rental: Rental) => {
           + 새 렌탈 등록
         </button>
 
-        {rentals.length === 0 ? (
+        {ownerRentals.length === 0 && partnerRentals.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-5xl mb-4">📋</p>
             <p className="text-gray-500">등록된 렌탈이 없습니다.</p>
             <p className="text-gray-400 text-sm mt-2">위 버튼을 눌러 첫 렌탈을 등록하세요!</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {rentals.map((rental) => {
-              const progress = getProgressInfo(rental);
-              return (
-                <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3 flex-1">
-                      {rental.checkIn.photos.length > 0 ? (
-                        <img 
-                          src={rental.checkIn.photos[0].url} 
-                          alt={rental.title}
-                          className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-3xl">{getRentalIcon(rental.type)}</span>
+          <div className="space-y-8">
+            {/* 📦 Owner 렌탈 섹션 */}
+            {ownerRentals.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span>📦</span>
+                  <span>내가 빌려준 렌탈</span>
+                  <span className="text-blue-600">({ownerRentals.length}건)</span>
+                </h2>
+                <div className="space-y-4">
+                  {ownerRentals.map((rental) => {
+                    const progress = getProgressInfo(rental);
+                    return (
+                      <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3 flex-1">
+                            {rental.checkIn.photos.length > 0 ? (
+                              <img 
+                                src={rental.checkIn.photos[0].url} 
+                                alt={rental.title}
+                                className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-3xl">{getRentalIcon(rental.type)}</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
+                              <p className="text-sm text-gray-500">
+                                {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
+                                {new Date(rental.endDate).toLocaleDateString('ko-KR')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {getStatusBadge(rental)}
+                            <button
+                              onClick={() => router.push(`/rental/${rental.id}/edit`)}
+                              className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+                              title="수정"
+                            >
+                              ✏️
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
-                        <p className="text-sm text-gray-500">
-                          {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
-                          {new Date(rental.endDate).toLocaleDateString('ko-KR')}
-                        </p>
+
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`text-sm font-medium ${progress.color}`}>{progress.text}</span>
+                          <span className="text-xs text-gray-400">
+                            Before {rental.checkIn.photos.length}장 / After {rental.checkOut.photos.length}장
+                          </span>
+                        </div>
+
+                        {getActionButton(rental)}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {getStatusBadge(rental)}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 🤝 Partner 렌탈 섹션 */}
+            {partnerRentals.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span>🤝</span>
+                  <span>내가 서명한 렌탈</span>
+                  <span className="text-green-600">({partnerRentals.length}건)</span>
+                </h2>
+                <div className="space-y-4">
+                  {partnerRentals.map((rental) => (
+                    <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1">
+                          {rental.checkIn.photos.length > 0 ? (
+                            <img 
+                              src={rental.checkIn.photos[0].url} 
+                              alt={rental.title}
+                              className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <span className="text-3xl">{getRentalIcon(rental.type)}</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
+                            <p className="text-sm text-gray-500">
+                              {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
+                              {new Date(rental.endDate).toLocaleDateString('ko-KR')}
+                            </p>
+                          </div>
+                        </div>
+                        {getStatusBadge(rental)}
+                      </div>
+
+                      {/* 서명한 렌탈 보기 버튼 */}
                       <button
-                        onClick={() => router.push(`/rental/${rental.id}/edit`)}
-                        className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
-                        title="수정"
+                        onClick={() => router.push(`/rental/${rental.id}/before-view`)}
+                        className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
                       >
-                        ✏️
+                        <span>📄</span>
+                        <span>서명한 렌탈 보기</span>
                       </button>
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-sm font-medium ${progress.color}`}>{progress.text}</span>
-                    <span className="text-xs text-gray-400">
-                      Before {rental.checkIn.photos.length}장 / After {rental.checkOut.photos.length}장
-                    </span>
-                  </div>
-
-                  {getActionButton(rental)}
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         )}
 
-        {/* 관리자에게 메시지 보내기 */}
         <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
           <h3 className="font-medium text-gray-900 mb-2 text-center">💬 관리자에게 문의하기</h3>
           <p className="text-sm text-gray-600 mb-4 text-center">
@@ -688,7 +758,6 @@ const getActionButton = (rental: Rental) => {
         </div>
       </main>
 
-      {/* 메시지 모달 */}
       {showMessageModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
