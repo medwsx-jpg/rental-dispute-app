@@ -97,39 +97,26 @@ ${signUrl}
 ⏰ 유효기간: 3일
     `.trim();
 
-    if (method === 'sms') {
-      // SMS 발송 (send-sms API 사용)
-      const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-sms`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: signerPhone,  // 🔥 phoneNumber → phone
-          message: messageText,
-        }),
-      });
+    // 🔥 직접 솔라피 호출
+    if (method === 'sms' || method === 'kakao') {
+      try {
+        const { SolapiMessageService } = require('solapi');
+        
+        const messageService = new SolapiMessageService(
+          process.env.SOLAPI_API_KEY,
+          process.env.SOLAPI_API_SECRET
+        );
 
-      if (!smsResponse.ok) {
-        console.error('SMS 발송 실패');
+        await messageService.sendOne({
+          to: signerPhone.replace(/-/g, ''),  // 하이픈 제거
+          from: process.env.SOLAPI_SENDER_PHONE,
+          text: messageText,
+        });
+
+        console.log('✅ SMS 발송 성공');
+      } catch (smsError) {
+        console.error('❌ SMS 발송 실패:', smsError);
         // SMS 실패해도 서명 요청은 생성됨
-      }
-    } else if (method === 'kakao') {
-      // 카카오톡 알림톡 발송 (TODO: 추후 구현)
-      // 현재는 SMS로 대체
-      const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-sms`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: signerPhone,  // 🔥 phoneNumber → phone
-          message: messageText,
-        }),
-      });
-
-      if (!smsResponse.ok) {
-        console.error('SMS 발송 실패 (카카오톡 대체)');
       }
     }
 
