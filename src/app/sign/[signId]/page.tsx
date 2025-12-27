@@ -273,9 +273,9 @@ export default function SignaturePage() {
     }
   };
 
-  // 가입 페이지로 이동
+  // 가입 페이지로 이동 (전화번호 인증 건너뛰기)
   const handleJoin = () => {
-    router.push('/register');
+    router.push(`/register?phone=${phoneNumber}&signId=${signId}`);
   };
 
   // 종료
@@ -335,18 +335,18 @@ export default function SignaturePage() {
               )}
 
 {!phoneVerified && (
-                <>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-2">인증번호</label>
-                    <input
-                      type="text"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      placeholder="6자리 입력"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      maxLength={6}
-                    />
-                  </div>
+  <>
+    <div>
+      <label className="block text-sm text-gray-600 mb-2">인증번호</label>
+      <input
+        type="text"
+        value={verificationCode}
+        onChange={(e) => setVerificationCode(e.target.value)}
+        placeholder="6자리 입력"
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        maxLength={6}
+      />
+    </div>
 
                   <button
                     onClick={handleVerifyCode}
@@ -595,23 +595,32 @@ export default function SignaturePage() {
 
           {showJoinPrompt && (
             <div className="border-t pt-6">
-              <h3 className="font-medium text-gray-900 mb-2">🎉 Record365에 가입하시겠습니까?</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                가입하시면 렌탈 기록을 관리하고 언제든 확인서를 다시 확인할 수 있습니다
+              <h3 className="font-medium text-gray-900 mb-4">🔒 이 기록은 안전하게 보호되어야 합니다</h3>
+              <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+                양측이 확인한 시작 상태 문서는<br />
+                분쟁 방지를 위해 임의 열람이 제한되어 있습니다.
               </p>
+              
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-800 mb-2 font-medium">계정을 만들면</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <p>✔ 이 기록을 언제든 확인할 수 있고</p>
+                  <p>✔ 종료 시에도 동일한 기준으로 비교됩니다</p>
+                </div>
+              </div>
 
               <div className="flex gap-3">
                 <button
                   onClick={handleSkip}
                   className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
                 >
-                  다음에 하기
+                  나중에 하기
                 </button>
                 <button
                   onClick={handleJoin}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
                 >
-                  가입하기 →
+                  기록 안전하게 보관하기
                 </button>
               </div>
             </div>

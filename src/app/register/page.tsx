@@ -1,25 +1,34 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'phone' | 'account' | 'nickname' | 'complete'>('phone');
+  const searchParams = useSearchParams();
+  
+  // 🔥 URL 파라미터 읽기
+  const preVerifiedPhone = searchParams.get('phone');
+  const signId = searchParams.get('signId');
+  
+  // 🔥 전화번호가 있으면 2단계부터 시작
+  const [step, setStep] = useState<'phone' | 'account' | 'nickname' | 'complete'>(
+    preVerifiedPhone ? 'account' : 'phone'
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // 휴대폰 인증
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(preVerifiedPhone || '');
   const [verificationCode, setVerificationCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
 
   // 계정 정보
-  const [userId, setUserId] = useState('');  // 🔥 email → userId 변경
+  const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [userType, setUserType] = useState<'individual' | 'business'>('individual');
@@ -29,7 +38,7 @@ export default function RegisterPage() {
   // 닉네임
   const [nickname, setNickname] = useState('');
 
-  // 🔥 마케팅 수신 동의 추가
+  // 마케팅 수신 동의
   const [agreeMarketing, setAgreeMarketing] = useState(false);
 
   // SMS 발송
@@ -43,18 +52,6 @@ export default function RegisterPage() {
       setLoading(true);
       setError('');
       
-      // 🔥 SMS 발송 전에 전화번호 중복 체크!
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        setError('이미 가입된 전화번호입니다. 로그인 페이지로 이동해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      // 중복 없으면 SMS 발송
       const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,7 +111,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // 🔥 아이디 형식 검증
     if (userId.length < 4) {
       setError('아이디는 4자 이상이어야 합니다');
       return;
@@ -140,31 +136,19 @@ export default function RegisterPage() {
       return;
     }
 
-    // 🔥 아이디를 이메일 형식으로 변환
     const email = `${userId}@record365.app`;
 
-    // 이메일 중복 체크
     try {
       setLoading(true);
       setError('');
 
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        setError('이미 사용 중인 아이디입니다');
-        setLoading(false);
-        return;
-      }
-
       // Firebase Auth 계정 생성
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // 🔥 Firestore에 기본 정보 저장 (userId 추가)
+      // Firestore에 기본 정보 저장
       const userData: any = {
         email: email,
-        userId: userId,  // 🔥 원본 아이디 저장
+        userId: userId,
         phoneNumber: phoneNumber,
         provider: 'email',
         createdAt: Date.now(),
@@ -184,6 +168,27 @@ export default function RegisterPage() {
       }
 
       await setDoc(doc(db, 'users', userCredential.user.uid), userData);
+
+      // 🔥 signId가 있으면 렌탈 연결
+      if (signId) {
+        try {
+          const signDoc = await getDoc(doc(db, 'signatures', signId));
+          if (signDoc.exists()) {
+            const signData = signDoc.data();
+            const rentalId = signData.rentalId;
+            
+            // rentals에 partnerUserId 추가
+            await updateDoc(doc(db, 'rentals', rentalId), {
+              'checkIn.partnerSignature.userId': userCredential.user.uid
+            });
+            
+            console.log('✅ 렌탈 연결 완료:', rentalId);
+          }
+        } catch (linkError) {
+          console.error('렌탈 연결 실패:', linkError);
+          // 에러 무시 (회원가입은 성공)
+        }
+      }
 
       setStep('nickname');
     } catch (err: any) {
@@ -244,14 +249,6 @@ export default function RegisterPage() {
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
               <p>{error}</p>
-              {error.includes('이미 가입된 전화번호') && (
-                <button
-                  onClick={() => router.push('/login')}
-                  className="w-full mt-3 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
-                >
-                  로그인 페이지로 이동 →
-                </button>
-              )}
             </div>
           )}
 
@@ -264,9 +261,8 @@ export default function RegisterPage() {
                 <input
                   type="tel"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="01012345678"
-                  maxLength={11}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9-]/g, ''))}
+                  placeholder="010-1234-5678"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -281,7 +277,7 @@ export default function RegisterPage() {
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 text-center">
-                {phoneNumber.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}로<br />
+                {phoneNumber}로<br />
                 인증번호를 발송했습니다
               </p>
               <div>
@@ -339,6 +335,14 @@ export default function RegisterPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">📸 Record 365</h1>
             <h2 className="text-xl font-bold text-gray-900 mb-1">계정 정보 입력</h2>
             <p className="text-sm text-gray-600">Step 2/3: 아이디 및 비밀번호 설정</p>
+            {/* 🔥 서명 후 가입인 경우 안내 */}
+            {preVerifiedPhone && signId && (
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  ✅ 전화번호 인증 완료 ({preVerifiedPhone})
+                </p>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -462,7 +466,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* 🔥 마케팅 수신 동의 추가 */}
+            {/* 마케팅 수신 동의 */}
             <div className="border-t border-gray-200 pt-4 mt-4">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -477,13 +481,7 @@ export default function RegisterPage() {
                   </span>
                   <p className="text-xs text-gray-500 mt-1">
                     이벤트, 할인 혜택 등의 마케팅 정보를 SMS/이메일/카카오톡으로 받습니다.
-                    동의하지 않아도 서비스 이용이 가능합니다.
                   </p>
-                  <div className="mt-2">
-                    <Link href="/privacy-policy" target="_blank" className="text-xs text-blue-600 hover:underline">
-                      개인정보처리방침 보기 →
-                    </Link>
-                  </div>
                 </div>
               </label>
             </div>
@@ -560,6 +558,9 @@ export default function RegisterPage() {
         <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">회원가입 완료!</h2>
         <p className="text-gray-600 mb-4">환영합니다, {nickname}님!</p>
+        {signId && (
+          <p className="text-sm text-blue-600 mb-2">✅ 서명한 렌탈 기록이 대시보드에 연결되었습니다</p>
+        )}
         <p className="text-sm text-gray-500">대시보드로 이동합니다...</p>
       </div>
     </div>
