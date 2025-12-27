@@ -342,33 +342,33 @@ export default function DashboardPage() {
       );
     }
 
-    // Before 촬영 완료 → 여러 버튼
+    // Before 촬영 완료 → 여러 버튼 (가로 배치)
     if (beforeDone) {
       return (
-        <div className="space-y-2">
+        <div className="flex gap-2">
           {/* Before 보기 */}
           <button
             onClick={() => router.push(`/rental/${rental.id}/before-view`)}
-            className="w-full py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700"
+            className="flex-1 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700"
           >
-            📋 Before 보기
+            📋 Before
           </button>
 
           {/* After 촬영 */}
           <button
             onClick={() => router.push(`/rental/${rental.id}/checkout`)}
-            className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+            className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
           >
-            📤 After 촬영
+            📤 After
           </button>
 
           {/* 서명 요청하기 (partnerSignature 없을 때만) */}
           {!hasPartnerSignature && (
             <button
               onClick={() => router.push(`/rental/${rental.id}/request-signature`)}
-              className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+              className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
             >
-              ✍️ 서명 요청하기
+              ✍️ 서명
             </button>
           )}
         </div>
