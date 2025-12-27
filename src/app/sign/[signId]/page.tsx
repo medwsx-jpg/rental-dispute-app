@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import SignatureCanvas from 'react-signature-canvas';
+import ImageModal from '@/components/ImageModal';
 
 type Step = 'loading' | 'verify' | 'info' | 'photos' | 'sign' | 'complete';
 
@@ -37,6 +38,9 @@ export default function SignaturePage() {
 
   // Step 5: 완료 후 가입 권유
   const [showJoinPrompt, setShowJoinPrompt] = useState(false);
+
+  // 🔥 이미지 확대 모달
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadSignatureData();
@@ -425,9 +429,14 @@ export default function SignaturePage() {
               <h3 className="font-medium text-gray-900 mb-3">
                 Before 사진 ({signData?.rental?.checkIn?.photos?.length || 0}장)
               </h3>
+              <p className="text-xs text-gray-500 mb-3">💡 사진을 탭하면 확대됩니다</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {signData?.rental?.checkIn?.photos?.map((photo: any, index: number) => (
-                  <div key={index}>
+                  <div 
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className="cursor-pointer hover:opacity-80 transition"
+                  >
                     <img
                       src={photo.url}
                       alt={`Before ${index + 1}`}
@@ -594,6 +603,17 @@ export default function SignaturePage() {
           )}
         </div>
       </div>
+    );
+  }
+
+  // 🔥 이미지 확대 모달
+  if (selectedImageIndex !== null && signData?.rental?.checkIn?.photos) {
+    return (
+      <ImageModal
+        images={signData.rental.checkIn.photos}
+        initialIndex={selectedImageIndex}
+        onClose={() => setSelectedImageIndex(null)}
+      />
     );
   }
 

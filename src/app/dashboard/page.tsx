@@ -289,39 +289,65 @@ export default function DashboardPage() {
     return { text: '📷 Before 대기중', color: 'text-blue-600' };
   };
 
-  const getActionButton = (rental: Rental) => {
-    const beforeDone = rental.checkIn.completedAt !== null;
-    const afterDone = rental.checkOut.completedAt !== null;
+  // ✅ 이 함수를 대시보드의 getActionButton 함수와 교체하세요!
 
-    if (afterDone) {
-      return (
-        <button
-          onClick={() => router.push(`/rental/${rental.id}/compare`)}
-          className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-        >
-          🔍 비교 보기
-        </button>
-      );
-    }
-    if (beforeDone) {
-      return (
-        <button
-          onClick={() => router.push(`/rental/${rental.id}/checkout`)}
-          className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
-        >
-          📤 After 촬영
-        </button>
-      );
-    }
+const getActionButton = (rental: Rental) => {
+  const beforeDone = rental.checkIn.completedAt !== null;
+  const afterDone = rental.checkOut.completedAt !== null;
+  const hasPartnerSignature = rental.checkIn?.partnerSignature;
+
+  if (afterDone) {
     return (
       <button
-        onClick={() => router.push(`/rental/${rental.id}/checkin`)}
-        className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+        onClick={() => router.push(`/rental/${rental.id}/compare`)}
+        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
       >
-        📥 Before 촬영
+        🔍 비교 보기
       </button>
     );
-  };
+  }
+  
+  if (beforeDone) {
+    return (
+      <div className="space-y-2">
+        {/* 버튼 2개 나란히 */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => router.push(`/rental/${rental.id}/before-view`)}
+            className="py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600"
+          >
+            📋 Before 보기
+          </button>
+          <button
+            onClick={() => router.push(`/rental/${rental.id}/checkout`)}
+            className="py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+          >
+            📤 After 촬영 →
+          </button>
+        </div>
+        
+        {/* 서명 요청 버튼 (아직 서명 안 했으면) */}
+        {!hasPartnerSignature && (
+          <button
+            onClick={() => router.push(`/rental/${rental.id}/request-signature`)}
+            className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+          >
+            ✍️ 서명 요청하기
+          </button>
+        )}
+      </div>
+    );
+  }
+  
+  return (
+    <button
+      onClick={() => router.push(`/rental/${rental.id}/checkin`)}
+      className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+    >
+      📥 Before 촬영
+    </button>
+  );
+};
 
   const getRentalIcon = (type: string) => {
     if (type === 'car') return '🚗';

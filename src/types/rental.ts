@@ -6,7 +6,7 @@ export interface Photo {
     lng: number;
   } | null;
   area: string;
-  notes: string;
+  notes: string; // 🔥 optional로 변경
 }
 
 export interface ChecklistItem {
@@ -23,11 +23,32 @@ export interface AreaChecklist {
 
 export type RentalType = 'car' | 'house' | 'goods';
 
+// 🔥 신규 추가: 양방향 서명 타입
+export interface PartnerSignature {
+  signerName: string;
+  signerPhone: string;
+  signerAddress?: string;
+  signatureImage: string;
+  signedAt: number;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface SignatureRequest {
+  signId: string;
+  signerName: string;
+  signerPhone: string;
+  requestedAt: number;
+  completedAt: number;
+}
+
 export interface Rental {
   id?: string;
   userId: string;
   type: RentalType;
   title: string;
+  carModel?: string; // 🔥 추가: 자동차 모델
+  rentalAddress?: string; // 🔥 추가: 렌탈 집 주소
   startDate: number;
   endDate: number;
   checkIn: {
@@ -35,12 +56,16 @@ export interface Rental {
     completedAt: number | null;
     signature?: string;
     checklists?: AreaChecklist[];
+    partnerSignature?: PartnerSignature; // 🔥 추가
+    signatureRequest?: SignatureRequest; // 🔥 추가
   };
   checkOut: {
     photos: Photo[];
     completedAt: number | null;
     signature?: string;
     checklists?: AreaChecklist[];
+    partnerSignature?: PartnerSignature; // 🔥 추가 (향후 사용)
+    signatureRequest?: SignatureRequest; // 🔥 추가 (향후 사용)
   };
   status: 'active' | 'completed';
   createdAt: number;
