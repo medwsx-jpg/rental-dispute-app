@@ -125,19 +125,21 @@ export default function BeforeViewPage() {
           {checklists.length > 0 && (
             <div className="border-t pt-4 mt-4">
               <h3 className="font-medium text-gray-900 mb-3">✅ 체크리스트</h3>
-              <div className="space-y-2">
-                {checklists.map((checklist: any, index: number) => (
-                  <div key={index} className="flex items-start gap-2 text-sm">
-                    <span className={checklist.checked ? 'text-green-600' : 'text-gray-400'}>
-                      {checklist.checked ? '✅' : '☐'}
-                    </span>
-                    <div className="flex-1">
-                      <span className={checklist.checked ? 'text-gray-900' : 'text-gray-400'}>
-                        {checklist.label}
-                      </span>
-                      {checklist.memo && (
-                        <p className="text-xs text-gray-500 mt-1">📝 {checklist.memo}</p>
-                      )}
+              <div className="space-y-4">
+                {checklists.map((checklist: any, areaIndex: number) => (
+                  <div key={areaIndex}>
+                    {/* 영역별로 구분 */}
+                    <div className="space-y-2">
+                      {checklist.items && checklist.items.map((item: any, itemIndex: number) => (
+                        <div key={itemIndex} className="flex items-start gap-2 text-sm">
+                          <span className={item.checked ? 'text-green-600' : 'text-gray-400'}>
+                            {item.checked ? '✅' : '☐'}
+                          </span>
+                          <span className={item.checked ? 'text-gray-900' : 'text-gray-400'}>
+                            {item.text}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
