@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 function RegisterContent() {
   const router = useRouter();
@@ -47,19 +47,41 @@ function RegisterContent() {
       setError('올바른 전화번호를 입력해주세요');
       return;
     }
-
+  
     try {
       setLoading(true);
       setError('');
       
+      // 🔥 전화번호 중복 체크 추가 (새로운 코드)
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('phoneNumber', '==', phoneNumber));
+      const snapshot = await getDocs(q);
+  
+      if (!snapshot.empty) {
+        // 기존 회원 발견
+        if (signId) {
+          // 서명 후 가입인 경우
+          alert(
+            '이미 가입된 전화번호입니다.\n' +
+            '로그인하시면 서명한 렌탈 기록을 확인하실 수 있습니다.'
+          );
+          router.push(`/login?signId=${signId}`);
+          return;
+        } else {
+          // 일반 회원가입인 경우
+          throw new Error('이미 가입된 전화번호입니다');
+        }
+      }
+      
+      // 기존 SMS 발송 로직 (그대로 유지)
       const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phoneNumber, type: 'send' }),
       });
-
+  
       const result = await response.json();
-
+  
       if (result.success) {
         setIsCodeSent(true);
         alert('인증번호가 발송되었습니다');
@@ -194,7 +216,17 @@ function RegisterContent() {
     } catch (err: any) {
       console.error('계정 생성 실패:', err);
       if (err.code === 'auth/email-already-in-use') {
-        setError('이미 사용 중인 아이디입니다');
+        if (signId) {
+          // 🔥 서명 후 가입인데 이미 가입된 경우
+          setError('이미 가입된 계정입니다. 로그인 페이지로 이동합니다...');
+          
+          setTimeout(() => {
+            router.push(`/login?signId=${signId}`);
+          }, 2000);
+        } else {
+          // 일반 회원가입
+          setError('이미 사용 중인 아이디입니다');
+        }
       } else {
         setError('계정 생성에 실패했습니다');
       }
