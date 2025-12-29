@@ -65,23 +65,26 @@ export async function GET(request: NextRequest) {
     const rentalData = rentalSnap.data();
 
     // 응답 데이터
-    const responseData = {
-      signId,
-      signerName: signData.signerName,
-      signerPhone: signData.signerPhone,
-      rental: {
-        title: rentalData.title,
-        type: rentalData.type,
-        startDate: rentalData.startDate,
-        endDate: rentalData.endDate,
-        checkIn: {
-          photos: rentalData.checkIn.photos || [],
-          completedAt: rentalData.checkIn.completedAt,
-        },
-      },
-      expiresAt: signData.expiresAt,
-      createdAt: signData.requestedAt,
-    };
+    // 응답 데이터
+const responseData = {
+  signId,
+  signerName: signData.signerName,
+  signerPhone: signData.signerPhone,
+  isExistingUser: signData.isExistingUser || false,  // 🔥 추가!
+  rental: {
+    title: rentalData.title,
+    type: rentalData.type,
+    startDate: rentalData.startDate,
+    endDate: rentalData.endDate,
+    checkIn: {
+      photos: rentalData.checkIn.photos || [],
+      completedAt: rentalData.checkIn.completedAt,
+      checklists: rentalData.checkIn.checklists || [],  // 🔥 체크리스트도 추가
+    },
+  },
+  expiresAt: signData.expiresAt,
+  createdAt: signData.requestedAt,
+};
 
     return NextResponse.json(responseData);
 
