@@ -46,15 +46,26 @@ export async function POST(request: NextRequest) {
     const rentalData = rentalDoc.data();
 
     // Before 촬영 완료 확인
-    if (!rentalData?.checkIn || !rentalData.checkIn.completedAt) {
-      return NextResponse.json(
-        { message: 'Before 촬영이 완료되지 않았습니다.' },
-        { status: 400 }
-      );
-    }
+  // Before 촬영 완료 확인
+if (!rentalData?.checkIn || !rentalData.checkIn.completedAt) {
+  return NextResponse.json(
+    { message: 'Before 촬영이 완료되지 않았습니다.' },
+    { status: 400 }
+  );
+}
 
-    // 고유 서명 ID 생성
-    const signId = generateSignId();
+// 🔥 전화번호로 기존 회원 체크 (Admin SDK 버전)
+const usersSnapshot = await adminDb
+  .collection('users')
+  .where('phoneNumber', '==', signerPhone)
+  .get();
+
+const isExistingUser = !usersSnapshot.empty;
+
+console.log(`📋 회원 체크: ${signerPhone} → ${isExistingUser ? '기존 회원' : '신규'}`);
+
+// 고유 서명 ID 생성
+const signId = generateSignId();
 
     // 서명 URL 생성
     const signUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.record365.co.kr'}/sign/${signId}`;
@@ -77,25 +88,41 @@ export async function POST(request: NextRequest) {
       expiresAt,
       status: 'pending',
       signature: null,
+      isExistingUser,  // 🔥 추가
     };
 
     // 🔥 Admin SDK로 Firestore에 저장
     await adminDb.collection('signatures').doc(signId).set(signatureRequest);
 
     // SMS/카카오톡 발송 준비
-    const messageText = `
-[Record365 전자계약]
+    // 🔥 SMS 메시지 분기
+const messageText = isExistingUser
+? `[Record365 전자계약]
 
-렌탈 계약 서명을 요청받았습니다.
+서명 요청이 있습니다.
 
 📦 렌탈: ${rentalData.title}
 📅 기간: ${new Date(rentalData.startDate).toLocaleDateString('ko-KR')} ~ ${new Date(rentalData.endDate).toLocaleDateString('ko-KR')}
 
-아래 링크에서 확인 및 서명해주세요
+✅ 이미 가입된 회원이시네요!
+서명 후 로그인하시면 확인하실 수 있습니다.
+
 ${signUrl}
 
-⏰ 유효기간: 3일
-    `.trim();
+⏰ 유효기간: 3일`
+: `[Record365 전자계약]
+
+서명 요청이 있습니다.
+
+📦 렌탈: ${rentalData.title}
+📅 기간: ${new Date(rentalData.startDate).toLocaleDateString('ko-KR')} ~ ${new Date(rentalData.endDate).toLocaleDateString('ko-KR')}
+
+서명 후 회원가입하시면 
+언제든 이 기록을 확인하실 수 있습니다.
+
+${signUrl}
+
+⏰ 유효기간: 3일`;
 
     // 🔥 직접 솔라피 호출
     if (method === 'sms' || method === 'kakao') {
