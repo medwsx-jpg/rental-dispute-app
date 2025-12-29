@@ -274,9 +274,18 @@ export default function SignaturePage() {
   };
 
   // 가입 페이지로 이동 (전화번호 인증 건너뛰기)
-  const handleJoin = () => {
+  // 🔥 가입 또는 로그인 페이지로 이동
+const handleJoin = () => {
+  const isExistingUser = signData?.isExistingUser || false;
+  
+  if (isExistingUser) {
+    // 기존 회원 → 로그인
+    router.push(`/login?signId=${signId}`);
+  } else {
+    // 신규 회원 → 회원가입
     router.push(`/register?phone=${phoneNumber}&signId=${signId}`);
-  };
+  }
+};
 
   // 종료
   const handleSkip = () => {
@@ -594,37 +603,74 @@ export default function SignaturePage() {
           </div>
 
           {showJoinPrompt && (
-            <div className="border-t pt-6">
-              <h3 className="font-medium text-gray-900 mb-4">🔒 이 기록은 안전하게 보호되어야 합니다</h3>
-              <p className="text-sm text-gray-700 mb-4 leading-relaxed">
-                양측이 확인한 시작 상태 문서는<br />
-                분쟁 방지를 위해 임의 열람이 제한되어 있습니다.
-              </p>
-              
-              <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                <p className="text-sm text-gray-800 mb-2 font-medium">계정을 만들면</p>
-                <div className="space-y-1 text-sm text-gray-700">
-                  <p>✔ 이 기록을 언제든 확인할 수 있고</p>
-                  <p>✔ 종료 시에도 동일한 기준으로 비교됩니다</p>
-                </div>
-              </div>
+  <div className="border-t pt-6">
+    {/* 🔥 기존 회원 vs 신규 회원 분기 */}
+    {signData?.isExistingUser ? (
+      // 기존 회원
+      <>
+        <h3 className="font-medium text-gray-900 mb-4">✅ 이미 가입된 회원이시네요!</h3>
+        <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+          로그인하시면 이 렌탈을 확인하실 수 있습니다.
+        </p>
+        
+        <div className="bg-blue-50 rounded-lg p-4 mb-4">
+          <p className="text-sm text-gray-800 mb-2 font-medium">로그인하면</p>
+          <div className="space-y-1 text-sm text-gray-700">
+            <p>✔ 이 기록을 언제든 확인할 수 있고</p>
+            <p>✔ 종료 시에도 동일한 기준으로 비교됩니다</p>
+          </div>
+        </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSkip}
-                  className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
-                >
-                  나중에 하기
-                </button>
-                <button
-                  onClick={handleJoin}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-                >
-                  기록 안전하게 보관하기
-                </button>
-              </div>
-            </div>
-          )}
+        <div className="flex gap-3">
+          <button
+            onClick={handleSkip}
+            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            나중에 하기
+          </button>
+          <button
+            onClick={handleJoin}
+            className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+          >
+            로그인하기
+          </button>
+        </div>
+      </>
+    ) : (
+      // 신규 회원
+      <>
+        <h3 className="font-medium text-gray-900 mb-4">🔒 이 기록은 안전하게 보호되어야 합니다</h3>
+        <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+          양측이 확인한 시작 상태 문서는<br />
+          분쟁 방지를 위해 임의 열람이 제한되어 있습니다.
+        </p>
+        
+        <div className="bg-blue-50 rounded-lg p-4 mb-4">
+          <p className="text-sm text-gray-800 mb-2 font-medium">계정을 만들면</p>
+          <div className="space-y-1 text-sm text-gray-700">
+            <p>✔ 이 기록을 언제든 확인할 수 있고</p>
+            <p>✔ 종료 시에도 동일한 기준으로 비교됩니다</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleSkip}
+            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            나중에 하기
+          </button>
+          <button
+            onClick={handleJoin}
+            className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+          >
+            기록 안전하게 보관하기
+          </button>
+        </div>
+      </>
+    )}
+  </div>
+)}
 
           {!showJoinPrompt && (
             <p className="text-center text-sm text-gray-500">
