@@ -289,21 +289,25 @@ function LoginForm() {
 
           {/* 이메일/비밀번호 로그인 폼 */}
           <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                아이디
-              </label>
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                placeholder="minsu123"
-                required
-                disabled={loading}
-                maxLength={20}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-              />
-            </div>
+          <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    아이디
+  </label>
+  <input
+    type="text"
+    value={userId}
+    onChange={(e) => setUserId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+    placeholder="minsu123"
+    required
+    disabled={loading}
+    maxLength={20}
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+  />
+  {/* 🔥 안내 메시지 추가 */}
+  <p className="text-xs text-gray-500 mt-1">
+    💡 영문 소문자, 숫자, 밑줄(_)만 사용 가능
+  </p>
+</div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

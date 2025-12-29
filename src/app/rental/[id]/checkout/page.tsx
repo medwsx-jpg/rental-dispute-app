@@ -1060,16 +1060,18 @@ const handleSaveMarkedPhoto = async (markedImageBlob: Blob) => {
       </main>
 
       {showPreview && previewImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
-          <div className="flex-1 flex items-center justify-center p-4">
-            <img 
-              src={previewImage} 
-              alt="미리보기" 
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-          
-          <div className="bg-white p-6 space-y-3">
+  <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col">
+    {/* 🔥 이미지 영역: 하단 버튼 공간 확보 */}
+    <div className="flex-1 flex items-center justify-center p-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <img 
+        src={previewImage} 
+        alt="미리보기" 
+        className="max-w-full max-h-full object-contain"
+      />
+    </div>
+    
+    {/* 🔥 버튼 영역: 항상 하단에 고정 */}
+    <div className="bg-white p-6 space-y-3 flex-shrink-0">
             <p className="text-center font-medium text-gray-900">
               {currentArea?.icon} {currentArea?.name}
             </p>
