@@ -1,0 +1,8 @@
+[{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kr.co.record365.app",
+      "sha256_cert_fingerprints": ["63:A5:DF:3D:F4:00:6E:F1:86:E6:E1:F8:E4:F1:87:1B:9A:D5:16:7C:39:96:44:87:BE:FB:BB:35:10:33:24:E1"]
+    }
+  }]
