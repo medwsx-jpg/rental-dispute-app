@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -15,7 +15,29 @@ interface UserData {
   createdAt: number;
 }
 
-// 개별 슬라이드 (4개)
+// 📹 영상 데이터
+const videos = [
+  {
+    id: 'landlord',
+    title: '임대인편',
+    subtitle: '세입자가 "원래 이랬어요" 할 때',
+    videoSrc: '/videos/record365-landlord.mp4',
+  },
+  {
+    id: 'tenant',
+    title: '임차인편',
+    subtitle: '억울한 수리비 청구를 받았을 때',
+    videoSrc: '/videos/record365-tenant.mp4',
+  },
+  {
+    id: 'pension',
+    title: '펜션사장님편',
+    subtitle: '손님이 시설 파손을 부인할 때',
+    videoSrc: '/videos/record365-pension.mp4',
+  }
+];
+
+// 📱 실제 사용 화면 슬라이드
 const slides = [
   {
     image: '/images/screenshot-capture.png',
@@ -25,7 +47,7 @@ const slides = [
   {
     image: '/images/screenshot-compare.png',
     title: '🚗 자동차 Before/After',
-    description: '한눈에 차이를 확인하고 증거를 확보하세요'
+    description: '한눈에 차이를 확인하세요'
   },
   {
     image: '/images/screenshot-house-capture.png',
@@ -39,58 +61,69 @@ const slides = [
   }
 ];
 
-export default function HomePage() {
+export default function LandingV2Page() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showBoardMenu, setShowBoardMenu] = useState(false);
-  const [isPWA, setIsPWA] = useState(false);
+  
+  // 영상 관련 상태
+  const [activeVideo, setActiveVideo] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // 슬라이드 관련 상태
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
-    const isPWAMode = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone === true;
-    setIsPWA(isPWAMode);
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      
       if (currentUser) {
         await loadUserData(currentUser.uid);
       } else {
         setUserData(null);
       }
-      
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  // 자동 슬라이더 (3초마다, 1장씩 이동)
+  // 슬라이드 자동 전환 (4초마다)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 4000);
-
     return () => clearInterval(timer);
   }, []);
+
+  // 영상 끝나면 다음 영상으로 자동 전환
+  const handleVideoEnded = () => {
+    setActiveVideo((prev) => (prev + 1) % videos.length);
+  };
+
+  // 영상 변경 시 재생
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load();
+      if (!isPaused) {
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  }, [activeVideo]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      
       if (showUserMenu && !target.closest('.user-menu-container')) {
         setShowUserMenu(false);
       }
-      
       if (showBoardMenu && !target.closest('.board-menu-container')) {
         setShowBoardMenu(false);
       }
     };
-    
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showUserMenu, showBoardMenu]);
@@ -107,19 +140,11 @@ export default function HomePage() {
   };
 
   const handleMyRentals = () => {
-    if (user) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
+    router.push(user ? '/dashboard' : '/login');
   };
 
   const handleStartNow = () => {
-    if (user) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
+    router.push(user ? '/dashboard' : '/login');
   };
 
   const handleLogout = async () => {
@@ -129,21 +154,35 @@ export default function HomePage() {
     setShowUserMenu(false);
   };
 
-  // 현재 보이는 2개의 슬라이드 인덱스 계산
-  const getVisibleSlides = () => {
-    const first = currentSlide;
-    const second = (currentSlide + 1) % slides.length;
-    return [first, second];
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
   };
 
-  const [firstIndex, secondIndex] = getVisibleSlides();
+  const togglePause = () => {
+    if (videoRef.current) {
+      if (isPaused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+      setIsPaused(!isPaused);
+    }
+  };
+
+  const selectVideo = (index: number) => {
+    setActiveVideo(index);
+    setIsPaused(false);
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-4 text-gray-400">로딩 중...</p>
         </div>
       </div>
     );
@@ -155,18 +194,16 @@ export default function HomePage() {
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
-            {!isPWA && (
-              <div className="hidden md:flex items-center">
-                <button 
-                  onClick={() => router.push('/')}
-                  className="text-xl md:text-2xl font-bold text-green-600 hover:text-green-700 transition"
-                >
-                  Record365.co.kr
-                </button>
-              </div>
-            )}
+            <div className="hidden md:flex items-center">
+              <button 
+                onClick={() => router.push('/')}
+                className="text-xl md:text-2xl font-bold text-green-600 hover:text-green-700 transition"
+              >
+                Record365.co.kr
+              </button>
+            </div>
 
-<div className="flex items-center gap-3 sm:gap-6 w-full justify-around">
+            <div className="flex items-center gap-3 sm:gap-6 w-full md:w-auto justify-around md:justify-end">
               <button
                 onClick={() => router.push('/guide')}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
@@ -194,30 +231,21 @@ export default function HomePage() {
                 </button>
 
                 {showBoardMenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     <button
-                      onClick={() => {
-                        router.push('/board/chat');
-                        setShowBoardMenu(false);
-                      }}
+                      onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
                     >
                       💬 채팅
                     </button>
                     <button
-                      onClick={() => {
-                        router.push('/board/rentalcases');
-                        setShowBoardMenu(false);
-                      }}
+                      onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
                     >
                       🚗 렌탈 분쟁사례
                     </button>
                     <button
-                      onClick={() => {
-                        router.push('/board/housecases');
-                        setShowBoardMenu(false);
-                      }}
+                      onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
                     >
                       🏠 부동산 분쟁사례
@@ -226,16 +254,14 @@ export default function HomePage() {
                 )}
               </div>
 
-              {!user && (
+              {!user ? (
                 <button
                   onClick={() => router.push('/login')}
                   className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-green-700 transition"
                 >
                   로그인
                 </button>
-              )}
-
-              {user && (
+              ) : (
                 <div className="relative user-menu-container">
                   <button
                     onClick={(e) => {
@@ -249,7 +275,7 @@ export default function HomePage() {
                   </button>
 
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="text-xs text-gray-500">로그인 계정</p>
                         <p className="text-sm text-gray-900 truncate">{user.email}</p>
@@ -261,10 +287,7 @@ export default function HomePage() {
                         </div>
                       )}
                       <button
-                        onClick={() => {
-                          router.push('/profile');
-                          setShowUserMenu(false);
-                        }}
+                        onClick={() => { router.push('/profile'); setShowUserMenu(false); }}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                       >
                         ✏️ 닉네임 변경
@@ -284,127 +307,220 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-green-50 to-white py-12 sm:py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
-              렌탈 분쟁! 손해 배상!<br />
-              <span className="inline-block">그때 찍어둔 사진, 지금 어디에 있나요?</span>
+      {/* 🎬 직방 스타일 히어로 섹션 - 세로 영상 대응 */}
+      <section className="bg-gray-900 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+          
+          {/* 메인 카피 */}
+          <div className="text-center mb-6 lg:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
+              기록이 없으면, <span className="text-green-400">억울해도 당합니다</span>
             </h1>
-            <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
-              렌터카 반납 시 억울한 수리비 청구?,<br className="sm:hidden" />
-              전월세 퇴거 시 원상복구 분쟁?<br />
-              사진 찍어놨는데, 폰 바꾸면서 다 사라진 적 있죠?<br />
-              그때 찍어둔 사진,영상 지금 어디에 있나요?
+            <p className="text-sm sm:text-base text-gray-400">
+              렌터카, 전월세, 펜션까지 — 모든 렌탈 분쟁을 기록으로 해결하세요
             </p>
+          </div>
+
+          {/* 영상 탭 버튼 */}
+          <div className="flex justify-center gap-2 sm:gap-3 mb-6 lg:mb-8">
+            {videos.map((video, index) => (
+              <button
+                key={video.id}
+                onClick={() => selectVideo(index)}
+                className={`relative px-4 py-2 sm:px-6 sm:py-2.5 rounded-full text-sm sm:text-base font-medium transition-all ${
+                  activeVideo === index
+                    ? 'bg-green-600 text-white shadow-lg shadow-green-600/30'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {video.title}
+              </button>
+            ))}
+          </div>
+
+          {/* 컨텐츠 영역: 영상 (세로) + 슬라이드 */}
+          <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start gap-6 lg:gap-10">
+            
+            {/* 왼쪽: 세로 영상 플레이어 (9:16) - 스마트폰 프레임 */}
+            <div className="relative">
+              {/* 스마트폰 프레임 */}
+              <div className="relative bg-gradient-to-br from-gray-700 to-gray-900 rounded-[2.5rem] sm:rounded-[3rem] p-2 sm:p-3 shadow-2xl">
+                {/* 노치 */}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 sm:w-28 h-5 sm:h-6 bg-gray-900 rounded-b-2xl z-10"></div>
+                
+                {/* 화면 */}
+                <div className="relative bg-black rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden" style={{ width: '260px', height: '462px' }}>
+                  <video
+                    ref={videoRef}
+                    src={videos[activeVideo].videoSrc}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    muted={isMuted}
+                    playsInline
+                    onEnded={handleVideoEnded}
+                  />
+                  
+                  {/* 영상 위 그라데이션 오버레이 */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none"></div>
+                  
+                  {/* 영상 하단 정보 */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white text-sm font-medium mb-1">
+                      {videos[activeVideo].subtitle}
+                    </p>
+                    <p className="text-gray-300 text-xs">
+                      Record365 | {videos[activeVideo].title}
+                    </p>
+                  </div>
+
+                  {/* 컨트롤 버튼 */}
+                  <div className="absolute bottom-4 right-3 flex gap-2">
+                    <button
+                      onClick={toggleMute}
+                      className="w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition"
+                      aria-label={isMuted ? '음소거 해제' : '음소거'}
+                    >
+                      {isMuted ? (
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={togglePause}
+                      className="w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition"
+                      aria-label={isPaused ? '재생' : '일시정지'}
+                    >
+                      {isPaused ? (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 오른쪽: 실제 사용 화면 슬라이드 */}
+            <div className="hidden lg:block">
+              <div className="relative bg-gradient-to-br from-green-600 to-green-700 rounded-[2.5rem] p-3 shadow-2xl" style={{ width: '280px', height: '500px' }}>
+                {/* 노치 */}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-5 bg-green-700 rounded-b-2xl z-10"></div>
+                
+                {/* 내부 컨텐츠 */}
+                <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-[2rem] h-full flex flex-col justify-between p-5 pt-8">
+                  {/* 상단 텍스트 */}
+                  <div>
+                    <h3 className="text-green-100 text-sm font-medium mb-1">실제 사용 화면</h3>
+                    <p className="text-white text-xl font-bold leading-tight">
+                      사진 한 장이<br />
+                      <span className="text-yellow-300">증거</span>가 됩니다
+                    </p>
+                  </div>
+
+                  {/* 스마트폰 목업 */}
+                  <div className="flex justify-center my-3">
+                    <div className="relative" style={{ width: '140px' }}>
+                      <div className="bg-gray-900 rounded-[1.2rem] p-1 shadow-xl">
+                        <div className="bg-white rounded-[1rem] overflow-hidden">
+                          <Image 
+                            src={slides[currentSlide].image}
+                            alt={slides[currentSlide].title}
+                            width={140}
+                            height={300}
+                            className="w-full h-auto transition-opacity duration-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 슬라이드 설명 */}
+                  <div className="text-center">
+                    <p className="text-white font-medium text-sm mb-1">
+                      {slides[currentSlide].title}
+                    </p>
+                    <p className="text-green-100 text-xs">
+                      {slides[currentSlide].description}
+                    </p>
+                  </div>
+
+                  {/* 슬라이드 인디케이터 */}
+                  <div className="flex justify-center gap-1.5 mt-2">
+                    {slides.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        className={`h-1.5 rounded-full transition-all ${
+                          index === currentSlide 
+                            ? 'bg-white w-5' 
+                            : 'bg-white/40 w-1.5 hover:bg-white/60'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA 버튼 */}
+          <div className="text-center mt-8 lg:mt-10">
             <button
               onClick={handleStartNow}
-              className="bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-medium hover:bg-green-700 transition shadow-lg"
+              className="bg-green-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-600/30"
             >
               지금 시작하기 →
             </button>
+            <p className="text-gray-500 text-sm mt-2">무료로 1건 체험해보세요</p>
           </div>
         </div>
       </section>
 
-      {/* 실제 사용 예시 - 1장씩 슬라이드 캐러셀 */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              실제 사용 화면
-            </h2>
-            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-              자동차와 부동산, 모두 간편하게 기록하세요
-            </p>
-          </div>
-
-          {/* 캐러셀 컨테이너 */}
-          <div className="relative overflow-hidden">
-            {/* 슬라이드 래퍼 */}
-            <div 
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${currentSlide * 50}%)` }}
-            >
-              {/* 무한 루프를 위해 슬라이드를 3번 반복 */}
-              {[...slides, ...slides, ...slides].map((slide, index) => (
-                <div key={index} className="w-1/2 flex-shrink-0 px-4">
-                  <div className="relative mx-auto" style={{ maxWidth: '320px' }}>
-                    {/* 스마트폰 프레임 */}
-                    <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-[3rem] p-3 shadow-2xl">
-                      {/* 노치 */}
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
-                      
-                      {/* 화면 */}
-                      <div className="relative bg-white rounded-[2.5rem] overflow-hidden">
-                        <Image 
-                          src={slide.image}
-                          alt={slide.title}
-                          width={300}
-                          height={650}
-                          className="w-full h-auto"
-                        />
-                      </div>
-                    </div>
-
-                    {/* 설명 텍스트 */}
-                    <div className="mt-6 text-center">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-                        {slide.title}
-                      </h3>
-                      <p className="text-sm sm:text-base text-gray-600">
-                        {slide.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* 모바일용 실제 사용 화면 (lg 미만에서만 표시) */}
+      <section className="py-12 bg-gradient-to-b from-gray-900 to-gray-800 lg:hidden">
+        <div className="max-w-md mx-auto px-4">
+          <h2 className="text-xl font-bold text-white text-center mb-6">실제 사용 화면</h2>
+          
+          <div className="relative mx-auto" style={{ maxWidth: '180px' }}>
+            <div className="bg-gray-900 rounded-[1.8rem] p-1.5 shadow-2xl border border-gray-700">
+              <div className="bg-white rounded-[1.4rem] overflow-hidden">
+                <Image 
+                  src={slides[currentSlide].image}
+                  alt={slides[currentSlide].title}
+                  width={180}
+                  height={390}
+                  className="w-full h-auto"
+                />
+              </div>
             </div>
-
-            {/* 좌우 화살표 */}
-            <button
-              onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition z-10 ml-2"
-              aria-label="이전 슬라이드"
-            >
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition z-10 mr-2"
-              aria-label="다음 슬라이드"
-            >
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
           </div>
-
-          {/* 진행 표시 점 */}
-          <div className="flex justify-center gap-2 mt-8">
+          
+          <div className="text-center mt-4">
+            <p className="text-white font-medium">{slides[currentSlide].title}</p>
+            <p className="text-gray-400 text-sm">{slides[currentSlide].description}</p>
+          </div>
+          
+          <div className="flex justify-center gap-2 mt-4">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentSlide 
-                    ? 'bg-green-600 w-8' 
-                    : 'bg-gray-300 hover:bg-gray-400'
+                className={`h-2 rounded-full transition-all ${
+                  index === currentSlide ? 'bg-green-500 w-6' : 'bg-gray-600 w-2'
                 }`}
-                aria-label={`슬라이드 ${index + 1}`}
               />
             ))}
-          </div>
-
-          {/* 하단 강조 문구 */}
-          <div className="mt-12 sm:mt-16 text-center">
-            <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-6 py-3 rounded-full text-sm sm:text-base font-medium">
-              <span className="text-xl">✓</span>
-              <span>사진은 GPS 위치와 시간이 자동으로 기록됩니다</span>
-            </div>
           </div>
         </div>
       </section>
@@ -516,16 +632,16 @@ export default function HomePage() {
             <div className="bg-gray-50 rounded-lg p-6 sm:p-8">
               <div className="flex items-center mb-3 sm:mb-4">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
-                  <span className="text-xl sm:text-2xl">📦</span>
+                  <span className="text-xl sm:text-2xl">🏕️</span>
                 </div>
                 <div>
                   <p className="font-bold text-gray-900 text-sm sm:text-base">박준호님</p>
-                  <p className="text-xs sm:text-sm text-gray-600">물품 대여 사업</p>
+                  <p className="text-xs sm:text-sm text-gray-600">펜션 운영</p>
                 </div>
               </div>
               <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-                "고객들과 분쟁이 확 줄었어요. 서로 투명하게 상태를 확인하니까 
-                신뢰가 생기더라고요. 재방문율도 올랐습니다!"
+                "손님이 퇴실 후 시설 파손을 부인했는데, 입실 전 기록이 있어서 
+                수리비를 정당하게 청구할 수 있었어요."
               </p>
             </div>
 
