@@ -61,6 +61,54 @@ const slides = [
   }
 ];
 
+// 🔥 인앱 브라우저 감지 함수 (컴포넌트 외부에 정의)
+const checkIsInAppBrowser = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = window.navigator.userAgent;
+  const userAgentLower = userAgent.toLowerCase();
+  
+  // 인앱 브라우저 키워드 (대소문자 모두 체크)
+  const inAppKeywords = [
+    'kakaotalk', 'kakao',      // 카카오톡
+    'fbav', 'fban', 'fb_iab',  // 페이스북
+    'instagram',               // 인스타그램
+    'naver', 'naver(',         // 네이버
+    'line',                    // 라인
+    'twitter', 'twitterandroid', // 트위터
+    'snapchat',                // 스냅챗
+    'wechat', 'micromessenger', // 위챗
+    'daum',                    // 다음
+  ];
+  
+  return inAppKeywords.some(keyword => userAgentLower.includes(keyword));
+};
+
+// 🔥 모바일 체크 함수
+const checkIsMobile = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent);
+};
+
+// 🔥 iOS 체크 함수
+const checkIsIOS = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod/.test(userAgent);
+};
+
+// 🔥 Standalone(PWA) 모드 체크 함수
+const checkIsStandalone = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  return window.matchMedia('(display-mode: standalone)').matches 
+    || (window.navigator as any).standalone 
+    || document.referrer.includes('android-app://');
+};
+
 export default function LandingV2Page() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -80,10 +128,6 @@ export default function LandingV2Page() {
 
   // 🔥 PWA 관련 상태
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isInAppBrowser, setIsInAppBrowser] = useState(false); // 🔥 인앱 브라우저 감지
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [showAppInstalledModal, setShowAppInstalledModal] = useState(false);
   const [showUseAppModal, setShowUseAppModal] = useState(false);
@@ -101,52 +145,8 @@ export default function LandingV2Page() {
     return () => unsubscribe();
   }, []);
 
-  // 🔥 PWA 관련 체크
+  // 🔥 PWA 설치 프롬프트 캡처
   useEffect(() => {
-    // 모바일 체크
-    const checkMobile = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      const mobileKeywords = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/;
-      setIsMobile(mobileKeywords.test(userAgent));
-    };
-    checkMobile();
-
-    // iOS 체크
-    const checkIOS = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      setIsIOS(/iphone|ipad|ipod/.test(userAgent));
-    };
-    checkIOS();
-
-    // 🔥 인앱 브라우저 체크 (카카오톡, 페이스북, 인스타그램, 네이버 등)
-    const checkInAppBrowser = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      const inAppKeywords = [
-        'kakaotalk',  // 카카오톡
-        'fbav',       // 페이스북
-        'fban',       // 페이스북
-        'instagram',  // 인스타그램
-        'naver',      // 네이버
-        'line',       // 라인
-        'twitter',    // 트위터
-        'snapchat',   // 스냅챗
-        'wechat',     // 위챗
-        'micromessenger', // 위챗
-      ];
-      const isInApp = inAppKeywords.some(keyword => userAgent.includes(keyword));
-      setIsInAppBrowser(isInApp);
-    };
-    checkInAppBrowser();
-
-    // PWA(Standalone) 모드 체크
-    const checkStandalone = () => {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches 
-        || (window.navigator as any).standalone 
-        || document.referrer.includes('android-app://');
-      setIsStandalone(standalone);
-    };
-    checkStandalone();
-
     // Android 설치 프롬프트 캡처
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -213,8 +213,14 @@ export default function LandingV2Page() {
     }
   };
 
-  // 🔥 핵심: 앱 유도 로직 (인앱 브라우저 예외 처리 추가)
+  // 🔥 핵심: 앱 유도 로직 (함수 내에서 직접 체크)
   const handleAppAction = async (targetPath: string) => {
+    // 🔥 함수 실행 시점에 직접 체크 (상태값 의존 X)
+    const isMobile = checkIsMobile();
+    const isStandalone = checkIsStandalone();
+    const isInAppBrowser = checkIsInAppBrowser();
+    const isIOS = checkIsIOS();
+
     // PC인 경우 → 기존 로직
     if (!isMobile) {
       router.push(targetPath);
