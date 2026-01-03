@@ -46,8 +46,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        <meta name="naver-site-verification" content="7468b8d5368e139e785aec481aead82bc6e45a8e" />
-        <link rel="manifest" href="/manifest.json" />
+      <meta name="naver-site-verification" content="7468b8d5368e139e785aec481aead82bc6e45a8e" />
+  <meta name="google-site-verification" content="c8Y8PsJSeMrTyBwpfhS99nBHil8RBQ7YM5_o9_XlHv8" />
+  <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Record 365" />
