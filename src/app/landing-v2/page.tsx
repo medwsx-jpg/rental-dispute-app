@@ -65,39 +65,50 @@ const slides = [
 const checkIsInAppBrowser = (): boolean => {
   if (typeof window === 'undefined') return false;
   
-  const userAgent = window.navigator.userAgent;
-  const userAgentLower = userAgent.toLowerCase();
+  const ua = window.navigator.userAgent;
   
-  // 인앱 브라우저 키워드 (대소문자 모두 체크)
-  const inAppKeywords = [
-    'kakaotalk', 'kakao',      // 카카오톡
-    'fbav', 'fban', 'fb_iab',  // 페이스북
-    'instagram',               // 인스타그램
-    'naver', 'naver(',         // 네이버
-    'line',                    // 라인
-    'twitter', 'twitterandroid', // 트위터
-    'snapchat',                // 스냅챗
-    'wechat', 'micromessenger', // 위챗
-    'daum',                    // 다음
+  // 🔥 인앱 브라우저 키워드 (대소문자 구분 없이 체크)
+  // 카카오톡: KAKAOTALK, (INAPP)
+  // 페이스북: FBAV, FBAN
+  // 인스타그램: Instagram
+  // 네이버: NAVER
+  // 라인: Line
+  
+  const inAppPatterns = [
+    /KAKAOTALK/i,      // 카카오톡 (대소문자 무시)
+    /\(INAPP\)/i,      // (INAPP) 표시
+    /FBAV/i,           // 페이스북
+    /FBAN/i,           // 페이스북
+    /FB_IAB/i,         // 페이스북
+    /Instagram/i,      // 인스타그램
+    /NAVER\(/i,        // 네이버앱
+    /NAVER /i,         // 네이버앱
+    /NaverApp/i,       // 네이버앱
+    /Line\//i,         // 라인
+    /Twitter/i,        // 트위터
+    /Snapchat/i,       // 스냅챗
+    /WeChat/i,         // 위챗
+    /MicroMessenger/i, // 위챗
+    /DaumApps/i,       // 다음앱
   ];
   
-  return inAppKeywords.some(keyword => userAgentLower.includes(keyword));
+  return inAppPatterns.some(pattern => pattern.test(ua));
 };
 
 // 🔥 모바일 체크 함수
 const checkIsMobile = (): boolean => {
   if (typeof window === 'undefined') return false;
   
-  const userAgent = window.navigator.userAgent.toLowerCase();
-  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent);
+  const ua = window.navigator.userAgent;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 };
 
 // 🔥 iOS 체크 함수
 const checkIsIOS = (): boolean => {
   if (typeof window === 'undefined') return false;
   
-  const userAgent = window.navigator.userAgent.toLowerCase();
-  return /iphone|ipad|ipod/.test(userAgent);
+  const ua = window.navigator.userAgent;
+  return /iPhone|iPad|iPod/i.test(ua);
 };
 
 // 🔥 Standalone(PWA) 모드 체크 함수
