@@ -78,6 +78,16 @@ export default function LandingV2Page() {
   // 슬라이드 관련 상태
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // 🔥 PWA 관련 상태
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false); // 🔥 인앱 브라우저 감지
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showAppInstalledModal, setShowAppInstalledModal] = useState(false);
+  const [showUseAppModal, setShowUseAppModal] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -89,6 +99,70 @@ export default function LandingV2Page() {
       setLoading(false);
     });
     return () => unsubscribe();
+  }, []);
+
+  // 🔥 PWA 관련 체크
+  useEffect(() => {
+    // 모바일 체크
+    const checkMobile = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const mobileKeywords = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/;
+      setIsMobile(mobileKeywords.test(userAgent));
+    };
+    checkMobile();
+
+    // iOS 체크
+    const checkIOS = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      setIsIOS(/iphone|ipad|ipod/.test(userAgent));
+    };
+    checkIOS();
+
+    // 🔥 인앱 브라우저 체크 (카카오톡, 페이스북, 인스타그램, 네이버 등)
+    const checkInAppBrowser = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const inAppKeywords = [
+        'kakaotalk',  // 카카오톡
+        'fbav',       // 페이스북
+        'fban',       // 페이스북
+        'instagram',  // 인스타그램
+        'naver',      // 네이버
+        'line',       // 라인
+        'twitter',    // 트위터
+        'snapchat',   // 스냅챗
+        'wechat',     // 위챗
+        'micromessenger', // 위챗
+      ];
+      const isInApp = inAppKeywords.some(keyword => userAgent.includes(keyword));
+      setIsInAppBrowser(isInApp);
+    };
+    checkInAppBrowser();
+
+    // PWA(Standalone) 모드 체크
+    const checkStandalone = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches 
+        || (window.navigator as any).standalone 
+        || document.referrer.includes('android-app://');
+      setIsStandalone(standalone);
+    };
+    checkStandalone();
+
+    // Android 설치 프롬프트 캡처
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // 설치 완료 감지
+    window.addEventListener('appinstalled', () => {
+      setDeferredPrompt(null);
+      setShowAppInstalledModal(true);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   // 슬라이드 자동 전환 (4초마다)
@@ -139,12 +213,67 @@ export default function LandingV2Page() {
     }
   };
 
+  // 🔥 핵심: 앱 유도 로직 (인앱 브라우저 예외 처리 추가)
+  const handleAppAction = async (targetPath: string) => {
+    // PC인 경우 → 기존 로직
+    if (!isMobile) {
+      router.push(targetPath);
+      return;
+    }
+
+    // 모바일 + PWA 앱에서 접속한 경우 → 기존 로직
+    if (isStandalone) {
+      router.push(targetPath);
+      return;
+    }
+
+    // 🔥 모바일 + 인앱 브라우저 (카카오톡 등) → 기존 로직으로 이동
+    if (isInAppBrowser) {
+      router.push(targetPath);
+      return;
+    }
+
+    // 모바일 + 일반 브라우저 → 앱 유도
+    // iOS인 경우 → 설치 가이드 모달
+    if (isIOS) {
+      setShowIOSGuide(true);
+      return;
+    }
+
+    // Android인 경우
+    if (deferredPrompt) {
+      // 미설치 → 설치 프롬프트 표시
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          // 설치 완료 → 모달은 appinstalled 이벤트에서 처리
+          setDeferredPrompt(null);
+        } else {
+          // 설치 거부 → 그래도 앱 사용 유도
+          setShowUseAppModal(true);
+        }
+      } catch (error) {
+        console.error('설치 프롬프트 오류:', error);
+        setShowUseAppModal(true);
+      }
+    } else {
+      // 이미 설치됨 (브라우저에서 접속) → 앱 실행 유도
+      setShowUseAppModal(true);
+    }
+  };
+
   const handleMyRentals = () => {
-    router.push(user ? '/dashboard' : '/login');
+    handleAppAction(user ? '/dashboard' : '/login');
   };
 
   const handleStartNow = () => {
-    router.push(user ? '/dashboard' : '/login');
+    handleAppAction(user ? '/dashboard' : '/login');
+  };
+
+  const handleLogin = () => {
+    handleAppAction('/login');
   };
 
   const handleLogout = async () => {
@@ -256,7 +385,7 @@ export default function LandingV2Page() {
 
               {!user ? (
                 <button
-                  onClick={() => router.push('/login')}
+                  onClick={handleLogin}
                   className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-green-700 transition"
                 >
                   로그인
@@ -691,6 +820,145 @@ export default function LandingV2Page() {
           </div>
         </div>
       </footer>
+
+      {/* 🔥 iOS 설치 가이드 모달 */}
+      {showIOSGuide && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 animate-slide-up">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">📱 앱 설치하기</h3>
+              <button
+                onClick={() => setShowIOSGuide(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-gray-600 mb-4">
+              Record365를 홈 화면에 추가하면 앱처럼 사용할 수 있어요!
+            </p>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-lg font-bold text-green-600">
+                  1
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">하단 공유 버튼 탭</p>
+                  <p className="text-sm text-gray-500">Safari 하단의 📤 버튼</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-lg font-bold text-green-600">
+                  2
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">"홈 화면에 추가" 선택</p>
+                  <p className="text-sm text-gray-500">스크롤해서 찾아보세요</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-lg font-bold text-green-600">
+                  3
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">"추가" 탭</p>
+                  <p className="text-sm text-gray-500">우측 상단 버튼</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-yellow-50 rounded-xl">
+              <p className="text-sm text-yellow-800">
+                💡 <strong>카카오톡에서 열었다면?</strong><br />
+                우측 상단 ⋮ → "Safari에서 열기"를 먼저 선택하세요!
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowIOSGuide(false)}
+              className="w-full mt-6 py-3 bg-green-600 text-white rounded-xl font-bold"
+            >
+              확인했어요
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 앱 설치 완료 모달 */}
+      {showAppInstalledModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center animate-scale-up">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">✅</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">앱이 설치되었습니다!</h3>
+            <p className="text-gray-600 mb-6">
+              홈 화면에서 <strong>Record365</strong> 앱을 실행해주세요
+            </p>
+            <button
+              onClick={() => setShowAppInstalledModal(false)}
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 앱 실행 유도 모달 (이미 설치됨 / 설치 거부) */}
+      {showUseAppModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center animate-scale-up">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">📱</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">앱에서 실행해주세요</h3>
+            <p className="text-gray-600 mb-6">
+              홈 화면에서 <strong>Record365</strong> 앱을 찾아 실행해주세요.<br />
+              <span className="text-sm text-gray-500">앱이 없다면 홈 화면에 추가해주세요!</span>
+            </p>
+            <button
+              onClick={() => setShowUseAppModal(false)}
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes scale-up {
+          from {
+            transform: scale(0.9);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+        .animate-scale-up {
+          animation: scale-up 0.2s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
