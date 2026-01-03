@@ -2,7 +2,7 @@
   "name": "Record 365",
   "short_name": "Record365",
   "description": "렌탈 분쟁 방지 앱",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#FDD643",
   "theme_color": "#FDD643",
