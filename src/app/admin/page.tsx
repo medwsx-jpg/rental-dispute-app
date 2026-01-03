@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc, getDoc, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc, getDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
 
 interface User {
   id: string;
@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [userMessages, setUserMessages] = useState<Record<string, MessageThread>>({});
+  const [notificationStatus, setNotificationStatus] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
   const [stats, setStats] = useState({
     totalUsers: 0,
     freeUsers: 0,
@@ -105,6 +106,66 @@ export default function AdminPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+// 🔔 신규 회원 가입 실시간 알림
+useEffect(() => {
+  if (!isAdmin) return;
+
+  // 알림 권한 상태 확인
+  if ('Notification' in window) {
+    setNotificationStatus(Notification.permission);
+    
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then((permission) => {
+        setNotificationStatus(permission);
+      });
+    }
+  } else {
+    setNotificationStatus('unsupported');
+  }
+  // users 컬렉션 실시간 구독
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, orderBy('createdAt', 'desc'));
+  
+  let isFirstLoad = true;
+  let previousUserCount = 0;
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const currentCount = snapshot.docs.length;
+    
+    // 첫 로드가 아니고, 사용자 수가 증가했을 때
+    if (!isFirstLoad && currentCount > previousUserCount) {
+      // 새로 추가된 문서들 찾기
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const newUser = change.doc.data();
+          
+          // 5분 이내 가입자만 알림 (과거 데이터 제외)
+          const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+          if (newUser.createdAt > fiveMinutesAgo) {
+            
+            // 브라우저 알림
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('🎉 신규 회원 가입!', {
+                body: `${newUser.nickname || newUser.email || '새 회원'}님이 가입했습니다.\n${newUser.provider === 'kakao' ? '카카오' : '이메일'} 가입`,
+                icon: '/icon-192x192.png',
+                tag: 'new-user-' + change.doc.id, // 중복 알림 방지
+              });
+            }
+            
+            // 데이터 새로고침
+            loadData();
+          }
+        }
+      });
+    }
+    
+    previousUserCount = currentCount;
+    isFirstLoad = false;
+  });
+
+  return () => unsubscribe();
+}, [isAdmin]);
 
   const loadData = async () => {
     try {
@@ -715,6 +776,38 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+
+{/* 🔔 알림 상태 표시 */}
+{isAdmin && (
+  <div className={`mb-4 p-3 rounded-lg flex items-center justify-between ${
+    notificationStatus === 'granted'
+      ? 'bg-green-50 border border-green-200'
+      : 'bg-yellow-50 border border-yellow-200'
+  }`}>
+    <div className="flex items-center gap-2">
+      <span className="text-lg">🔔</span>
+      <span className="text-sm font-medium">
+        {notificationStatus === 'granted'
+          ? '신규 회원 알림 활성화됨 (브라우저 켜두면 알림 수신)'
+          : notificationStatus === 'denied'
+          ? '알림이 차단되었습니다. 브라우저 설정에서 허용해주세요.'
+          : '신규 회원 알림이 꺼져있습니다'}
+      </span>
+    </div>
+    {notificationStatus !== 'granted' && notificationStatus !== 'denied' && (
+      <button
+        onClick={() => {
+          Notification.requestPermission().then((permission) => {
+            setNotificationStatus(permission);
+          });
+        }}
+        className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700"
+      >
+        알림 켜기
+      </button>
+    )}
+  </div>
+)}
 
         {/* 검색 및 필터 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
