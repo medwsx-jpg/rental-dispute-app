@@ -149,7 +149,8 @@ useEffect(() => {
               new Notification('🎉 신규 회원 가입!', {
                 body: `${newUser.nickname || newUser.email || '새 회원'}님이 가입했습니다.\n${newUser.provider === 'kakao' ? '카카오' : '이메일'} 가입`,
                 icon: '/icon-192x192.png',
-                tag: 'new-user-' + change.doc.id, // 중복 알림 방지
+                tag: 'new-user-' + change.doc.id,
+                requireInteraction: true,  // ⭐ 이 줄 추가 - 직접 닫을 때까지 유지
               });
             }
             
