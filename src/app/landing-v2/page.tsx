@@ -166,10 +166,13 @@ export default function LandingV2Page() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // 설치 완료 감지
-    window.addEventListener('appinstalled', () => {
-      setDeferredPrompt(null);
+   // 수정 - 1.5초 딜레이 추가
+window.addEventListener('appinstalled', () => {
+    setDeferredPrompt(null);
+    setTimeout(() => {
       setShowAppInstalledModal(true);
-    });
+    }, 1500);
+  });
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
