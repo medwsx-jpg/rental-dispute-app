@@ -623,16 +623,25 @@ window.addEventListener('appinstalled', () => {
             </div>
           </div>
 
-          {/* CTA 버튼 */}
-          <div className="text-center mt-8 lg:mt-10">
-            <button
-              onClick={handleStartNow}
-              className="bg-green-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-600/30"
-            >
-              지금 시작하기 →
-            </button>
-            <p className="text-gray-500 text-sm mt-2">기록해 두길 잘했다. </p>
-          </div>
+         {/* CTA 버튼 */}
+<div className="text-center mt-8 lg:mt-10">
+  <button
+    onClick={handleStartNow}
+    className="bg-green-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-600/30"
+  >
+    지금 시작하기 →
+  </button>
+  
+  {/* 공감 문구 */}
+  <div className="mt-6">
+    <p className="text-2xl sm:text-3xl text-white font-bold mb-2">
+      " 기록해 두길 <span className="text-green-400">잘했다</span> "
+    </p>
+    <p className="text-gray-400 text-sm">
+      분쟁 해결 후, 사용자들이 가장 많이 한 말입니다
+    </p>
+  </div>
+</div>
         </div>
       </section>
 
