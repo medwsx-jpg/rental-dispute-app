@@ -832,10 +832,16 @@ export default function LandingV2Page() {
           <span className="text-gray-400">주소:</span> 충청남도 천안시 동남구 풍세면 풍세산단로 290
         </p>
         <p>
-          <span className="text-gray-400">대표번호:</span> 000-0000-0000
-          <span className="text-gray-600 mx-2">|</span>
-          <span className="text-gray-400">이메일:</span> support@record365.co.kr
-        </p>
+  <span className="text-gray-400">담당자 문의:</span> medwsx@gmail.com
+  <span className="text-gray-600 mx-2">/</span>
+  010-6832-4158
+</p>
+<p>
+  <span className="text-gray-400">상담가능시간:</span> 평일 09:00 ~ 18:00 (그 외 이메일문의)
+</p>
+<p className="mt-2 text-gray-400">
+  본 서비스 Record365는 디오에서 운영하는 전자계약 및 렌탈 기록 보관 서비스입니다.
+</p>
       </div>
 
       {/* 저작권 */}
