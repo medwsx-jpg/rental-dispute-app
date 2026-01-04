@@ -631,7 +631,7 @@ window.addEventListener('appinstalled', () => {
             >
               지금 시작하기 →
             </button>
-            <p className="text-gray-500 text-sm mt-2">무료로 1건 체험해보세요</p>
+            <p className="text-gray-500 text-sm mt-2">기록해 두길 잘했다. </p>
           </div>
         </div>
       </section>
