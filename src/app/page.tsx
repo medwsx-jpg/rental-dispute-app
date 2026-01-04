@@ -841,7 +841,7 @@ export default function LandingV2Page() {
       {/* 저작권 */}
       <div className="mt-6 pt-4 border-t border-gray-800">
         <p className="text-gray-500 text-xs">
-          © {new Date().getFullYear()} DIO. All rights reserved.
+        © 2025 DIO. All rights reserved.
         </p>
       </div>
     </div>
