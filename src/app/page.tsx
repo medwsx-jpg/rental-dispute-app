@@ -785,14 +785,68 @@ export default function LandingV2Page() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 py-8 sm:py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-gray-400">
-            <p className="mb-2 text-sm sm:text-base">© 2025 Record365.co.kr. All rights reserved.</p>
-            <p className="text-xs sm:text-sm">렌탈 분쟁, 이제 기록으로 해결하세요</p>
-          </div>
-        </div>
-      </footer>
+<footer className="bg-gray-900 pt-8 pb-6 sm:pt-12 sm:pb-8">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    {/* 상단 링크 */}
+    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 pb-6 border-b border-gray-700">
+      <button 
+        onClick={() => router.push('/terms')}
+        className="text-sm text-gray-400 hover:text-white transition"
+      >
+        서비스 이용약관
+      </button>
+      <span className="text-gray-600">|</span>
+      <button 
+        onClick={() => router.push('/privacy')}
+        className="text-sm text-gray-400 hover:text-white transition font-bold"
+      >
+        개인정보처리방침
+      </button>
+      <span className="text-gray-600">|</span>
+      <button 
+        onClick={() => router.push('/guide')}
+        className="text-sm text-gray-400 hover:text-white transition"
+      >
+        사용가이드
+      </button>
+    </div>
+
+    {/* 사업자 정보 */}
+    <div className="pt-6 text-center sm:text-left">
+      <p className="text-gray-400 text-sm mb-3">
+        <span className="font-semibold text-gray-300">Record365</span>
+        <span className="text-gray-600 mx-2">|</span>
+        전자계약 및 렌탈 기록 보관 서비스
+      </p>
+      
+      <div className="text-gray-500 text-xs sm:text-sm space-y-1">
+        <p>
+          <span className="text-gray-400">상호명:</span> 디오
+          <span className="text-gray-600 mx-2">|</span>
+          <span className="text-gray-400">대표:</span> 오운석
+          <span className="text-gray-600 mx-2">|</span>
+          <span className="text-gray-400">사업자등록번호:</span> 135-26-72358
+        </p>
+        <p>
+          <span className="text-gray-400">주소:</span> 충청남도 천안시 동남구 풍세면 풍세산단로 290
+        </p>
+        <p>
+          <span className="text-gray-400">대표번호:</span> 000-0000-0000
+          <span className="text-gray-600 mx-2">|</span>
+          <span className="text-gray-400">이메일:</span> support@record365.co.kr
+        </p>
+      </div>
+
+      {/* 저작권 */}
+      <div className="mt-6 pt-4 border-t border-gray-800">
+        <p className="text-gray-500 text-xs">
+          © {new Date().getFullYear()} DIO. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
 
       {/* 🔥 iOS 설치 가이드 모달 */}
       {showIOSGuide && (
