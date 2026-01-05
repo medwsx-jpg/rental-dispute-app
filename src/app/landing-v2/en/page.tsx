@@ -420,11 +420,11 @@ export default function LandingV2Page() {
           {/* 메인 카피 */}
           <div className="text-center mb-6 lg:mb-8">
           <h1>
-  Without records, <span>you have no proof</span>
-</h1>
-<p>
-  Car rentals, housing, pensions — solve all rental disputes with records
-</p>
+          Without records, <span className="text-green-400">you have no proof</span>
+            </h1>
+            <p className="text-sm sm:text-base text-gray-400">
+            Car rentals, housing, pensions — solve all rental disputes with records
+            </p>
           </div>
 
           {/* 영상 탭 버튼 */}
