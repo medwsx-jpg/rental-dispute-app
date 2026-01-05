@@ -6,6 +6,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
+import LanguageSelector from '@/components/LanguageSelector'; // 🔥 추가
 
 interface UserData {
   email: string;
@@ -353,7 +354,10 @@ window.addEventListener('appinstalled', () => {
             </div>
 
             <div className="flex items-center gap-3 sm:gap-6 w-full md:w-auto justify-around md:justify-end">
-              <button
+  {/* 🔥 언어 선택 추가 */}
+  <LanguageSelector />
+  
+  <button
                 onClick={() => router.push('/guide')}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
               >
