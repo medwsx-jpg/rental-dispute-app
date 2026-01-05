@@ -417,15 +417,17 @@ export default function LandingV2Page() {
       <section className="bg-gray-900 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
           
-          {/* 메인 카피 */}
-          <div className="text-center mb-6 lg:mb-8">
-          <h1>
-  Without records, <span>you have no proof</span>
-</h1>
-<p>
-  Car rentals, housing, pensions — solve all rental disputes with records
-</p>
+         {/* 메인 카피 */}
+         <div className="text-center mb-6 lg:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
+          
+          Without records, <span className="text-green-400">you have no proof</span>
+            </h1>
+            <p className="text-sm sm:text-base text-gray-400">
+            Car rentals, housing, pensions — solve all rental disputes with records
+            </p>
           </div>
+
 
           {/* 영상 탭 버튼 */}
           <div className="flex justify-center gap-2 sm:gap-3 mb-6 lg:mb-8">
