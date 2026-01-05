@@ -43,10 +43,10 @@ export default function LanguageSelector() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm sm:text-base"
-      >
+     <button
+  onClick={() => setIsOpen(!isOpen)}
+  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border-2 border-green-600 text-green-700 hover:bg-green-100 transition text-sm sm:text-base font-medium"
+>
         <span>{currentLang.flag}</span>
         <span className="hidden sm:inline">{currentLang.name}</span>
         <svg 
