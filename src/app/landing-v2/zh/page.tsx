@@ -317,6 +317,14 @@ export default function LandingV2Page() {
                 使用指南
               </button>
 
+              {/* 🔥 추가 */}
+<button
+  onClick={() => router.push('/zh/proxy-service')}
+  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
+>
+  代理服务
+</button>
+
               <button
                 onClick={handleMyRentals}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"

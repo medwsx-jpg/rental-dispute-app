@@ -317,6 +317,14 @@ export default function LandingV2Page() {
                 사용가이드
               </button>
 
+{/* 🔥 이 아래에 추가 */}
+<button
+  onClick={() => router.push('/proxy-service')}
+  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
+>
+  대행서비스
+</button>
+
               <button
                 onClick={handleMyRentals}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"

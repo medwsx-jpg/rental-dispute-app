@@ -364,6 +364,14 @@ window.addEventListener('appinstalled', () => {
                 사용가이드
               </button>
 
+{/* 🔥 대행서비스 추가 */}
+<button
+  onClick={() => router.push('/proxy-service')}
+  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
+>
+  대행서비스
+</button>
+
               <button
                 onClick={handleMyRentals}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
