@@ -319,7 +319,7 @@ export default function LandingV2Page() {
   <button onClick={() => router.push('/')} className="text-xl md:text-2xl font-bold text-green-600">
     Record365.co.kr
   </button>
-  <div className="flex items-center gap-3">
+  <div className="flex items-center gap-6">
     <LanguageSelector />
     <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
       使用指南
