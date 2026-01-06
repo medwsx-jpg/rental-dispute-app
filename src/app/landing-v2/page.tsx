@@ -7,6 +7,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import LanguageSelector from '@/components/LanguageSelector'; // 🔥 추가
+import MobileTabBar from '@/components/MobileTabBar'; // 🔥 추가
 
 interface UserData {
   email: string;
@@ -341,132 +342,99 @@ window.addEventListener('appinstalled', () => {
   return (
     <div className="min-h-screen bg-white">
       {/* 네비게이션 */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
-            <div className="hidden md:flex items-center">
-              <button 
-                onClick={() => router.push('/')}
-                className="text-xl md:text-2xl font-bold text-green-600 hover:text-green-700 transition"
-              >
-                Record365.co.kr
+<nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    {/* 모바일 메뉴 */}
+    <div className="md:hidden flex items-center justify-between h-14">
+      <LanguageSelector />
+      <button onClick={() => router.push('/')} className="text-lg font-bold text-green-600">
+        Record365
+      </button>
+      {!user ? (
+        <button onClick={handleLogin} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium">
+          로그인
+        </button>
+      ) : (
+        <button onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium">
+          내정보
+        </button>
+      )}
+    </div>
+
+    {/* 데스크톱 메뉴 */}
+    <div className="hidden md:flex justify-between items-center h-14">
+      <button onClick={() => router.push('/')} className="text-xl md:text-2xl font-bold text-green-600">
+        Record365.co.kr
+      </button>
+      <div className="flex items-center gap-3">
+        <LanguageSelector />
+        <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+          사용가이드
+        </button>
+        <button onClick={() => router.push('/proxy-service')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+          대행서비스
+        </button>
+        <button onClick={handleMyRentals} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+          내 렌탈
+        </button>
+        
+        <div className="relative board-menu-container">
+          <button onClick={(e) => { e.stopPropagation(); setShowBoardMenu(!showBoardMenu); }} className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1">
+            게시판
+            <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+          </button>
+          {showBoardMenu && (
+            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
+              <button onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                💬 채팅
+              </button>
+              <button onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                🚗 렌탈 분쟁사례
+              </button>
+              <button onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                🏠 부동산 분쟁사례
               </button>
             </div>
+          )}
+        </div>
 
-            <div className="flex items-center gap-3 sm:gap-6 w-full md:w-auto justify-around md:justify-end">
-  {/* 🔥 언어 선택 추가 */}
-  <LanguageSelector />
-  
-  <button
-                onClick={() => router.push('/guide')}
-                className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
-              >
-                사용가이드
-              </button>
-
-{/* 🔥 대행서비스 추가 */}
-<button
-  onClick={() => router.push('/proxy-service')}
-  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
->
-  대행서비스
-</button>
-
-              <button
-                onClick={handleMyRentals}
-                className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
-              >
-                내 렌탈
-              </button>
-
-              <div className="relative board-menu-container">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowBoardMenu(!showBoardMenu);
-                  }}
-                  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition flex items-center gap-1"
-                >
-                  게시판
-                  <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
-                </button>
-
-                {showBoardMenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <button
-                      onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
-                    >
-                      💬 채팅
-                    </button>
-                    <button
-                      onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
-                    >
-                      🚗 렌탈 분쟁사례
-                    </button>
-                    <button
-                      onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
-                    >
-                      🏠 부동산 분쟁사례
-                    </button>
+        {!user ? (
+          <button onClick={handleLogin} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium">
+            로그인
+          </button>
+        ) : (
+          <div className="relative user-menu-container">
+            <button onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }} className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1">
+              내정보
+              <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
+            </button>
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
+                <div className="px-4 py-2 border-b">
+                  <p className="text-xs text-gray-500">로그인 계정</p>
+                  <p className="text-sm text-gray-900 truncate">{user.email}</p>
+                </div>
+                {userData && (
+                  <div className="px-4 py-2 border-b">
+                    <p className="text-xs text-gray-500">닉네임</p>
+                    <p className="text-sm text-gray-900">{userData.nickname}</p>
                   </div>
                 )}
-              </div>
-
-              {!user ? (
-                <button
-                  onClick={handleLogin}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-green-700 transition"
-                >
-                  로그인
+                <button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  ✏️ 닉네임 변경
                 </button>
-              ) : (
-                <div className="relative user-menu-container">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowUserMenu(!showUserMenu);
-                    }}
-                    className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition flex items-center gap-1"
-                  >
-                    내정보
-                    <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
-                  </button>
-
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-xs text-gray-500">로그인 계정</p>
-                        <p className="text-sm text-gray-900 truncate">{user.email}</p>
-                      </div>
-                      {userData && (
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <p className="text-xs text-gray-500">닉네임</p>
-                          <p className="text-sm text-gray-900">{userData.nickname}</p>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => { router.push('/profile'); setShowUserMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        ✏️ 닉네임 변경
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
-                      >
-                        🚪 로그아웃
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                  🚪 로그아웃
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      </nav>
+        )}
+      </div>
+    </div>
+  </div>
+</nav>
 
       {/* 🎬 직방 스타일 히어로 섹션 - 세로 영상 대응 */}
       <section className="bg-gray-900 relative">
@@ -1032,7 +1000,9 @@ window.addEventListener('appinstalled', () => {
         </div>
       )}
 
-      <style jsx>{`
+<MobileTabBar language="ko" />
+
+<style jsx>{`
         @keyframes slide-up {
           from {
             transform: translateY(100%);
