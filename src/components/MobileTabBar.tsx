@@ -1,6 +1,9 @@
 'use client';
+
+import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface MobileTabBarProps {
   language?: 'ko' | 'en' | 'zh';
@@ -10,163 +13,324 @@ export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [showAllMenu, setShowAllMenu] = useState(false);
+  const [showBoardSubmenu, setShowBoardSubmenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  // 언어별 경로 접두사
-  const langPrefix = language === 'ko' ? '' : `/${language}`;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  // 언어별 텍스트
   const texts = {
     ko: {
+      language: '한국어',
       home: '홈',
-      guide: '가이드',
       proxy: '대행서비스',
-      rentals: '내렌탈',
-      all: '전체'
+      myRentals: '내렌탈',
+      all: '전체',
+      guide: '사용가이드',
+      notice: '공지사항',
+      board: '게시판',
+      boardChat: '채팅',
+      boardRental: '렌탈 분쟁사례',
+      boardHouse: '부동산 분쟁사례',
+      settings: '설정',
+      loginRequired: '로그인이 필요합니다',
+      flag: '🇰🇷'
     },
     en: {
+      language: 'English',
       home: 'Home',
-      guide: 'Guide',
       proxy: 'Proxy',
-      rentals: 'Rentals',
-      all: 'All'
+      myRentals: 'My Rentals',
+      all: 'All',
+      guide: 'Guide',
+      notice: 'Notice',
+      board: 'Board',
+      boardChat: 'Chat',
+      boardRental: 'Rental Cases',
+      boardHouse: 'Property Cases',
+      settings: 'Settings',
+      loginRequired: 'Login Required',
+      flag: '🇺🇸'
     },
     zh: {
-      home: '首页',
-      guide: '指南',
+      language: '中文',
+      home: '主页',
       proxy: '代理',
-      rentals: '租赁',
-      all: '全部'
+      myRentals: '我的租赁',
+      all: '全部',
+      guide: '使用指南',
+      notice: '公告',
+      board: '讨论区',
+      boardChat: '聊天',
+      boardRental: '租赁案例',
+      boardHouse: '房产案例',
+      settings: '设置',
+      loginRequired: '需要登录',
+      flag: '🇨🇳'
     }
   };
 
   const t = texts[language];
 
-  // 현재 경로 확인
-  const isActive = (path: string) => {
-    if (path === langPrefix || path === '/') {
-      return pathname === path || pathname === langPrefix + '/';
+  const handleMyRentals = () => {
+    if (!user) {
+      alert(t.loginRequired);
+      router.push('/login');
+      return;
     }
-    return pathname.startsWith(langPrefix + path);
+    router.push('/dashboard');
   };
 
-  // 전체 메뉴 항목
-  const allMenuItems = [
-    { label: language === 'ko' ? '사용 가이드' : language === 'en' ? 'User Guide' : '使用指南', path: '/guide' },
-    { label: language === 'ko' ? '대행서비스' : language === 'en' ? 'Proxy Service' : '代理服务', path: '/proxy-service' },
-    { label: language === 'ko' ? '게시판' : language === 'en' ? 'Board' : '公告板', path: '/board' },
-    { label: language === 'ko' ? '공지사항' : language === 'en' ? 'Notice' : '通知', path: '/notice' },
-    { label: language === 'ko' ? '설정' : language === 'en' ? 'Settings' : '设置', path: '/settings' },
-  ];
+  const handleLanguageChange = (lang: 'ko' | 'en' | 'zh') => {
+    const currentPath = pathname;
+    let newPath = currentPath;
+
+    if (lang === 'ko') {
+      newPath = currentPath.replace(/^\/(en|zh)/, '');
+      if (newPath === '') newPath = '/';
+    } else if (lang === 'en') {
+      if (currentPath.startsWith('/zh')) {
+        newPath = currentPath.replace('/zh', '/en');
+      } else if (!currentPath.startsWith('/en')) {
+        newPath = '/en' + currentPath;
+      }
+    } else if (lang === 'zh') {
+      if (currentPath.startsWith('/en')) {
+        newPath = currentPath.replace('/en', '/zh');
+      } else if (!currentPath.startsWith('/zh')) {
+        newPath = '/zh' + currentPath;
+      }
+    }
+
+    setShowLanguageMenu(false);
+    router.push(newPath);
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return pathname === '/' || pathname === '/en' || pathname === '/zh';
+    }
+    return pathname.includes(path);
+  };
 
   return (
     <>
-      {/* 하단 탭바 - 모바일 전용 */}
+      {/* 모바일 탭바 */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="flex items-center justify-around h-16">
-          {/* 홈 */}
+        <div className="flex items-center justify-around h-16 px-2">
+          
+          {/* 언어선택 */}
           <button
-            onClick={() => router.push(langPrefix || '/')}
-            className={`flex-1 h-full flex flex-col items-center justify-center transition ${
-              isActive(langPrefix || '/') ? 'text-green-600' : 'text-gray-600'
-            }`}
+            onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+            className="flex flex-col items-center justify-center flex-1 py-2 relative"
           >
-            <span className={`text-sm font-medium ${isActive(langPrefix || '/') ? 'font-bold' : ''}`}>
-              {t.home}
+            <span className="text-xl mb-0.5">{t.flag}</span>
+            <span className={`text-xs ${showLanguageMenu ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+              {t.language}
             </span>
           </button>
 
-          {/* 가이드 */}
+          {/* 홈 */}
           <button
-            onClick={() => router.push(`${langPrefix}/guide`)}
-            className={`flex-1 h-full flex flex-col items-center justify-center transition ${
-              isActive('/guide') ? 'text-green-600' : 'text-gray-600'
-            }`}
+            onClick={() => router.push(language === 'ko' ? '/' : `/${language}`)}
+            className="flex flex-col items-center justify-center flex-1 py-2"
           >
-            <span className={`text-sm font-medium ${isActive('/guide') ? 'font-bold' : ''}`}>
-              {t.guide}
+            <span className={`text-sm ${isActive('/') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+              {t.home}
             </span>
           </button>
 
           {/* 대행서비스 */}
           <button
-            onClick={() => router.push(`${langPrefix}/proxy-service`)}
-            className={`flex-1 h-full flex flex-col items-center justify-center transition ${
-              isActive('/proxy-service') ? 'text-green-600' : 'text-gray-600'
-            }`}
+            onClick={() => router.push(language === 'ko' ? '/proxy-service' : `/${language}/proxy-service`)}
+            className="flex flex-col items-center justify-center flex-1 py-2"
           >
-            <span className={`text-sm font-medium ${isActive('/proxy-service') ? 'font-bold' : ''}`}>
+            <span className={`text-sm ${isActive('/proxy-service') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
               {t.proxy}
             </span>
           </button>
 
           {/* 내렌탈 */}
           <button
-            onClick={() => {
-              const phoneNumber = localStorage.getItem('phoneNumber');
-              if (!phoneNumber) {
-                alert(language === 'ko' ? '로그인이 필요합니다.' : language === 'en' ? 'Login required.' : '需要登录。');
-                router.push(`${langPrefix}/login`);
-              } else {
-                router.push(`${langPrefix}/my-rentals`);
-              }
-            }}
-            className={`flex-1 h-full flex flex-col items-center justify-center transition ${
-              isActive('/my-rentals') ? 'text-green-600' : 'text-gray-600'
-            }`}
+            onClick={handleMyRentals}
+            className="flex flex-col items-center justify-center flex-1 py-2"
           >
-            <span className={`text-sm font-medium ${isActive('/my-rentals') ? 'font-bold' : ''}`}>
-              {t.rentals}
+            <span className={`text-sm ${isActive('/dashboard') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+              {t.myRentals}
             </span>
           </button>
 
           {/* 전체 */}
           <button
             onClick={() => setShowAllMenu(true)}
-            className="flex-1 h-full flex flex-col items-center justify-center text-gray-600 transition hover:text-green-600"
+            className="flex flex-col items-center justify-center flex-1 py-2"
           >
-            <span className="text-xl mb-0.5">☰</span>
-            <span className="text-xs font-medium">{t.all}</span>
+            <span className="text-xl mb-0.5 text-gray-600">☰</span>
+            <span className="text-xs text-gray-600">{t.all}</span>
           </button>
         </div>
       </div>
 
+      {/* 언어 선택 드롭다운 */}
+      {showLanguageMenu && (
+        <>
+          <div 
+            className="fixed inset-0 z-40"
+            onClick={() => setShowLanguageMenu(false)}
+          />
+          <div className="fixed bottom-20 left-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+            <button
+              onClick={() => handleLanguageChange('ko')}
+              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition"
+            >
+              <span className="text-xl">🇰🇷</span>
+              <span className="text-sm text-gray-700">한국어</span>
+            </button>
+            <button
+              onClick={() => handleLanguageChange('en')}
+              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition border-t border-gray-100"
+            >
+              <span className="text-xl">🇺🇸</span>
+              <span className="text-sm text-gray-700">English</span>
+            </button>
+            <button
+              onClick={() => handleLanguageChange('zh')}
+              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition border-t border-gray-100"
+            >
+              <span className="text-xl">🇨🇳</span>
+              <span className="text-sm text-gray-700">中文</span>
+            </button>
+          </div>
+        </>
+      )}
+
       {/* 전체 메뉴 모달 */}
       {showAllMenu && (
-        <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowAllMenu(false)}>
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[70vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* 헤더 */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">{t.all}</h2>
-              <button
-                onClick={() => setShowAllMenu(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* 메뉴 리스트 */}
-            <div className="p-4">
-              {allMenuItems.map((item) => (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => {
+              setShowAllMenu(false);
+              setShowBoardSubmenu(false);
+            }}
+          />
+          <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 animate-slide-up max-h-[70vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-gray-900">{t.all}</h3>
                 <button
-                  key={item.path}
                   onClick={() => {
-                    router.push(langPrefix + item.path);
+                    setShowAllMenu(false);
+                    setShowBoardSubmenu(false);
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {/* 사용가이드 */}
+                <button
+                  onClick={() => {
+                    router.push(language === 'ko' ? '/guide' : `/${language}/guide`);
                     setShowAllMenu(false);
                   }}
-                  className="w-full text-left px-4 py-4 hover:bg-gray-50 rounded-lg transition flex items-center justify-between"
+                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
                 >
-                  <span className="text-gray-900 font-medium">{item.label}</span>
-                  <span className="text-gray-400">›</span>
+                  <span className="text-gray-700">📖 {t.guide}</span>
                 </button>
-              ))}
+
+                {/* 공지사항 */}
+                <button
+                  onClick={() => {
+                    router.push(language === 'ko' ? '/notice' : `/${language}/notice`);
+                    setShowAllMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
+                >
+                  <span className="text-gray-700">📢 {t.notice}</span>
+                </button>
+
+                {/* 게시판 */}
+                <div>
+                  <button
+                    onClick={() => setShowBoardSubmenu(!showBoardSubmenu)}
+                    className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center justify-between"
+                  >
+                    <span className="text-gray-700">💬 {t.board}</span>
+                    <span className="text-xs text-gray-500">{showBoardSubmenu ? '▲' : '▼'}</span>
+                  </button>
+                  
+                  {showBoardSubmenu && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <button
+                        onClick={() => {
+                          router.push('/board/chat');
+                          setShowAllMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm text-gray-600"
+                      >
+                        💬 {t.boardChat}
+                      </button>
+                      <button
+                        onClick={() => {
+                          router.push('/board/rentalcases');
+                          setShowAllMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm text-gray-600"
+                      >
+                        🚗 {t.boardRental}
+                      </button>
+                      <button
+                        onClick={() => {
+                          router.push('/board/housecases');
+                          setShowAllMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm text-gray-600"
+                      >
+                        🏠 {t.boardHouse}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 설정 */}
+                <button
+                  onClick={() => {
+                    alert('설정 페이지는 준비 중입니다');
+                    setShowAllMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
+                >
+                  <span className="text-gray-700">⚙️ {t.settings}</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
+
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 }
