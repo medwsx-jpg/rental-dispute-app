@@ -962,7 +962,7 @@ export default function LandingV2Page() {
           </div>
         </div>
       )}
-<MobileTabBar language="zh" />
+
       <style jsx>{`
         @keyframes slide-up {
           from {

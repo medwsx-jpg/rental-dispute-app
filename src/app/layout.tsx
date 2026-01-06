@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import PWAInstall from "@/components/PWAInstall";
+import MobileTabBar from "@/components/MobileTabBar";  // 🔥 추가
 
 export const metadata: Metadata = {
   title: "Record 365 - 렌탈 분쟁 해결",
@@ -46,9 +47,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-      <meta name="naver-site-verification" content="7468b8d5368e139e785aec481aead82bc6e45a8e" />
-  <meta name="google-site-verification" content="c8Y8PsJSeMrTyBwpfhS99nBHil8RBQ7YM5_o9_XlHv8" />
-  <link rel="manifest" href="/manifest.json" />
+        <meta name="naver-site-verification" content="7468b8d5368e139e785aec481aead82bc6e45a8e" />
+        <meta name="google-site-verification" content="c8Y8PsJSeMrTyBwpfhS99nBHil8RBQ7YM5_o9_XlHv8" />
+        <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Record 365" />
@@ -59,7 +60,7 @@ export default function RootLayout({
         ></script>
       </head>
       <body className="antialiased">
-      <Script id="kakao-init" strategy="afterInteractive">
+        <Script id="kakao-init" strategy="afterInteractive">
           {`
             function initKakao() {
               try {
@@ -86,6 +87,7 @@ export default function RootLayout({
           `}
         </Script>
         {children}
+        <MobileTabBar />  {/* 🔥 추가 */}
         <PWAInstall />
       </body>
     </html>

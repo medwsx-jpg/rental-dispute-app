@@ -1011,7 +1011,7 @@ window.addEventListener('appinstalled', () => {
         </div>
       )}
 
-<MobileTabBar language="ko" />
+
 
 <style jsx>{`
         @keyframes slide-up {

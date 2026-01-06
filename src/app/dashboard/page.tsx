@@ -409,7 +409,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <InAppBrowserGuide />
       
-      <header className="bg-white shadow-sm">
+      <header className="hidden bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 

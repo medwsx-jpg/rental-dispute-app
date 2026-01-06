@@ -2,27 +2,52 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
-interface MobileTabBarProps {
-  language?: 'ko' | 'en' | 'zh';
+interface UserData {
+  email: string;
+  nickname: string;
+  freeRentalsUsed: number;
+  isPremium: boolean;
+  createdAt: number;
 }
 
-export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
+export default function MobileTabBar() {  // ← language prop 제거
   const router = useRouter();
   const pathname = usePathname();
   const [showAllMenu, setShowAllMenu] = useState(false);
   const [showBoardSubmenu, setShowBoardSubmenu] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  // 🔥 pathname으로 언어 자동 감지
+  const language = pathname.startsWith('/en') ? 'en' : pathname.startsWith('/zh') ? 'zh' : 'ko';
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        await loadUserData(currentUser.uid);
+      } else {
+        setUserData(null);
+      }
     });
     return () => unsubscribe();
   }, []);
+
+  const loadUserData = async (userId: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data() as UserData);
+      }
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  };
 
   const texts = {
     ko: {
@@ -37,7 +62,11 @@ export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
       boardChat: '채팅',
       boardRental: '렌탈 분쟁사례',
       boardHouse: '부동산 분쟁사례',
-      settings: '설정',
+      myInfo: '내정보',
+      loginAccount: '로그인 계정',
+      nickname: '닉네임',
+      editNickname: '닉네임 변경',
+      logout: '로그아웃',
       loginRequired: '로그인이 필요합니다',
       flag: '🇰🇷'
     },
@@ -53,7 +82,11 @@ export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
       boardChat: 'Chat',
       boardRental: 'Rental Cases',
       boardHouse: 'Property Cases',
-      settings: 'Settings',
+      myInfo: 'My Info',
+      loginAccount: 'Login Account',
+      nickname: 'Nickname',
+      editNickname: 'Edit Nickname',
+      logout: 'Logout',
       loginRequired: 'Login Required',
       flag: '🇺🇸'
     },
@@ -69,7 +102,11 @@ export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
       boardChat: '聊天',
       boardRental: '租赁案例',
       boardHouse: '房产案例',
-      settings: '设置',
+      myInfo: '我的信息',
+      loginAccount: '登录账号',
+      nickname: '昵称',
+      editNickname: '修改昵称',
+      logout: '登出',
       loginRequired: '需要登录',
       flag: '🇨🇳'
     }
@@ -84,6 +121,13 @@ export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
       return;
     }
     router.push('/dashboard');
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setUser(null);
+    setUserData(null);
+    setShowAllMenu(false);
   };
 
   const handleLanguageChange = (lang: 'ko' | 'en' | 'zh') => {
@@ -300,16 +344,51 @@ export default function MobileTabBar({ language = 'ko' }: MobileTabBarProps) {
                   )}
                 </div>
 
-                {/* 설정 */}
-                <button
-                  onClick={() => {
-                    alert('설정 페이지는 준비 중입니다');
-                    setShowAllMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
-                >
-                  <span className="text-gray-700">⚙️ {t.settings}</span>
-                </button>
+                {/* 내정보 */}
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  {!user ? (
+                    <button
+                      onClick={() => {
+                        router.push('/login');
+                        setShowAllMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      <span className="text-gray-700">👤 {t.myInfo}</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="px-4 py-2 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">{t.loginAccount}</p>
+                        <p className="text-sm text-gray-900 truncate">{user.email}</p>
+                      </div>
+                      
+                      {userData && (
+                        <div className="px-4 py-2 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-500 mb-1">{t.nickname}</p>
+                          <p className="text-sm text-gray-900">{userData.nickname}</p>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          router.push('/profile');
+                          setShowAllMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition text-gray-700"
+                      >
+                        ✏️ {t.editNickname}
+                      </button>
+                      
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition text-red-600"
+                      >
+                        🚪 {t.logout}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
