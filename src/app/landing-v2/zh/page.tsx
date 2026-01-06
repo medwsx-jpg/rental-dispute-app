@@ -297,128 +297,94 @@ export default function LandingV2Page() {
       {/* 네비게이션 */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
-            <div className="hidden md:flex items-center">
-              <button 
-                onClick={() => router.push('/')}
-                className="text-xl md:text-2xl font-bold text-green-600 hover:text-green-700 transition"
-              >
-                Record365.co.kr
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-6 w-full md:w-auto justify-around md:justify-end">
-  {/* 🔥 언어 선택 추가 */}
+          {/* 移动端菜单 */}
+<div className="md:hidden flex items-center justify-between h-14">
   <LanguageSelector />
-  
-  <button
-                onClick={() => router.push('/guide')}
-                className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
-              >
-                使用指南
-              </button>
+  <button onClick={() => router.push('/')} className="text-lg font-bold text-green-600">
+    Record365
+  </button>
+  {!user ? (
+    <button onClick={handleLogin} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium">
+      登录
+    </button>
+  ) : (
+    <button onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium">
+      我的信息
+    </button>
+  )}
+</div>
 
-              {/* 🔥 추가 */}
-<button
-  onClick={() => router.push('/zh/proxy-service')}
-  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
->
-  代理服务
-</button>
+{/* 桌面端菜单 */}
+<div className="hidden md:flex justify-between items-center h-14">
+  <button onClick={() => router.push('/')} className="text-xl md:text-2xl font-bold text-green-600">
+    Record365.co.kr
+  </button>
+  <div className="flex items-center gap-3">
+    <LanguageSelector />
+    <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+      使用指南
+    </button>
+    <button onClick={() => router.push('/zh/proxy-service')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+      代理服务
+    </button>
+    <button onClick={handleMyRentals} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+      我的租赁
+    </button>
+    
+    <div className="relative board-menu-container">
+      <button onClick={(e) => { e.stopPropagation(); setShowBoardMenu(!showBoardMenu); }} className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1">
+        讨论区
+        <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+      </button>
+      {showBoardMenu && (
+        <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
+          <button onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+            💬 聊天
+          </button>
+          <button onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+            🚗 租赁案例
+          </button>
+          <button onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+            🏠 房产案例
+          </button>
+        </div>
+      )}
+    </div>
 
-              <button
-                onClick={handleMyRentals}
-                className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
-              >
-                我的租赁
-              </button>
-
-              <div className="relative board-menu-container">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowBoardMenu(!showBoardMenu);
-                  }}
-                  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition flex items-center gap-1"
-                >
-                  讨论区
-                  <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
-                </button>
-
-                {showBoardMenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <button
-                      onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
-                    >
-                      💬 聊天
-                    </button>
-                    <button
-                      onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
-                    >
-                      🚗 租赁纠纷案例
-                    </button>
-                    <button
-                      onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition"
-                    >
-                      🏠 房产纠纷案例
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {!user ? (
-                <button
-                  onClick={handleLogin}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-green-700 transition"
-                >
-                  登录
-                </button>
-              ) : (
-                <div className="relative user-menu-container">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowUserMenu(!showUserMenu);
-                    }}
-                    className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition flex items-center gap-1"
-                  >
-                    我的信息
-                    <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
-                  </button>
-
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-xs text-gray-500">登录账户</p>
-                        <p className="text-sm text-gray-900 truncate">{user.email}</p>
-                      </div>
-                      {userData && (
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <p className="text-xs text-gray-500">昵称</p>
-                          <p className="text-sm text-gray-900">{userData.nickname}</p>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => { router.push('/profile'); setShowUserMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        ✏️ 修改昵称
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
-                      >
-                        🚪 登出
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+    {!user ? (
+      <button onClick={handleLogin} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium">
+        登录
+      </button>
+    ) : (
+      <div className="relative user-menu-container">
+        <button onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }} className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1">
+          我的信息
+          <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
+        </button>
+        {showUserMenu && (
+          <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
+            <div className="px-4 py-2 border-b">
+              <p className="text-xs text-gray-500">登录账号</p>
+              <p className="text-sm text-gray-900 truncate">{user.email}</p>
             </div>
+            {userData && (
+              <div className="px-4 py-2 border-b">
+                <p className="text-xs text-gray-500">昵称</p>
+                <p className="text-sm text-gray-900">{userData.nickname}</p>
+              </div>
+            )}
+            <button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              ✏️ 修改昵称
+            </button>
+            <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+              🚪 登出
+            </button>
           </div>
+        )}
+      </div>
+    )}
+  </div>
+</div>
         </div>
       </nav>
 
