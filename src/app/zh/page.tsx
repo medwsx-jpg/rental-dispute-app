@@ -7,6 +7,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import LanguageSelector from '@/components/LanguageSelector'; // 🔥 추가
+import MobileTabBar from '@/components/MobileTabBar';
 
 interface UserData {
   email: string;
@@ -984,7 +985,7 @@ export default function LandingV2Page() {
           </div>
         </div>
       )}
-
+<MobileTabBar language="zh" />
       <style jsx>{`
         @keyframes slide-up {
           from {
