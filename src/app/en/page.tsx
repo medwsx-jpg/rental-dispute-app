@@ -317,6 +317,14 @@ export default function LandingV2Page() {
                 User Guide
               </button>
 
+              {/* 🔥 추가 */}
+<button
+  onClick={() => router.push('/en/proxy-service')}
+  className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
+>
+  Proxy Service
+</button>
+
               <button
                 onClick={handleMyRentals}
                 className="text-sm sm:text-base text-gray-700 hover:text-green-600 font-medium transition"
