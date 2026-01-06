@@ -57,7 +57,7 @@ export default function ProxyServicePage() {
               <div className="text-center p-3">
                 <span className="text-3xl block mb-2">💰</span>
                 <p className="font-medium text-gray-900 mb-1">合理价格</p>
-                <p className="text-sm text-gray-600">每次30,000韩元（首尔/京畿基准）</p>
+                <p className="text-sm text-gray-600">每次50,000韩元（首尔/京畿基准）</p>
               </div>
             </div>
           </div>

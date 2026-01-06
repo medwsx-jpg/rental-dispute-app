@@ -58,7 +58,7 @@ export default function ProxyServicePage() {
     <div className="text-center p-3">
       <span className="text-3xl block mb-2">💰</span>
       <p className="font-medium text-gray-900 mb-1">합리적인 가격</p>
-      <p className="text-sm text-gray-600">1회 30,000원 (서울/경기 기준)</p>
+      <p className="text-sm text-gray-600">1회 50,000원 (서울/경기 기준)</p>
     </div>
   </div>
 </div>

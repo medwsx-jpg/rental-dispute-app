@@ -57,7 +57,7 @@ export default function ProxyServicePage() {
               <div className="text-center p-3">
                 <span className="text-3xl block mb-2">💰</span>
                 <p className="font-medium text-gray-900 mb-1">Reasonable Price</p>
-                <p className="text-sm text-gray-600">30,000 KRW per session (Seoul/Gyeonggi)</p>
+                <p className="text-sm text-gray-600">50,000 KRW per session (Seoul/Gyeonggi)</p>
               </div>
             </div>
           </div>
