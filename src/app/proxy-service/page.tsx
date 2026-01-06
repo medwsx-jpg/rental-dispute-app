@@ -162,12 +162,12 @@ export default function ProxyServicePage() {
 
         {/* CTA 버튼 */}
         <div className="sticky bottom-4">
-          <button
-            onClick={() => alert('🚧 준비 중입니다!\n\n곧 신청 기능이 추가될 예정입니다.\n카카오톡으로 먼저 문의해주세요: @record365')}
-            className="w-full py-4 bg-green-600 text-white rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg"
-          >
-            💬 카카오톡으로 문의하기
-          </button>
+        <button
+  onClick={() => window.open('http://pf.kakao.com/_ezNQn/chat', '_blank')}
+  className="w-full py-4 bg-green-600 text-white rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg"
+>
+  💬 카카오톡으로 문의하기
+</button>
           
           <p className="text-center text-xs text-gray-500 mt-2">
             또는 전화 문의: 010-6832-4158
