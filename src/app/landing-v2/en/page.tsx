@@ -628,40 +628,51 @@ export default function LandingV2Page() {
           How to Use
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12">
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">📸</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">1. Record Before Pickup</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              Record the condition of rental items with photos before receiving them.
-              Time and location are automatically saved.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12">
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">📸</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">1. Record Before Pickup</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      Record the condition of rental items with photos before receiving them.
+      Time and location are automatically saved.
+    </p>
+  </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">📤</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">2. Record After Return</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              Take photos the same way when returning.
-  Compare Before and After to see the difference at a glance.
-              </p>
-            </div>
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">📤</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">2. Record After Return</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      Take photos the same way when returning.
+      Compare Before and After to see the difference at a glance.
+    </p>
+  </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">✍️</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">3. Electronic Signature</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              When both parties complete electronic signatures, it becomes legally valid evidence.
-              It becomes a powerful weapon in case of disputes.
-              </p>
-            </div>
-          </div>
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">✍️</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">3. Electronic Signature</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      When both parties complete electronic signatures, it becomes legally valid evidence.
+      It becomes a powerful weapon in case of disputes.
+    </p>
+  </div>
+
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">🤝</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">4. Proxy Service</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      Don't have time or find it difficult? 
+      Experts will inspect for you and keep records until contract expiration.
+    </p>
+  </div>
+</div>
         </div>
       </section>
 

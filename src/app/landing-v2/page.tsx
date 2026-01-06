@@ -670,40 +670,51 @@ window.addEventListener('appinstalled', () => {
             이렇게 사용하세요
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12">
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">📸</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">1. 받기 전 촬영</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                렌탈 물품을 받기 전, 상태를 사진으로 꼼꼼히 기록하세요. 
-                시간과 위치가 자동으로 저장됩니다.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12">
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">📸</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">1. 받기 전 촬영</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      렌탈 물품을 받기 전, 상태를 사진으로 꼼꼼히 기록하세요. 
+      시간과 위치가 자동으로 저장됩니다.
+    </p>
+  </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">📤</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">2. 반납 후 촬영</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                반납할 때도 같은 방식으로 촬영하세요.
-                Before와 After를 비교하면 차이가 한눈에 보입니다.
-              </p>
-            </div>
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">📤</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">2. 반납 후 촬영</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      반납할 때도 같은 방식으로 촬영하세요.
+      Before와 After를 비교하면 차이가 한눈에 보입니다.
+    </p>
+  </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">✍️</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">3. 전자 서명</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                양측이 전자 서명을 완료하면 법적 효력이 있는 증거가 됩니다.
-                분쟁 발생 시 강력한 무기가 됩니다.
-              </p>
-            </div>
-          </div>
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">✍️</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">3. 전자 서명</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      양측이 전자 서명을 완료하면 법적 효력이 있는 증거가 됩니다.
+      분쟁 발생 시 강력한 무기가 됩니다.
+    </p>
+  </div>
+
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">🤝</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">4. 대행서비스</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      시간이 없거나 어려우신가요? 
+      전문가가 대신 점검하고, 계약만료시 까지 기록/보관 해드립니다.
+    </p>
+  </div>
+</div>
         </div>
       </section>
 

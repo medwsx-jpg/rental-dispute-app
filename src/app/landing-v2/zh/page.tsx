@@ -622,40 +622,51 @@ export default function LandingV2Page() {
           使用方法
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12">
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">📸</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">1. 领取前拍摄</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              领取租赁物品前，用照片仔细记录状态。
-              时间和位置会自动保存。
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12">
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">📸</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">1. 领取前拍摄</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      在领取租赁物品之前，用照片详细记录状态。
+      时间和位置会自动保存。
+    </p>
+  </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">📤</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">2. 归还后拍摄</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              归还时也用同样方式拍摄。
-              比较前后，一目了然看出差异。
-              </p>
-            </div>
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">📤</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">2. 归还后拍摄</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      归还时也用同样的方式拍摄。
+      比较前后照片，一目了然。
+    </p>
+  </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <span className="text-3xl sm:text-4xl">✍️</span>
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">3. 电子签名</h3>
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              双方完成电子签名后，即成为具有法律效力的证据。
-              发生纠纷时成为强有力的武器。
-              </p>
-            </div>
-          </div>
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">✍️</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">3. 电子签名</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      双方完成电子签名后，就成为具有法律效力的证据。
+      发生纠纷时成为有力武器。
+    </p>
+  </div>
+
+  <div className="text-center">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full hidden sm:flex items-center justify-center mx-auto mb-4 sm:mb-6">
+      <span className="text-3xl sm:text-4xl">🤝</span>
+    </div>
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">4. 代理服务</h3>
+    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      没有时间或觉得困难？
+      专家代为检查，并保存记录直至合同到期。
+    </p>
+  </div>
+</div>
         </div>
       </section>
 
