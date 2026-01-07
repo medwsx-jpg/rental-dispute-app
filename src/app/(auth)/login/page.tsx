@@ -296,33 +296,47 @@ function LoginForm() {
   <input
     type="text"
     value={userId}
-    onChange={(e) => setUserId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+    onChange={(e) => setUserId(e.target.value.toLowerCase())}
     placeholder="minsu123"
     required
     disabled={loading}
     maxLength={20}
-    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${
+      /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(userId) ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
+    }`}
   />
-  {/* 🔥 안내 메시지 추가 */}
-  <p className="text-xs text-gray-500 mt-1">
-    💡 영문 소문자, 숫자, 밑줄(_)만 사용 가능
-  </p>
+  {/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(userId) ? (
+    <p className="text-orange-500 text-xs mt-1 font-medium">
+      ⚠️ 한글은 사용할 수 없습니다. 영문 키보드로 전환해주세요!
+    </p>
+  ) : (
+    <p className="text-xs text-gray-500 mt-1">
+      💡 영문 소문자, 숫자, 밑줄(_)만 사용 가능
+    </p>
+  )}
 </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                비밀번호
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                disabled={loading}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-              />
-            </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    비밀번호
+  </label>
+  <input
+    type="password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    placeholder="••••••••"
+    required
+    disabled={loading}
+    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${
+      /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(password) ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
+    }`}
+  />
+  {/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(password) && (
+    <p className="text-orange-500 text-xs mt-1 font-medium">
+      ⚠️ 한글은 사용할 수 없습니다. 영문 키보드로 전환해주세요!
+    </p>
+  )}
+</div>
 
             <button
               type="submit"
