@@ -670,20 +670,32 @@ export default function DashboardPage() {
     const progress = getProgressInfo(rental);
     return (
       <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 flex gap-4">
-        {/* 왼쪽: 큰 미리보기 사진 */}
-        <div className="flex-shrink-0">
-          {rental.checkIn.photos.length > 0 ? (
+        {/* 왼쪽: 미리보기 사진 3장 */}
+<div className="flex-shrink-0 flex gap-2">
+  {rental.checkIn.photos.length > 0 ? (
+    <>
+      {[0, 1, 2].map((index) => (
+        <div key={index} className="w-24 h-24 md:w-32 md:h-32">
+          {rental.checkIn.photos[index] ? (
             <img 
-              src={rental.checkIn.photos[0].url} 
-              alt={rental.title}
-              className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg shadow-sm"
+              src={rental.checkIn.photos[index].url} 
+              alt={`${rental.title} ${index + 1}`}
+              className="w-full h-full object-cover rounded-lg shadow-sm"
             />
           ) : (
-            <div className="w-32 h-32 md:w-40 md:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-5xl">{getRentalIcon(rental.type)}</span>
+            <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+              <span className="text-gray-400 text-xs">없음</span>
             </div>
           )}
         </div>
+      ))}
+    </>
+  ) : (
+    <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+      <span className="text-4xl">{getRentalIcon(rental.type)}</span>
+    </div>
+  )}
+</div>
 
         {/* 오른쪽: 정보 + 버튼 */}
         <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -732,20 +744,32 @@ export default function DashboardPage() {
                     <div className="space-y-4">
   {partnerRentals.map((rental) => (
     <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 flex gap-4">
-      {/* 왼쪽: 큰 미리보기 사진 */}
-      <div className="flex-shrink-0">
-        {rental.checkIn.photos.length > 0 ? (
-          <img 
-            src={rental.checkIn.photos[0].url} 
-            alt={rental.title}
-            className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg shadow-sm"
-          />
-        ) : (
-          <div className="w-32 h-32 md:w-40 md:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-            <span className="text-5xl">{getRentalIcon(rental.type)}</span>
-          </div>
-        )}
-      </div>
+      {/* 왼쪽: 미리보기 사진 3장 */}
+<div className="flex-shrink-0 flex gap-2">
+  {rental.checkIn.photos.length > 0 ? (
+    <>
+      {[0, 1, 2].map((index) => (
+        <div key={index} className="w-24 h-24 md:w-32 md:h-32">
+          {rental.checkIn.photos[index] ? (
+            <img 
+              src={rental.checkIn.photos[index].url} 
+              alt={`${rental.title} ${index + 1}`}
+              className="w-full h-full object-cover rounded-lg shadow-sm"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+              <span className="text-gray-400 text-xs">없음</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  ) : (
+    <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+      <span className="text-4xl">{getRentalIcon(rental.type)}</span>
+    </div>
+  )}
+</div>
 
       {/* 오른쪽: 정보 + 버튼 */}
       <div className="flex-1 min-w-0 flex flex-col justify-between">
