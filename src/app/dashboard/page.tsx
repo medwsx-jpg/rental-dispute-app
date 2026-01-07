@@ -409,115 +409,92 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <InAppBrowserGuide />
       
-      <header className="hidden md:block bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => router.push('/guide')}
-              className="text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-            >
-              📖 사용가이드
-            </button>
-            
-            <div className="relative board-menu-container">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowBoardMenu(!showBoardMenu);
-                }}
-                className="flex items-center gap-2 text-lg font-bold text-gray-900 hover:text-blue-600 transition"
-              >
-                📋 게시판
-                <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+      <header className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center h-14">
+      <button onClick={() => router.push('/')} className="text-xl md:text-2xl font-bold text-green-600">
+        Record365.co.kr
+      </button>
+      <div className="flex items-center gap-6">
+        <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+          사용가이드
+        </button>
+        <button onClick={() => router.push('/proxy-service')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+          대행서비스
+        </button>
+        <button onClick={() => router.push('/')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+          홈
+        </button>
+        
+        <div className="relative board-menu-container">
+          <button 
+            onClick={(e) => { e.stopPropagation(); setShowBoardMenu(!showBoardMenu); }} 
+            className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1"
+          >
+            게시판
+            <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+          </button>
+          {showBoardMenu && (
+            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
+              <button onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                💬 채팅
               </button>
-              
-              {showBoardMenu && (
-                <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                  <button
-                    onClick={() => {
-                      router.push('/board/chat');
-                      setShowBoardMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
-                  >
-                    💬 채팅
-                  </button>
-                  <button
-                    onClick={() => {
-                      router.push('/board/rentalcases');
-                      setShowBoardMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
-                  >
-                    🚗 렌탈 분쟁사례
-                  </button>
-                  <button
-                    onClick={() => {
-                      router.push('/board/housecases');
-                      setShowBoardMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
-                  >
-                    🏠 부동산 분쟁사례
-                  </button>
-                </div>
-              )}
+              <button onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                🚗 렌탈 분쟁사례
+              </button>
+              <button onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                🏠 부동산 분쟁사례
+              </button>
             </div>
-          </div>
-
-          <div className="relative user-menu-container">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowUserMenu(!showUserMenu);
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
-            >
-              <span className="text-lg text-gray-700">내정보</span>
-              <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
-            </button>
-            
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-xs text-gray-500">로그인 계정</p>
-                  <p className="text-sm text-gray-900 truncate">{user?.email}</p>
-                </div>
-                
-                {/* 🔥 수정: 사용자 타입 배지 추가 */}
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-xs text-gray-500">닉네임</p>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
-                    {userData?.userType === 'business' && (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                        🤝 빌려주는
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    router.push('/profile');
-                    setShowUserMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                >
-                  ✏️ 닉네임 변경
-                </button>
-                
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
-                >
-                  🚪 로그아웃
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      </header>
+
+        <div className="relative user-menu-container">
+          <button 
+            onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+            className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1"
+          >
+            내정보
+            <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
+          </button>
+          {showUserMenu && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
+              <div className="px-4 py-2 border-b">
+                <p className="text-xs text-gray-500">로그인 계정</p>
+                <p className="text-sm text-gray-900 truncate">{user?.email}</p>
+              </div>
+              <div className="px-4 py-2 border-b">
+                <p className="text-xs text-gray-500">닉네임</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
+                  {userData?.userType === 'business' && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                      🤝 빌려주는
+                    </span>
+                  )}
+                </div>
+              </div>
+              {userData && !userData.isPremium && (
+                <button 
+                  onClick={() => { router.push('/payment'); setShowUserMenu(false); }} 
+                  className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 font-medium"
+                >
+                  ⭐ 프리미엄 구독 <span className="text-xs text-orange-500">(준비중)</span>
+                </button>
+              )}
+              <button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                ✏️ 닉네임 변경
+              </button>
+              <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                🚪 로그아웃
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {isPremium ? (
