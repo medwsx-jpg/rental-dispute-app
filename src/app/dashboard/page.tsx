@@ -760,24 +760,24 @@ export default function DashboardPage() {
                                     {getActionButton(rental)}
                                   </div>
                                 </div>
-                              ) : (
-                                <div>
-                                  <div className="flex gap-2 flex-wrap mb-4">
-                                    {rental.checkIn.photos.length > 0 ? (
-                                      rental.checkIn.photos.slice(0, 6).map((photo, index) => (
-                                        <img 
-                                          key={index}
-                                          src={photo.url} 
-                                          alt={`${rental.title} ${index + 1}`}
-                                          className="w-36 h-36 object-cover rounded-lg shadow-sm"
-                                        />
-                                      ))
-                                    ) : (
-                                      <div className="w-36 h-36 bg-gray-100 rounded-lg flex items-center justify-center">
-                                        <span className="text-5xl">{getRentalIcon(rental.type)}</span>
-                                      </div>
-                                    )}
+                          ) : (
+                            <div>
+                              <div className="grid grid-cols-4 gap-3 mb-4">
+                                {rental.checkIn.photos.length > 0 ? (
+                                  rental.checkIn.photos.slice(0, 4).map((photo, index) => (
+                                    <img 
+                                      key={index}
+                                      src={photo.url} 
+                                      alt={`${rental.title} ${index + 1}`}
+                                      className="w-full aspect-square object-cover rounded-lg shadow-sm"
+                                    />
+                                  ))
+                                ) : (
+                                  <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-5xl">{getRentalIcon(rental.type)}</span>
                                   </div>
+                                )}
+                              </div>
                                   <div className="flex items-start justify-between mb-2">
                                     <h3 className="font-bold text-gray-900 text-lg">{rental.title}</h3>
                                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -893,24 +893,24 @@ export default function DashboardPage() {
                                   </button>
                                 </div>
                               </div>
-                            ) : (
-                              <div>
-                                <div className="flex gap-2 flex-wrap mb-4">
-                                  {rental.checkIn.photos.length > 0 ? (
-                                    rental.checkIn.photos.slice(0, 6).map((photo, index) => (
-                                      <img 
-                                        key={index}
-                                        src={photo.url} 
-                                        alt={`${rental.title} ${index + 1}`}
-                                        className="w-36 h-36 object-cover rounded-lg shadow-sm"
-                                      />
-                                    ))
-                                  ) : (
-                                    <div className="w-36 h-36 bg-gray-100 rounded-lg flex items-center justify-center">
-                                      <span className="text-5xl">{getRentalIcon(rental.type)}</span>
-                                    </div>
-                                  )}
-                                </div>
+                          ) : (
+                            <div>
+                              <div className="grid grid-cols-4 gap-3 mb-4">
+                                {rental.checkIn.photos.length > 0 ? (
+                                  rental.checkIn.photos.slice(0, 4).map((photo, index) => (
+                                    <img 
+                                      key={index}
+                                      src={photo.url} 
+                                      alt={`${rental.title} ${index + 1}`}
+                                      className="w-full aspect-square object-cover rounded-lg shadow-sm"
+                                    />
+                                  ))
+                                ) : (
+                                  <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-5xl">{getRentalIcon(rental.type)}</span>
+                                  </div>
+                                )}
+                              </div>
                                 <div className="flex items-start justify-between mb-2">
                                   <h3 className="font-bold text-gray-900 text-lg">{rental.title}</h3>
                                   {getStatusBadge(rental)}
