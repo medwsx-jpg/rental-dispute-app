@@ -670,29 +670,40 @@ export default function DashboardPage() {
     const progress = getProgressInfo(rental);
     return (
       <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 flex gap-4">
-        {/* 왼쪽: 미리보기 사진 3장 */}
+      {/* 왼쪽: 미리보기 사진 (모바일 1장, 웹 3장) */}
 <div className="flex-shrink-0 flex gap-2">
   {rental.checkIn.photos.length > 0 ? (
     <>
-      {[0, 1, 2].map((index) => (
-        <div key={index} className="w-24 h-24 md:w-32 md:h-32">
-          {rental.checkIn.photos[index] ? (
-            <img 
-              src={rental.checkIn.photos[index].url} 
-              alt={`${rental.title} ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg shadow-sm"
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-              <span className="text-gray-400 text-xs">없음</span>
-            </div>
-          )}
-        </div>
-      ))}
+      {/* 모바일: 1장만 */}
+      <div className="md:hidden">
+        <img 
+          src={rental.checkIn.photos[0].url} 
+          alt={rental.title}
+          className="w-20 h-20 object-cover rounded-lg shadow-sm"
+        />
+      </div>
+      {/* 웹: 3장 */}
+      <div className="hidden md:flex gap-2">
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="w-28 h-28">
+            {rental.checkIn.photos[index] ? (
+              <img 
+                src={rental.checkIn.photos[index].url} 
+                alt={`${rental.title} ${index + 1}`}
+                className="w-full h-full object-cover rounded-lg shadow-sm"
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                <span className="text-gray-400 text-xs">없음</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </>
   ) : (
-    <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-      <span className="text-4xl">{getRentalIcon(rental.type)}</span>
+    <div className="w-20 h-20 md:w-28 md:h-28 bg-gray-100 rounded-lg flex items-center justify-center">
+      <span className="text-3xl md:text-4xl">{getRentalIcon(rental.type)}</span>
     </div>
   )}
 </div>
@@ -744,29 +755,40 @@ export default function DashboardPage() {
                     <div className="space-y-4">
   {partnerRentals.map((rental) => (
     <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 flex gap-4">
-      {/* 왼쪽: 미리보기 사진 3장 */}
+      {/* 왼쪽: 미리보기 사진 (모바일 1장, 웹 3장) */}
 <div className="flex-shrink-0 flex gap-2">
   {rental.checkIn.photos.length > 0 ? (
     <>
-      {[0, 1, 2].map((index) => (
-        <div key={index} className="w-24 h-24 md:w-32 md:h-32">
-          {rental.checkIn.photos[index] ? (
-            <img 
-              src={rental.checkIn.photos[index].url} 
-              alt={`${rental.title} ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg shadow-sm"
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-              <span className="text-gray-400 text-xs">없음</span>
-            </div>
-          )}
-        </div>
-      ))}
+      {/* 모바일: 1장만 */}
+      <div className="md:hidden">
+        <img 
+          src={rental.checkIn.photos[0].url} 
+          alt={rental.title}
+          className="w-20 h-20 object-cover rounded-lg shadow-sm"
+        />
+      </div>
+      {/* 웹: 3장 */}
+      <div className="hidden md:flex gap-2">
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="w-28 h-28">
+            {rental.checkIn.photos[index] ? (
+              <img 
+                src={rental.checkIn.photos[index].url} 
+                alt={`${rental.title} ${index + 1}`}
+                className="w-full h-full object-cover rounded-lg shadow-sm"
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                <span className="text-gray-400 text-xs">없음</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </>
   ) : (
-    <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-      <span className="text-4xl">{getRentalIcon(rental.type)}</span>
+    <div className="w-20 h-20 md:w-28 md:h-28 bg-gray-100 rounded-lg flex items-center justify-center">
+      <span className="text-3xl md:text-4xl">{getRentalIcon(rental.type)}</span>
     </div>
   )}
 </div>
