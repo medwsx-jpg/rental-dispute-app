@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -48,7 +48,8 @@ const proxyService = {
   ],
 };
 
-export default function PaymentPage() {
+// 🔥 실제 결제 컴포넌트 (useSearchParams 사용)
+function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
@@ -346,5 +347,18 @@ export default function PaymentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 🔥 메인 페이지 컴포넌트 - Suspense로 감싸기
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }
