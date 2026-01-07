@@ -510,9 +510,107 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* 좌측: 메인 콘텐츠 */}
-          <div className="flex-1 min-w-0">
+      <div className="flex gap-6">
+  {/* 좌측: 사이드바 (웹에서만) */}
+  <div className="hidden md:block w-72 flex-shrink-0">
+    <div className="sticky top-20 space-y-4">
+      {/* 📊 렌탈 요약 */}
+      <div className="bg-white rounded-lg shadow-sm p-5">
+        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <span>📊</span> 렌탈 요약
+        </h3>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">총 렌탈</span>
+            <span className="font-bold text-gray-900">{stats.total}건</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">진행 중</span>
+            <span className="font-bold text-blue-600">{stats.inProgress}건</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">완료</span>
+            <span className="font-bold text-green-600">{stats.completed}건</span>
+          </div>
+          {stats.expiringSoon > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">곧 만료</span>
+              <span className="font-bold text-yellow-600">{stats.expiringSoon}건</span>
+            </div>
+          )}
+          {stats.expired > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">만료됨</span>
+              <span className="font-bold text-red-600">{stats.expired}건</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 💡 사용 팁 */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm p-5 border border-blue-100">
+        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <span>💡</span> 사용 팁
+        </h3>
+        <ul className="space-y-2 text-sm text-gray-700">
+          <li className="flex items-start gap-2">
+            <span className="text-blue-500">•</span>
+            <span>사진은 <strong>다양한 각도</strong>로 많이 찍을수록 좋아요</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-500">•</span>
+            <span>손상 부위는 <strong>가까이</strong> 촬영하세요</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-blue-500">•</span>
+            <span><strong>상대방 서명</strong>을 받으면 증거력이 높아져요</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* 📢 안내 */}
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-sm p-5 border border-green-100">
+        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <span>📢</span> 안내
+        </h3>
+        <div className="text-sm text-gray-700 space-y-2">
+          <p>✅ 무료 체험: <strong>1건 무료</strong></p>
+          <p>⭐ 연간 무제한: <strong>49,000원</strong></p>
+          <p>🏠 대행 서비스: <strong>50,000원/회</strong></p>
+        </div>
+        <button
+          onClick={() => router.push('/payment')}
+          className="mt-3 w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+        >
+          요금제 보기
+        </button>
+      </div>
+
+      {/* 💬 문의하기 */}
+      <div className="bg-white rounded-lg shadow-sm p-5">
+        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <span>💬</span> 문의하기
+        </h3>
+        <p className="text-sm text-gray-600 mb-3">
+          문제가 있거나 제안사항이 있으신가요?
+        </p>
+        <button
+          onClick={handleOpenMessages}
+          className="relative w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+        >
+          메시지 보내기
+          {unreadCount > 0 && (
+            <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* 우측: 메인 콘텐츠 */}
+  <div className="flex-1 min-w-0">
             {/* 상단 요약 영역 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {/* 사용량 카드 */}
@@ -959,99 +1057,8 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
             </div>
           </div>
 
-          {/* 우측: 사이드바 (웹에서만) */}
-          <div className="hidden md:block w-72 flex-shrink-0">
-            <div className="sticky top-20 space-y-4">
-              <div className="bg-white rounded-lg shadow-sm p-5">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span>📊</span> 렌탈 요약
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">총 렌탈</span>
-                    <span className="font-bold text-gray-900">{stats.total}건</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">진행 중</span>
-                    <span className="font-bold text-blue-600">{stats.inProgress}건</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">완료</span>
-                    <span className="font-bold text-green-600">{stats.completed}건</span>
-                  </div>
-                  {stats.expiringSoon > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">곧 만료</span>
-                      <span className="font-bold text-yellow-600">{stats.expiringSoon}건</span>
-                    </div>
-                  )}
-                  {stats.expired > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">만료됨</span>
-                      <span className="font-bold text-red-600">{stats.expired}건</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm p-5 border border-blue-100">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>💡</span> 사용 팁
-                </h3>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span>사진은 <strong>다양한 각도</strong>로 많이 찍을수록 좋아요</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span>손상 부위는 <strong>가까이</strong> 촬영하세요</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-500">•</span>
-                    <span><strong>상대방 서명</strong>을 받으면 증거력이 높아져요</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-sm p-5 border border-green-100">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>📢</span> 안내
-                </h3>
-                <div className="text-sm text-gray-700 space-y-2">
-                  <p>✅ 무료 체험: <strong>1건 무료</strong></p>
-                  <p>⭐ 연간 무제한: <strong>49,000원</strong></p>
-                  <p>🏠 대행 서비스: <strong>50,000원/회</strong></p>
-                </div>
-                <button
-                  onClick={() => router.push('/payment')}
-                  className="mt-3 w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
-                >
-                  요금제 보기
-                </button>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-5">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>💬</span> 문의하기
-                </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  문제가 있거나 제안사항이 있으신가요?
-                </p>
-                <button
-                  onClick={handleOpenMessages}
-                  className="relative w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-                >
-                  메시지 보내기
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+         
+          
         </div>
       </main>
 
