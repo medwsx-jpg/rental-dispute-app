@@ -9,7 +9,6 @@ import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 import InAppBrowserGuide from '@/components/InAppBrowserGuide';
 
-// 🔥 수정: userType 추가
 interface UserData {
   email: string;
   nickname: string;
@@ -169,7 +168,6 @@ export default function DashboardPage() {
   };
 
   const loadRentals = (userId: string) => {
-    // 🔥 Owner 렌탈 조회
     const ownerQuery = query(
       collection(db, 'rentals'),
       where('userId', '==', userId),
@@ -190,7 +188,6 @@ export default function DashboardPage() {
       setLoading(false);
     });
 
-    // 🔥 Partner 렌탈 조회 (orderBy 제거 - 클라이언트에서 정렬)
     const partnerQuery = query(
       collection(db, 'rentals'),
       where('checkIn.partnerSignature.userId', '==', userId)
@@ -204,7 +201,6 @@ export default function DashboardPage() {
           rentalList.push({ id: doc.id, ...data } as Rental);
         }
       });
-      // 🔥 클라이언트에서 정렬
       rentalList.sort((a, b) => b.createdAt - a.createdAt);
       setPartnerRentals(rentalList);
       setLoading(false);
@@ -330,7 +326,6 @@ export default function DashboardPage() {
     const afterDone = rental.checkOut.completedAt !== null;
     const hasPartnerSignature = rental.checkIn?.partnerSignature !== undefined;
 
-    // After 촬영 완료 → 비교 보기만
     if (afterDone) {
       return (
         <button
@@ -342,27 +337,21 @@ export default function DashboardPage() {
       );
     }
 
-    // Before 촬영 완료 → 여러 버튼 (가로 배치)
     if (beforeDone) {
       return (
         <div className="flex gap-2">
-          {/* Before 보기 */}
           <button
             onClick={() => router.push(`/rental/${rental.id}/before-view`)}
             className="flex-1 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700"
           >
             Before 보기
           </button>
-
-          {/* After 촬영 */}
           <button
             onClick={() => router.push(`/rental/${rental.id}/checkout`)}
             className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
           >
             After 촬영
           </button>
-
-          {/* 서명 요청하기 (partnerSignature 없을 때만) */}
           {!hasPartnerSignature && (
             <button
               onClick={() => router.push(`/rental/${rental.id}/request-signature`)}
@@ -375,7 +364,6 @@ export default function DashboardPage() {
       );
     }
 
-    // Before 촬영 안 했으면 → Before 촬영만
     return (
       <button
         onClick={() => router.push(`/rental/${rental.id}/checkin`)}
@@ -409,226 +397,234 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <InAppBrowserGuide />
       
+      {/* 웹 헤더 */}
       <header className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="flex justify-between items-center h-14">
-      <button onClick={() => router.push('/')} className="text-xl md:text-2xl font-bold text-green-600">
-        Record365.co.kr
-      </button>
-      <div className="flex items-center gap-6">
-        <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
-          사용가이드
-        </button>
-        <button onClick={() => router.push('/proxy-service')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
-          대행서비스
-        </button>
-        <button onClick={() => router.push('/')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
-          홈
-        </button>
-        
-        <div className="relative board-menu-container">
-          <button 
-            onClick={(e) => { e.stopPropagation(); setShowBoardMenu(!showBoardMenu); }} 
-            className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1"
-          >
-            게시판
-            <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
-          </button>
-          {showBoardMenu && (
-            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
-              <button onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
-                💬 채팅
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14">
+            <button onClick={() => router.push('/')} className="text-xl md:text-2xl font-bold text-green-600">
+              Record365.co.kr
+            </button>
+            <div className="flex items-center gap-6">
+              <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+                사용가이드
               </button>
-              <button onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
-                🚗 렌탈 분쟁사례
+              <button onClick={() => router.push('/proxy-service')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+                대행서비스
               </button>
-              <button onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
-                🏠 부동산 분쟁사례
+              <button onClick={() => router.push('/')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
+                홈
               </button>
+              
+              <div className="relative board-menu-container">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowBoardMenu(!showBoardMenu); }} 
+                  className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1"
+                >
+                  게시판
+                  <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
+                </button>
+                {showBoardMenu && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
+                    <button onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                      💬 채팅
+                    </button>
+                    <button onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                      🚗 렌탈 분쟁사례
+                    </button>
+                    <button onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
+                      🏠 부동산 분쟁사례
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative user-menu-container">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                  className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1"
+                >
+                  내정보
+                  <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
+                </button>
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
+                    <div className="px-4 py-2 border-b">
+                      <p className="text-xs text-gray-500">로그인 계정</p>
+                      <p className="text-sm text-gray-900 truncate">{user?.email}</p>
+                    </div>
+                    <div className="px-4 py-2 border-b">
+                      <p className="text-xs text-gray-500">닉네임</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
+                        {userData?.userType === 'business' && (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                            🤝 빌려주는
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {userData && !userData.isPremium && (
+                      <button 
+                        onClick={() => { router.push('/payment'); setShowUserMenu(false); }} 
+                        className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 font-medium"
+                      >
+                        ⭐ 프리미엄 구독 <span className="text-xs text-orange-500">(준비중)</span>
+                      </button>
+                    )}
+                    <button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      ✏️ 닉네임 변경
+                    </button>
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                      🚪 로그아웃
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl md:max-w-6xl mx-auto px-4 py-6">
+        {/* 상단 요약 영역 - 웹에서 2열 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* 사용량 카드 */}
+          {isPremium ? (
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
+                  <p className="text-2xl font-bold text-purple-900">무제한 사용 중</p>
+                  <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
+                </div>
+                <span className="text-4xl">⭐</span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm text-blue-800">🆓 무료 사용량</p>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {freeUsed} / {FREE_RENTAL_LIMIT}건 사용
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">📅 데이터 보관: 렌탈 종료 후 6일</p>
+                </div>
+                {freeUsed >= FREE_RENTAL_LIMIT && (
+                  <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                    무료 1건 완료
+                  </span>
+                )}
+              </div>
+              
+              {freeUsed >= FREE_RENTAL_LIMIT && (
+                <div className="bg-white rounded-lg p-3 border border-blue-200">
+                  <p className="text-sm font-medium text-gray-900 mb-1">
+                    💰 추가 렌탈이 필요하신가요?
+                  </p>
+                  <p className="text-xs text-gray-600 mb-2">
+                    1회 9,800원 / 연간 49,000원
+                  </p>
+                  <button
+                    onClick={() => router.push('/payment')}
+                    className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                  >
+                    요금제 보기 <span className="text-green-200 text-xs">(준비중)</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        <div className="relative user-menu-container">
-          <button 
-            onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
-            className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1"
-          >
-            내정보
-            <span className="text-xs">{showUserMenu ? '▲' : '▼'}</span>
-          </button>
-          {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-2 z-50">
-              <div className="px-4 py-2 border-b">
-                <p className="text-xs text-gray-500">로그인 계정</p>
-                <p className="text-sm text-gray-900 truncate">{user?.email}</p>
+          {/* 알림 카드 */}
+          {!notificationEnabled ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
+                  <p className="text-sm text-yellow-700 mb-2">
+                    계약 만료 {notificationDays}일 전부터 알림을 받으려면 알림을 활성화하세요.
+                  </p>
+                  <button
+                    onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                    className="text-xs text-yellow-800 underline hover:text-yellow-900"
+                  >
+                    알림 기간 설정
+                  </button>
+                  {showNotificationSettings && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[1, 3, 7, 14, 30].map((days) => (
+                        <button
+                          key={days}
+                          onClick={() => handleSaveNotificationDays(days)}
+                          className={`px-3 py-1 text-xs rounded-lg transition ${
+                            notificationDays === days
+                              ? 'bg-yellow-600 text-white'
+                              : 'bg-white text-yellow-800 border border-yellow-300 hover:bg-yellow-100'
+                          }`}
+                        >
+                          {days}일 전
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleEnableNotifications}
+                  className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
+                >
+                  알림 켜기
+                </button>
               </div>
-              <div className="px-4 py-2 border-b">
-                <p className="text-xs text-gray-500">닉네임</p>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-900">{userData?.nickname || '닉네임 없음'}</p>
-                  {userData?.userType === 'business' && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                      🤝 빌려주는
-                    </span>
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-medium text-green-800 mb-1">✅ 알림 활성화됨</h3>
+                  <p className="text-sm text-green-700 mb-2">
+                    계약 만료 {notificationDays}일 전부터 알림을 받습니다.
+                  </p>
+                  <button
+                    onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                    className="text-xs text-green-800 underline hover:text-green-900"
+                  >
+                    알림 기간 변경
+                  </button>
+                  {showNotificationSettings && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[1, 3, 7, 14, 30].map((days) => (
+                        <button
+                          key={days}
+                          onClick={() => handleSaveNotificationDays(days)}
+                          className={`px-3 py-1 text-xs rounded-lg transition ${
+                            notificationDays === days
+                              ? 'bg-green-600 text-white'
+                              : 'bg-white text-green-800 border border-green-300 hover:bg-green-100'
+                          }`}
+                        >
+                          {days}일 전
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
-              {userData && !userData.isPremium && (
-                <button 
-                  onClick={() => { router.push('/payment'); setShowUserMenu(false); }} 
-                  className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 font-medium"
-                >
-                  ⭐ 프리미엄 구독 <span className="text-xs text-orange-500">(준비중)</span>
-                </button>
-              )}
-              <button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                ✏️ 닉네임 변경
-              </button>
-              <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                🚪 로그아웃
-              </button>
             </div>
           )}
         </div>
-      </div>
-    </div>
-  </div>
-</header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        {isPremium ? (
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
-                <p className="text-2xl font-bold text-purple-900">무제한 사용 중</p>
-                <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
-              </div>
-              <span className="text-4xl">⭐</span>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-sm text-blue-800">🆓 무료 사용량</p>
-                <p className="text-2xl font-bold text-blue-900">
-                  {freeUsed} / {FREE_RENTAL_LIMIT}건 사용
-                </p>
-                <p className="text-xs text-blue-600 mt-1">📅 데이터 보관: 렌탈 종료 후 6일</p>
-              </div>
-              {freeUsed >= FREE_RENTAL_LIMIT && (
-                <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
-                  무료 1건 완료
-                </span>
-              )}
-            </div>
-            
-            {freeUsed >= FREE_RENTAL_LIMIT && (
-  <div className="bg-white rounded-lg p-3 border border-blue-200">
-    <p className="text-sm font-medium text-gray-900 mb-1">
-      💰 추가 렌탈이 필요하신가요?
-    </p>
-    <p className="text-xs text-gray-600 mb-2">
-      1회 9,800원 / 연간 49,000원
-    </p>
-    <button
-      onClick={() => router.push('/payment')}
-      className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-    >
-      요금제 보기 <span className="text-green-200 text-xs">(준비중)</span>
-    </button>
-  </div>
-)}
-          </div>
-        )}
+        {/* 새 렌탈 등록 버튼 - 웹에서 너비 제한 */}
+        <div className="mb-6">
+          <button
+            onClick={handleNewRental}
+            className="w-full md:w-auto md:px-16 py-4 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition"
+          >
+            + 새 렌탈 등록
+          </button>
+        </div>
 
-        {!notificationEnabled && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
-                <p className="text-sm text-yellow-700 mb-2">
-                  계약 만료 {notificationDays}일 전부터 알림을 받으려면 알림을 활성화하세요.
-                </p>
-                <button
-                  onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-                  className="text-xs text-yellow-800 underline hover:text-yellow-900"
-                >
-                  알림 기간 설정
-                </button>
-                {showNotificationSettings && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {[1, 3, 7, 14, 30].map((days) => (
-                      <button
-                        key={days}
-                        onClick={() => handleSaveNotificationDays(days)}
-                        className={`px-3 py-1 text-xs rounded-lg transition ${
-                          notificationDays === days
-                            ? 'bg-yellow-600 text-white'
-                            : 'bg-white text-yellow-800 border border-yellow-300 hover:bg-yellow-100'
-                        }`}
-                      >
-                        {days}일 전
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={handleEnableNotifications}
-                className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
-              >
-                알림 켜기
-              </button>
-            </div>
-          </div>
-        )}
-
-        {notificationEnabled && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium text-green-800 mb-1">✅ 알림 활성화됨</h3>
-                <p className="text-sm text-green-700 mb-2">
-                  계약 만료 {notificationDays}일 전부터 알림을 받습니다.
-                </p>
-                <button
-                  onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-                  className="text-xs text-green-800 underline hover:text-green-900"
-                >
-                  알림 기간 변경
-                </button>
-                {showNotificationSettings && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {[1, 3, 7, 14, 30].map((days) => (
-                      <button
-                        key={days}
-                        onClick={() => handleSaveNotificationDays(days)}
-                        className={`px-3 py-1 text-xs rounded-lg transition ${
-                          notificationDays === days
-                            ? 'bg-green-600 text-white'
-                            : 'bg-white text-green-800 border border-green-300 hover:bg-green-100'
-                        }`}
-                      >
-                        {days}일 전
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={handleNewRental}
-          className="w-full py-4 bg-blue-600 text-white rounded-lg font-medium text-lg mb-6 hover:bg-blue-700 transition"
-        >
-          + 새 렌탈 등록
-        </button>
-
+        {/* 렌탈 목록 */}
         {ownerRentals.length === 0 && partnerRentals.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-5xl mb-4">📋</p>
@@ -645,7 +641,8 @@ export default function DashboardPage() {
                   <span>내가 빌려준 렌탈</span>
                   <span className="text-blue-600">({ownerRentals.length}건)</span>
                 </h2>
-                <div className="space-y-4">
+                {/* 웹에서 2열 그리드 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {ownerRentals.map((rental) => {
                     const progress = getProgressInfo(rental);
                     return (
@@ -706,7 +703,8 @@ export default function DashboardPage() {
                   <span>내가 서명한 렌탈</span>
                   <span className="text-green-600">({partnerRentals.length}건)</span>
                 </h2>
-                <div className="space-y-4">
+                {/* 웹에서 2열 그리드 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {partnerRentals.map((rental) => (
                     <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
                       <div className="flex items-start justify-between mb-3">
@@ -733,7 +731,6 @@ export default function DashboardPage() {
                         {getStatusBadge(rental)}
                       </div>
 
-                      {/* 서명한 렌탈 보기 버튼 */}
                       <button
                         onClick={() => router.push(`/rental/${rental.id}/before-view`)}
                         className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
@@ -749,7 +746,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
+        {/* 관리자 문의 - 웹에서 너비 제한 */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 md:max-w-md">
           <h3 className="font-medium text-gray-900 mb-2 text-center">💬 관리자에게 문의하기</h3>
           <p className="text-sm text-gray-600 mb-4 text-center">
             앱 사용 중 문제가 있거나 제안사항이 있으신가요?
@@ -769,6 +767,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
+      {/* 메시지 모달 */}
       {showMessageModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
