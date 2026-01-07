@@ -57,6 +57,7 @@ export default function DashboardPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [notificationDays, setNotificationDays] = useState(3);
+const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -760,24 +761,25 @@ export default function DashboardPage() {
                                     {getActionButton(rental)}
                                   </div>
                                 </div>
-                          ) : (
-                            <div>
-                              <div className="grid grid-cols-4 gap-3 mb-4">
-                                {rental.checkIn.photos.length > 0 ? (
-                                  rental.checkIn.photos.slice(0, 4).map((photo, index) => (
-                                    <img 
-                                      key={index}
-                                      src={photo.url} 
-                                      alt={`${rental.title} ${index + 1}`}
-                                      className="w-full aspect-square object-cover rounded-lg shadow-sm"
-                                    />
-                                  ))
-                                ) : (
-                                  <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <span className="text-5xl">{getRentalIcon(rental.type)}</span>
-                                  </div>
-                                )}
-                              </div>
+                         ) : (
+                          <div>
+                            <div className="grid grid-cols-4 gap-3 mb-4">
+                              {rental.checkIn.photos.length > 0 ? (
+                                rental.checkIn.photos.slice(0, 8).map((photo, index) => (
+                                  <img 
+                                    key={index}
+                                    src={photo.url} 
+                                    alt={`${rental.title} ${index + 1}`}
+                                    className="w-full aspect-square object-cover rounded-lg shadow-sm cursor-pointer hover:opacity-80 transition"
+                                    onClick={() => setSelectedPhoto(photo.url)}
+                                  />
+                                ))
+                              ) : (
+                                <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                                  <span className="text-5xl">{getRentalIcon(rental.type)}</span>
+                                </div>
+                              )}
+                            </div>
                                   <div className="flex items-start justify-between mb-2">
                                     <h3 className="font-bold text-gray-900 text-lg">{rental.title}</h3>
                                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
@@ -893,24 +895,25 @@ export default function DashboardPage() {
                                   </button>
                                 </div>
                               </div>
-                          ) : (
-                            <div>
-                              <div className="grid grid-cols-4 gap-3 mb-4">
-                                {rental.checkIn.photos.length > 0 ? (
-                                  rental.checkIn.photos.slice(0, 4).map((photo, index) => (
-                                    <img 
-                                      key={index}
-                                      src={photo.url} 
-                                      alt={`${rental.title} ${index + 1}`}
-                                      className="w-full aspect-square object-cover rounded-lg shadow-sm"
-                                    />
-                                  ))
-                                ) : (
-                                  <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <span className="text-5xl">{getRentalIcon(rental.type)}</span>
-                                  </div>
-                                )}
-                              </div>
+                         ) : (
+                          <div>
+                            <div className="grid grid-cols-4 gap-3 mb-4">
+                              {rental.checkIn.photos.length > 0 ? (
+                                rental.checkIn.photos.slice(0, 8).map((photo, index) => (
+                                  <img 
+                                    key={index}
+                                    src={photo.url} 
+                                    alt={`${rental.title} ${index + 1}`}
+                                    className="w-full aspect-square object-cover rounded-lg shadow-sm cursor-pointer hover:opacity-80 transition"
+                                    onClick={() => setSelectedPhoto(photo.url)}
+                                  />
+                                ))
+                              ) : (
+                                <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                                  <span className="text-5xl">{getRentalIcon(rental.type)}</span>
+                                </div>
+                              )}
+                            </div>
                                 <div className="flex items-start justify-between mb-2">
                                   <h3 className="font-bold text-gray-900 text-lg">{rental.title}</h3>
                                   {getStatusBadge(rental)}
@@ -1130,8 +1133,29 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-1 text-right">
                 {newMessage.length} / 1000자
               </p>
-            </div>
+              </div>
           </div>
+        </div>
+      )}
+
+      {/* 사진 원본 보기 모달 */}
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button
+            onClick={() => setSelectedPhoto(null)}
+            className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 z-10"
+          >
+            ✕
+          </button>
+          <img 
+            src={selectedPhoto} 
+            alt="원본 사진"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
