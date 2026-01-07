@@ -381,6 +381,25 @@ export default function DashboardPage() {
     return '📋';
   };
 
+  // 통계 계산
+  const getStats = () => {
+    const allRentals = [...ownerRentals, ...partnerRentals];
+    const now = Date.now();
+    
+    const completed = allRentals.filter(r => r.checkOut.completedAt !== null).length;
+    const inProgress = allRentals.filter(r => r.checkIn.completedAt !== null && r.checkOut.completedAt === null).length;
+    const expiringSoon = allRentals.filter(r => {
+      const daysLeft = Math.ceil((r.endDate - now) / (1000 * 60 * 60 * 24));
+      return daysLeft >= 0 && daysLeft <= 7;
+    }).length;
+    const expired = allRentals.filter(r => {
+      const daysLeft = Math.ceil((r.endDate - now) / (1000 * 60 * 60 * 24));
+      return daysLeft < 0 && r.status !== 'completed';
+    }).length;
+
+    return { total: allRentals.length, completed, inProgress, expiringSoon, expired };
+  };
+
   if (loading || !userData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -392,6 +411,7 @@ export default function DashboardPage() {
   const isPremium = userData.isPremium;
   const freeUsed = userData.freeRentalsUsed;
   const unreadCount = messageThread?.unreadByUser || 0;
+  const stats = getStats();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -485,285 +505,396 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl md:max-w-6xl mx-auto px-4 py-6">
-        {/* 상단 요약 영역 - 웹에서 2열 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* 사용량 카드 */}
-          {isPremium ? (
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
-                  <p className="text-2xl font-bold text-purple-900">무제한 사용 중</p>
-                  <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* 웹: 메인 + 사이드바 레이아웃 */}
+        <div className="flex gap-6">
+          {/* 좌측: 메인 콘텐츠 */}
+          <div className="flex-1 min-w-0">
+            {/* 상단 요약 영역 - 웹에서 2열 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* 사용량 카드 */}
+              {isPremium ? (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
+                      <p className="text-2xl font-bold text-purple-900">무제한 사용 중</p>
+                      <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
+                    </div>
+                    <span className="text-4xl">⭐</span>
+                  </div>
                 </div>
-                <span className="text-4xl">⭐</span>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm text-blue-800">🆓 무료 사용량</p>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {freeUsed} / {FREE_RENTAL_LIMIT}건 사용
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">📅 데이터 보관: 렌탈 종료 후 6일</p>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-blue-800">🆓 무료 사용량</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {freeUsed} / {FREE_RENTAL_LIMIT}건 사용
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">📅 데이터 보관: 렌탈 종료 후 6일</p>
+                    </div>
+                    {freeUsed >= FREE_RENTAL_LIMIT && (
+                      <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                        무료 1건 완료
+                      </span>
+                    )}
+                  </div>
+                  
+                  {freeUsed >= FREE_RENTAL_LIMIT && (
+                    <div className="bg-white rounded-lg p-3 border border-blue-200">
+                      <p className="text-sm font-medium text-gray-900 mb-1">
+                        💰 추가 렌탈이 필요하신가요?
+                      </p>
+                      <p className="text-xs text-gray-600 mb-2">
+                        1회 9,800원 / 연간 49,000원
+                      </p>
+                      <button
+                        onClick={() => router.push('/payment')}
+                        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                      >
+                        요금제 보기 <span className="text-green-200 text-xs">(준비중)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {freeUsed >= FREE_RENTAL_LIMIT && (
-                  <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
-                    무료 1건 완료
-                  </span>
-                )}
-              </div>
-              
-              {freeUsed >= FREE_RENTAL_LIMIT && (
-                <div className="bg-white rounded-lg p-3 border border-blue-200">
-                  <p className="text-sm font-medium text-gray-900 mb-1">
-                    💰 추가 렌탈이 필요하신가요?
-                  </p>
-                  <p className="text-xs text-gray-600 mb-2">
-                    1회 9,800원 / 연간 49,000원
-                  </p>
-                  <button
-                    onClick={() => router.push('/payment')}
-                    className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-                  >
-                    요금제 보기 <span className="text-green-200 text-xs">(준비중)</span>
-                  </button>
+              )}
+
+              {/* 알림 카드 */}
+              {!notificationEnabled ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
+                      <p className="text-sm text-yellow-700 mb-2">
+                        계약 만료 {notificationDays}일 전부터 알림을 받으려면 알림을 활성화하세요.
+                      </p>
+                      <button
+                        onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                        className="text-xs text-yellow-800 underline hover:text-yellow-900"
+                      >
+                        알림 기간 설정
+                      </button>
+                      {showNotificationSettings && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {[1, 3, 7, 14, 30].map((days) => (
+                            <button
+                              key={days}
+                              onClick={() => handleSaveNotificationDays(days)}
+                              className={`px-3 py-1 text-xs rounded-lg transition ${
+                                notificationDays === days
+                                  ? 'bg-yellow-600 text-white'
+                                  : 'bg-white text-yellow-800 border border-yellow-300 hover:bg-yellow-100'
+                              }`}
+                            >
+                              {days}일 전
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleEnableNotifications}
+                      className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
+                    >
+                      알림 켜기
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-green-800 mb-1">✅ 알림 활성화됨</h3>
+                      <p className="text-sm text-green-700 mb-2">
+                        계약 만료 {notificationDays}일 전부터 알림을 받습니다.
+                      </p>
+                      <button
+                        onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+                        className="text-xs text-green-800 underline hover:text-green-900"
+                      >
+                        알림 기간 변경
+                      </button>
+                      {showNotificationSettings && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {[1, 3, 7, 14, 30].map((days) => (
+                            <button
+                              key={days}
+                              onClick={() => handleSaveNotificationDays(days)}
+                              className={`px-3 py-1 text-xs rounded-lg transition ${
+                                notificationDays === days
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-white text-green-800 border border-green-300 hover:bg-green-100'
+                              }`}
+                            >
+                              {days}일 전
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          )}
 
-          {/* 알림 카드 */}
-          {!notificationEnabled ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium text-yellow-800 mb-1">🔔 만료일 알림</h3>
-                  <p className="text-sm text-yellow-700 mb-2">
-                    계약 만료 {notificationDays}일 전부터 알림을 받으려면 알림을 활성화하세요.
-                  </p>
-                  <button
-                    onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-                    className="text-xs text-yellow-800 underline hover:text-yellow-900"
-                  >
-                    알림 기간 설정
-                  </button>
-                  {showNotificationSettings && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[1, 3, 7, 14, 30].map((days) => (
-                        <button
-                          key={days}
-                          onClick={() => handleSaveNotificationDays(days)}
-                          className={`px-3 py-1 text-xs rounded-lg transition ${
-                            notificationDays === days
-                              ? 'bg-yellow-600 text-white'
-                              : 'bg-white text-yellow-800 border border-yellow-300 hover:bg-yellow-100'
-                          }`}
-                        >
-                          {days}일 전
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {/* 새 렌탈 등록 버튼 */}
+            <div className="mb-6">
+              <button
+                onClick={handleNewRental}
+                className="w-full md:w-auto md:px-16 py-4 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition"
+              >
+                + 새 렌탈 등록
+              </button>
+            </div>
+
+            {/* 렌탈 목록 */}
+            {ownerRentals.length === 0 && partnerRentals.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+                <p className="text-5xl mb-4">📋</p>
+                <p className="text-gray-500">등록된 렌탈이 없습니다.</p>
+                <p className="text-gray-400 text-sm mt-2">위 버튼을 눌러 첫 렌탈을 등록하세요!</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {/* 📦 Owner 렌탈 섹션 */}
+                {ownerRentals.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <span>📦</span>
+                      <span>내가 빌려준 렌탈</span>
+                      <span className="text-blue-600">({ownerRentals.length}건)</span>
+                    </h2>
+                    <div className="space-y-4">
+  {ownerRentals.map((rental) => {
+    const progress = getProgressInfo(rental);
+    return (
+      <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 flex gap-4">
+        {/* 왼쪽: 큰 미리보기 사진 */}
+        <div className="flex-shrink-0">
+          {rental.checkIn.photos.length > 0 ? (
+            <img 
+              src={rental.checkIn.photos[0].url} 
+              alt={rental.title}
+              className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg shadow-sm"
+            />
+          ) : (
+            <div className="w-32 h-32 md:w-40 md:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+              <span className="text-5xl">{getRentalIcon(rental.type)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* 오른쪽: 정보 + 버튼 */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <div>
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="font-bold text-gray-900 truncate text-lg">{rental.title}</h3>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                {getStatusBadge(rental)}
                 <button
-                  onClick={handleEnableNotifications}
-                  className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 whitespace-nowrap"
+                  onClick={() => router.push(`/rental/${rental.id}/edit`)}
+                  className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+                  title="수정"
                 >
-                  알림 켜기
+                  ✏️
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium text-green-800 mb-1">✅ 알림 활성화됨</h3>
-                  <p className="text-sm text-green-700 mb-2">
-                    계약 만료 {notificationDays}일 전부터 알림을 받습니다.
-                  </p>
-                  <button
-                    onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-                    className="text-xs text-green-800 underline hover:text-green-900"
-                  >
-                    알림 기간 변경
-                  </button>
-                  {showNotificationSettings && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[1, 3, 7, 14, 30].map((days) => (
-                        <button
-                          key={days}
-                          onClick={() => handleSaveNotificationDays(days)}
-                          className={`px-3 py-1 text-xs rounded-lg transition ${
-                            notificationDays === days
-                              ? 'bg-green-600 text-white'
-                              : 'bg-white text-green-800 border border-green-300 hover:bg-green-100'
-                          }`}
-                        >
-                          {days}일 전
-                        </button>
-                      ))}
+            <p className="text-sm text-gray-500 mb-2">
+              {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
+            </p>
+            <div className="flex items-center justify-between mb-3">
+              <span className={`text-sm font-medium ${progress.color}`}>{progress.text}</span>
+              <span className="text-xs text-gray-400">
+                Before {rental.checkIn.photos.length}장 / After {rental.checkOut.photos.length}장
+              </span>
+            </div>
+          </div>
+
+          {getActionButton(rental)}
+        </div>
+      </div>
+    );
+  })}
+</div>
+                  </div>
+                )}
+
+                {/* 🤝 Partner 렌탈 섹션 */}
+                {partnerRentals.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <span>🤝</span>
+                      <span>내가 서명한 렌탈</span>
+                      <span className="text-green-600">({partnerRentals.length}건)</span>
+                    </h2>
+                    <div className="space-y-4">
+  {partnerRentals.map((rental) => (
+    <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 flex gap-4">
+      {/* 왼쪽: 큰 미리보기 사진 */}
+      <div className="flex-shrink-0">
+        {rental.checkIn.photos.length > 0 ? (
+          <img 
+            src={rental.checkIn.photos[0].url} 
+            alt={rental.title}
+            className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg shadow-sm"
+          />
+        ) : (
+          <div className="w-32 h-32 md:w-40 md:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+            <span className="text-5xl">{getRentalIcon(rental.type)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* 오른쪽: 정보 + 버튼 */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between">
+        <div>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="font-bold text-gray-900 truncate text-lg">{rental.title}</h3>
+            <div className="flex-shrink-0 ml-2">
+              {getStatusBadge(rental)}
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
+          </p>
+        </div>
+
+        <button
+          onClick={() => router.push(`/rental/${rental.id}/before-view`)}
+          className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
+        >
+          <span>📄</span>
+          <span>서명한 렌탈 보기</span>
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 관리자 문의 - 모바일에서만 표시 */}
+            <div className="mt-8 bg-white rounded-lg shadow-sm p-6 md:hidden">
+              <h3 className="font-medium text-gray-900 mb-2 text-center">💬 관리자에게 문의하기</h3>
+              <p className="text-sm text-gray-600 mb-4 text-center">
+                앱 사용 중 문제가 있거나 제안사항이 있으신가요?
+              </p>
+              
+              <button
+                onClick={handleOpenMessages}
+                className="relative w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+              >
+                💬 메시지 보내기
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* 우측: 사이드바 (웹에서만 표시) */}
+          <div className="hidden md:block w-72 flex-shrink-0">
+            <div className="sticky top-20 space-y-4">
+              {/* 📊 렌탈 요약 */}
+              <div className="bg-white rounded-lg shadow-sm p-5">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span>📊</span> 렌탈 요약
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">총 렌탈</span>
+                    <span className="font-bold text-gray-900">{stats.total}건</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">진행 중</span>
+                    <span className="font-bold text-blue-600">{stats.inProgress}건</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">완료</span>
+                    <span className="font-bold text-green-600">{stats.completed}건</span>
+                  </div>
+                  {stats.expiringSoon > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">곧 만료</span>
+                      <span className="font-bold text-yellow-600">{stats.expiringSoon}건</span>
+                    </div>
+                  )}
+                  {stats.expired > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">만료됨</span>
+                      <span className="font-bold text-red-600">{stats.expired}건</span>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* 💡 사용 팁 */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm p-5 border border-blue-100">
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <span>💡</span> 사용 팁
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>사진은 <strong>다양한 각도</strong>로 많이 찍을수록 좋아요</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span>손상 부위는 <strong>가까이</strong> 촬영하세요</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500">•</span>
+                    <span><strong>상대방 서명</strong>을 받으면 증거력이 높아져요</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* 📢 공지/안내 */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-sm p-5 border border-green-100">
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <span>📢</span> 안내
+                </h3>
+                <div className="text-sm text-gray-700 space-y-2">
+                  <p>✅ 무료 체험: <strong>1건 무료</strong></p>
+                  <p>⭐ 연간 무제한: <strong>49,000원</strong></p>
+                  <p>🏠 대행 서비스: <strong>50,000원/회</strong></p>
+                </div>
+                <button
+                  onClick={() => router.push('/payment')}
+                  className="mt-3 w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                >
+                  요금제 보기
+                </button>
+              </div>
+
+              {/* 💬 관리자 문의 */}
+              <div className="bg-white rounded-lg shadow-sm p-5">
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <span>💬</span> 문의하기
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  문제가 있거나 제안사항이 있으신가요?
+                </p>
+                <button
+                  onClick={handleOpenMessages}
+                  className="relative w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                >
+                  메시지 보내기
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* 새 렌탈 등록 버튼 - 웹에서 너비 제한 */}
-        <div className="mb-6">
-          <button
-            onClick={handleNewRental}
-            className="w-full md:w-auto md:px-16 py-4 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition"
-          >
-            + 새 렌탈 등록
-          </button>
-        </div>
-
-        {/* 렌탈 목록 */}
-        {ownerRentals.length === 0 && partnerRentals.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-5xl mb-4">📋</p>
-            <p className="text-gray-500">등록된 렌탈이 없습니다.</p>
-            <p className="text-gray-400 text-sm mt-2">위 버튼을 눌러 첫 렌탈을 등록하세요!</p>
           </div>
-        ) : (
-          <div className="space-y-8">
-            {/* 📦 Owner 렌탈 섹션 */}
-            {ownerRentals.length > 0 && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span>📦</span>
-                  <span>내가 빌려준 렌탈</span>
-                  <span className="text-blue-600">({ownerRentals.length}건)</span>
-                </h2>
-                {/* 웹에서 2열 그리드 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {ownerRentals.map((rental) => {
-                    const progress = getProgressInfo(rental);
-                    return (
-                      <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3 flex-1">
-                            {rental.checkIn.photos.length > 0 ? (
-                              <img 
-                                src={rental.checkIn.photos[0].url} 
-                                alt={rental.title}
-                                className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-3xl">{getRentalIcon(rental.type)}</span>
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
-                              <p className="text-sm text-gray-500">
-                                {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
-                                {new Date(rental.endDate).toLocaleDateString('ko-KR')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {getStatusBadge(rental)}
-                            <button
-                              onClick={() => router.push(`/rental/${rental.id}/edit`)}
-                              className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
-                              title="수정"
-                            >
-                              ✏️
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`text-sm font-medium ${progress.color}`}>{progress.text}</span>
-                          <span className="text-xs text-gray-400">
-                            Before {rental.checkIn.photos.length}장 / After {rental.checkOut.photos.length}장
-                          </span>
-                        </div>
-
-                        {getActionButton(rental)}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 🤝 Partner 렌탈 섹션 */}
-            {partnerRentals.length > 0 && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <span>🤝</span>
-                  <span>내가 서명한 렌탈</span>
-                  <span className="text-green-600">({partnerRentals.length}건)</span>
-                </h2>
-                {/* 웹에서 2열 그리드 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {partnerRentals.map((rental) => (
-                    <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3 flex-1">
-                          {rental.checkIn.photos.length > 0 ? (
-                            <img 
-                              src={rental.checkIn.photos[0].url} 
-                              alt={rental.title}
-                              className="w-20 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <span className="text-3xl">{getRentalIcon(rental.type)}</span>
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
-                            <p className="text-sm text-gray-500">
-                              {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~{' '}
-                              {new Date(rental.endDate).toLocaleDateString('ko-KR')}
-                            </p>
-                          </div>
-                        </div>
-                        {getStatusBadge(rental)}
-                      </div>
-
-                      <button
-                        onClick={() => router.push(`/rental/${rental.id}/before-view`)}
-                        className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
-                      >
-                        <span>📄</span>
-                        <span>서명한 렌탈 보기</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 관리자 문의 - 웹에서 너비 제한 */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 md:max-w-md">
-          <h3 className="font-medium text-gray-900 mb-2 text-center">💬 관리자에게 문의하기</h3>
-          <p className="text-sm text-gray-600 mb-4 text-center">
-            앱 사용 중 문제가 있거나 제안사항이 있으신가요?
-          </p>
-          
-          <button
-            onClick={handleOpenMessages}
-            className="relative w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-          >
-            💬 메시지 보내기
-            {unreadCount > 0 && (
-              <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                {unreadCount}
-              </span>
-            )}
-          </button>
         </div>
       </main>
 
