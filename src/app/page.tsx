@@ -374,9 +374,20 @@ export default function LandingV2Page() {
                     <p className="text-sm text-gray-900">{userData.nickname}</p>
                   </div>
                 )}
-                <button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  ✏️ 닉네임 변경
-                </button>
+               {userData && !userData.isPremium && (
+  <button 
+    onClick={() => { 
+      router.push('/payment'); 
+      setShowUserMenu(false); 
+    }} 
+    className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 font-medium"
+  >
+    ⭐ 프리미엄 구독 <span className="text-xs text-orange-500">(준비중)</span>
+  </button>
+)}
+<button onClick={() => { router.push('/profile'); setShowUserMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+  ✏️ 닉네임 변경
+</button>
                 <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                   🚪 로그아웃
                 </button>

@@ -63,19 +63,22 @@ export default function UpgradePage() {
           </button>
         </div>
 
-        {/* 프리미엄 (간단히 언급만) */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
-          <div className="text-center">
-            <span className="text-4xl mb-3 block">⭐</span>
-            <h3 className="text-lg font-bold text-purple-900 mb-2">프리미엄 플랜</h3>
-            <p className="text-sm text-purple-700 mb-3">
-              무제한 렌탈 등록 • 우선 지원
-            </p>
-            <div className="inline-block px-4 py-2 bg-purple-200 text-purple-800 rounded-full text-sm font-medium">
-              곧 만나요! 🚀
-            </div>
-          </div>
-        </div>
+       {/* 프리미엄 플랜 */}
+<div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
+  <div className="text-center">
+    <span className="text-4xl mb-3 block">⭐</span>
+    <h3 className="text-lg font-bold text-purple-900 mb-2">프리미엄 플랜</h3>
+    <p className="text-sm text-purple-700 mb-3">
+      무제한 렌탈 등록 • 우선 지원
+    </p>
+    <button
+      onClick={() => router.push('/payment')}
+      className="inline-block px-6 py-2.5 bg-purple-600 text-white rounded-full text-sm font-bold hover:bg-purple-700 transition"
+    >
+      요금제 보기 <span className="text-purple-200 text-xs">(준비중)</span>
+    </button>
+  </div>
+</div>
 
         {/* 대시보드 버튼 */}
         <button

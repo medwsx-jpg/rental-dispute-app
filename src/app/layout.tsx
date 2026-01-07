@@ -58,6 +58,7 @@ export default function RootLayout({
           src="https://developers.kakao.com/sdk/js/kakao.min.js"
           async
         ></script>
+        <script src="https://cdn.iamport.kr/v1/iamport.js" async></script>
       </head>
       <body className="antialiased">
         <Script id="kakao-init" strategy="afterInteractive">

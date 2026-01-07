@@ -289,10 +289,10 @@ export default function DashboardPage() {
   const handleNewRental = () => {
     if (!userData?.isPremium && userData && userData.freeRentalsUsed >= FREE_RENTAL_LIMIT) {
       const confirmed = confirm(
-        `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 추가 렌탈: 건당 ${PRICE_PER_RENTAL.toLocaleString()}원\n📅 보관 기간: 렌탈 종료 후 1개월\n\n결제 페이지로 이동하시겠습니까?`
+        `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 1회 이용권: 9,800원\n📅 연간 무제한: 49,000원 (5회 이상 이용 시 추천!)\n\n⚠️ 결제 시스템 준비중입니다.\n요금제 페이지로 이동하시겠습니까?`
       );
       if (confirmed) {
-        router.push('/upgrade');
+        router.push('/payment');
       }
       return;
     }
@@ -549,21 +549,21 @@ export default function DashboardPage() {
             </div>
             
             {freeUsed >= FREE_RENTAL_LIMIT && (
-              <div className="bg-white rounded-lg p-3 border border-blue-200">
-                <p className="text-sm font-medium text-gray-900 mb-1">
-                  💰 추가 렌탈이 필요하신가요?
-                </p>
-                <p className="text-xs text-gray-600 mb-2">
-                  관리자에게 문의해주세요
-                </p>
-                <button
-                  onClick={() => router.push('/upgrade')}
-                  className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                >
-                  더 알아보기
-                </button>
-              </div>
-            )}
+  <div className="bg-white rounded-lg p-3 border border-blue-200">
+    <p className="text-sm font-medium text-gray-900 mb-1">
+      💰 추가 렌탈이 필요하신가요?
+    </p>
+    <p className="text-xs text-gray-600 mb-2">
+      1회 9,800원 / 연간 49,000원
+    </p>
+    <button
+      onClick={() => router.push('/payment')}
+      className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+    >
+      요금제 보기 <span className="text-green-200 text-xs">(준비중)</span>
+    </button>
+  </div>
+)}
           </div>
         )}
 

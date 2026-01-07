@@ -160,19 +160,26 @@ export default function ProxyServicePage() {
           </div>
         </div>
 
-        {/* CTA 버튼 */}
-        <div className="sticky bottom-4">
-        <button
-  onClick={() => window.open('http://pf.kakao.com/_ezNQn/chat', '_blank')}
-  className="w-full py-4 bg-green-600 text-white rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg"
->
-  💬 카카오톡으로 문의하기
-</button>
-          
-          <p className="text-center text-xs text-gray-500 mt-2">
-            또는 전화 문의: 010-6832-4158
-          </p>
-        </div>
+       {/* CTA 버튼 */}
+<div className="sticky bottom-4 space-y-3">
+  <button
+    onClick={() => router.push('/payment?tab=proxy')}
+    className="w-full py-4 bg-green-600 text-white rounded-xl text-lg font-bold hover:bg-green-700 transition shadow-lg"
+  >
+    🏠 대행 서비스 신청하기 <span className="text-green-200 text-sm">(준비중)</span>
+  </button>
+  
+  <button
+    onClick={() => window.open('http://pf.kakao.com/_ezNQn/chat', '_blank')}
+    className="w-full py-3 bg-yellow-400 text-yellow-900 rounded-xl font-medium hover:bg-yellow-500 transition"
+  >
+    💬 카카오톡으로 문의하기
+  </button>
+  
+  <p className="text-center text-xs text-gray-500">
+    또는 전화 문의: 010-6832-4158
+  </p>
+</div>
 
       </main>
     </div>
