@@ -658,168 +658,159 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-8">
                 {/* 📦 Owner 렌탈 섹션 */}
-                {ownerRentals.length > 0 && (
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <span>📦</span>
-                      <span>내가 빌려준 렌탈</span>
-                      <span className="text-blue-600">({ownerRentals.length}건)</span>
-                    </h2>
-                    <div className="space-y-4">
-  {ownerRentals.map((rental) => {
-    const progress = getProgressInfo(rental);
-    return (
-      <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 flex gap-4">
-      {/* 왼쪽: 미리보기 사진 (모바일 1장, 웹 3장) */}
-<div className="flex-shrink-0 flex gap-2">
-  {rental.checkIn.photos.length > 0 ? (
-    <>
-      {/* 모바일: 1장만 */}
-      <div className="md:hidden">
-        <img 
-          src={rental.checkIn.photos[0].url} 
-          alt={rental.title}
-          className="w-20 h-20 object-cover rounded-lg shadow-sm"
-        />
-      </div>
-      {/* 웹: 3장 */}
-      <div className="hidden md:flex gap-2">
-        {[0, 1, 2].map((index) => (
-          <div key={index} className="w-28 h-28">
-            {rental.checkIn.photos[index] ? (
-              <img 
-                src={rental.checkIn.photos[index].url} 
-                alt={`${rental.title} ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg shadow-sm"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                <span className="text-gray-400 text-xs">없음</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  ) : (
-    <div className="w-20 h-20 md:w-28 md:h-28 bg-gray-100 rounded-lg flex items-center justify-center">
-      <span className="text-3xl md:text-4xl">{getRentalIcon(rental.type)}</span>
-    </div>
-  )}
-</div>
-
-        {/* 오른쪽: 정보 + 버튼 */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="font-bold text-gray-900 truncate text-lg">{rental.title}</h3>
-              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                {getStatusBadge(rental)}
-                <button
-                  onClick={() => router.push(`/rental/${rental.id}/edit`)}
-                  className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
-                  title="수정"
-                >
-                  ✏️
-                </button>
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mb-2">
-              {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
-            </p>
-            <div className="flex items-center justify-between mb-3">
-              <span className={`text-sm font-medium ${progress.color}`}>{progress.text}</span>
-              <span className="text-xs text-gray-400">
-                Before {rental.checkIn.photos.length}장 / After {rental.checkOut.photos.length}장
-              </span>
-            </div>
-          </div>
-
-          {getActionButton(rental)}
-        </div>
-      </div>
-    );
-  })}
-</div>
+{ownerRentals.length > 0 && (
+  <div>
+    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+      <span>📦</span>
+      <span>내가 빌려준 렌탈</span>
+      <span className="text-blue-600">({ownerRentals.length}건)</span>
+    </h2>
+    <div className="space-y-4">
+      {ownerRentals.map((rental) => {
+        const progress = getProgressInfo(rental);
+        const isCompactMode = ownerRentals.length >= 3;
+        
+        return (
+          <div key={rental.id} className={`bg-white rounded-lg shadow-sm p-4 ${isCompactMode ? 'md:flex md:gap-4' : ''}`}>
+            {/* 미리보기 사진 */}
+            <div className={`flex-shrink-0 ${isCompactMode ? '' : 'mb-4'}`}>
+              {rental.checkIn.photos.length > 0 ? (
+                <>
+                  {/* 모바일: 항상 1장 */}
+                  <div className="md:hidden">
+                    <img 
+                      src={rental.checkIn.photos[0].url} 
+                      alt={rental.title}
+                      className="w-20 h-20 object-cover rounded-lg shadow-sm"
+                    />
                   </div>
-                )}
+                  {/* 웹: 1~2건이면 6장 크게, 3건 이상이면 4장 작게 */}
+                  <div className="hidden md:flex gap-2 flex-wrap">
+                    {rental.checkIn.photos.slice(0, isCompactMode ? 4 : 6).map((photo, index) => (
+                      <img 
+                        key={index}
+                        src={photo.url} 
+                        alt={`${rental.title} ${index + 1}`}
+                        className={`object-cover rounded-lg shadow-sm ${isCompactMode ? 'w-28 h-28' : 'w-36 h-36'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className={`bg-gray-100 rounded-lg flex items-center justify-center ${isCompactMode ? 'w-20 h-20 md:w-28 md:h-28' : 'w-20 h-20 md:w-36 md:h-36'}`}>
+                  <span className={`${isCompactMode ? 'text-3xl md:text-4xl' : 'text-3xl md:text-5xl'}`}>{getRentalIcon(rental.type)}</span>
+                </div>
+              )}
+            </div>
 
-                {/* 🤝 Partner 렌탈 섹션 */}
-                {partnerRentals.length > 0 && (
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <span>🤝</span>
-                      <span>내가 서명한 렌탈</span>
-                      <span className="text-green-600">({partnerRentals.length}건)</span>
-                    </h2>
-                    <div className="space-y-4">
-  {partnerRentals.map((rental) => (
-    <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 flex gap-4">
-      {/* 왼쪽: 미리보기 사진 (모바일 1장, 웹 3장) */}
-<div className="flex-shrink-0 flex gap-2">
-  {rental.checkIn.photos.length > 0 ? (
-    <>
-      {/* 모바일: 1장만 */}
-      <div className="md:hidden">
-        <img 
-          src={rental.checkIn.photos[0].url} 
-          alt={rental.title}
-          className="w-20 h-20 object-cover rounded-lg shadow-sm"
-        />
-      </div>
-      {/* 웹: 3장 */}
-      <div className="hidden md:flex gap-2">
-        {[0, 1, 2].map((index) => (
-          <div key={index} className="w-28 h-28">
-            {rental.checkIn.photos[index] ? (
-              <img 
-                src={rental.checkIn.photos[index].url} 
-                alt={`${rental.title} ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg shadow-sm"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                <span className="text-gray-400 text-xs">없음</span>
+            {/* 정보 + 버튼 */}
+            <div className="flex-1 min-w-0 flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-bold text-gray-900 truncate text-lg">{rental.title}</h3>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    {getStatusBadge(rental)}
+                    <button
+                      onClick={() => router.push(`/rental/${rental.id}/edit`)}
+                      className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+                      title="수정"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mb-2">
+                  {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
+                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-medium ${progress.color}`}>{progress.text}</span>
+                  <span className="text-xs text-gray-400">
+                    Before {rental.checkIn.photos.length}장 / After {rental.checkOut.photos.length}장
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  ) : (
-    <div className="w-20 h-20 md:w-28 md:h-28 bg-gray-100 rounded-lg flex items-center justify-center">
-      <span className="text-3xl md:text-4xl">{getRentalIcon(rental.type)}</span>
-    </div>
-  )}
-</div>
 
-      {/* 오른쪽: 정보 + 버튼 */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
-        <div>
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="font-bold text-gray-900 truncate text-lg">{rental.title}</h3>
-            <div className="flex-shrink-0 ml-2">
-              {getStatusBadge(rental)}
+              {getActionButton(rental)}
             </div>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
-            {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
-          </p>
-        </div>
-
-        <button
-          onClick={() => router.push(`/rental/${rental.id}/before-view`)}
-          className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
-        >
-          <span>📄</span>
-          <span>서명한 렌탈 보기</span>
-        </button>
-      </div>
+        );
+      })}
     </div>
-  ))}
-</div>
+  </div>
+)}
+{/* 🤝 Partner 렌탈 섹션 */}
+{partnerRentals.length > 0 && (
+  <div>
+    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+      <span>🤝</span>
+      <span>내가 서명한 렌탈</span>
+      <span className="text-green-600">({partnerRentals.length}건)</span>
+    </h2>
+    <div className="space-y-4">
+      {partnerRentals.map((rental) => {
+        const isCompactMode = partnerRentals.length >= 3;
+        
+        return (
+          <div key={rental.id} className={`bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 ${isCompactMode ? 'md:flex md:gap-4' : ''}`}>
+            {/* 미리보기 사진 */}
+            <div className={`flex-shrink-0 ${isCompactMode ? '' : 'mb-4'}`}>
+              {rental.checkIn.photos.length > 0 ? (
+                <>
+                  {/* 모바일: 항상 1장 */}
+                  <div className="md:hidden">
+                    <img 
+                      src={rental.checkIn.photos[0].url} 
+                      alt={rental.title}
+                      className="w-20 h-20 object-cover rounded-lg shadow-sm"
+                    />
                   </div>
-                )}
+                  {/* 웹: 1~2건이면 6장 크게, 3건 이상이면 4장 작게 */}
+                  <div className="hidden md:flex gap-2 flex-wrap">
+                    {rental.checkIn.photos.slice(0, isCompactMode ? 4 : 6).map((photo, index) => (
+                      <img 
+                        key={index}
+                        src={photo.url} 
+                        alt={`${rental.title} ${index + 1}`}
+                        className={`object-cover rounded-lg shadow-sm ${isCompactMode ? 'w-28 h-28' : 'w-36 h-36'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className={`bg-gray-100 rounded-lg flex items-center justify-center ${isCompactMode ? 'w-20 h-20 md:w-28 md:h-28' : 'w-20 h-20 md:w-36 md:h-36'}`}>
+                  <span className={`${isCompactMode ? 'text-3xl md:text-4xl' : 'text-3xl md:text-5xl'}`}>{getRentalIcon(rental.type)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* 정보 + 버튼 */}
+            <div className="flex-1 min-w-0 flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-bold text-gray-900 truncate text-lg">{rental.title}</h3>
+                  <div className="flex-shrink-0 ml-2">
+                    {getStatusBadge(rental)}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">
+                  {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
+                </p>
+              </div>
+
+              <button
+                onClick={() => router.push(`/rental/${rental.id}/before-view`)}
+                className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
+              >
+                <span>📄</span>
+                <span>서명한 렌탈 보기</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
               </div>
             )}
 
