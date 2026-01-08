@@ -87,10 +87,12 @@ export default function RootLayout({
             }
           `}
         </Script>
-        {children}
-        <MobileTabBar />  {/* 🔥 추가 */}
-        <PWAInstall />
-      </body>
+  <div className="pb-20 md:pb-0">
+    {children}
+  </div>
+  <MobileTabBar />
+  <PWAInstall />
+</body>
     </html>
   );
 }
