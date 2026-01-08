@@ -741,12 +741,12 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
             {/* 새 렌탈 등록 버튼 */}
             <div className="mb-6">
-              <button
-                onClick={handleNewRental}
-                className="w-full md:w-auto md:px-16 py-4 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition"
-              >
-                + 새 렌탈 등록
-              </button>
+            <button
+  onClick={handleNewRental}
+  className="hidden md:block w-full py-4 bg-blue-600 text-white rounded-lg font-medium text-lg mb-6 hover:bg-blue-700 transition"
+>
+  + 새 렌탈 등록
+</button>
             </div>
 
             {/* 렌탈 목록 */}

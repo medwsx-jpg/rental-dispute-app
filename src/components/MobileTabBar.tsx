@@ -14,7 +14,7 @@ interface UserData {
   createdAt: number;
 }
 
-export default function MobileTabBar() {  // ← language prop 제거
+export default function MobileTabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [showAllMenu, setShowAllMenu] = useState(false);
@@ -23,7 +23,6 @@ export default function MobileTabBar() {  // ← language prop 제거
   const [user, setUser] = useState<any>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  // 🔥 pathname으로 언어 자동 감지
   const language = pathname.startsWith('/en') ? 'en' : pathname.startsWith('/zh') ? 'zh' : 'ko';
 
   useEffect(() => {
@@ -53,8 +52,7 @@ export default function MobileTabBar() {  // ← language prop 제거
     ko: {
       language: '한국어',
       home: '홈',
-      proxy: '대행서비스',
-      myRentals: '내렌탈',
+      proxy: '대행',
       all: '전체',
       guide: '사용가이드',
       notice: '공지사항',
@@ -74,7 +72,6 @@ export default function MobileTabBar() {  // ← language prop 제거
       language: 'English',
       home: 'Home',
       proxy: 'Proxy',
-      myRentals: 'My Rentals',
       all: 'All',
       guide: 'Guide',
       notice: 'Notice',
@@ -94,7 +91,6 @@ export default function MobileTabBar() {  // ← language prop 제거
       language: '中文',
       home: '主页',
       proxy: '代理',
-      myRentals: '我的租赁',
       all: '全部',
       guide: '使用指南',
       notice: '公告',
@@ -114,13 +110,13 @@ export default function MobileTabBar() {  // ← language prop 제거
 
   const t = texts[language];
 
-  const handleMyRentals = () => {
+  const handleNewRental = () => {
     if (!user) {
       alert(t.loginRequired);
       router.push('/login');
       return;
     }
-    router.push('/dashboard');
+    router.push('/rental/new');
   };
 
   const handleLogout = async () => {
@@ -166,12 +162,12 @@ export default function MobileTabBar() {  // ← language prop 제거
     <>
       {/* 모바일 탭바 */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="flex items-center justify-around h-16 px-2">
+        <div className="relative flex items-center justify-around h-16 px-2">
           
           {/* 언어선택 */}
           <button
             onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-            className="flex flex-col items-center justify-center flex-1 py-2 relative"
+            className="flex flex-col items-center justify-center flex-1 py-2"
           >
             <span className="text-xl mb-0.5">{t.flag}</span>
             <span className={`text-xs ${showLanguageMenu ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
@@ -184,10 +180,20 @@ export default function MobileTabBar() {  // ← language prop 제거
             onClick={() => router.push(language === 'ko' ? '/' : `/${language}`)}
             className="flex flex-col items-center justify-center flex-1 py-2"
           >
-            <span className={`text-sm ${isActive('/') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+            <span className={`text-sm ${isActive('/') && !pathname.includes('dashboard') && !pathname.includes('rental') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
               {t.home}
             </span>
           </button>
+
+          {/* 중앙 플로팅 + 버튼 */}
+          <div className="flex-1 flex justify-center">
+            <button
+              onClick={handleNewRental}
+              className="absolute -top-6 w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-full shadow-lg flex items-center justify-center transform hover:scale-110 transition-transform"
+            >
+              <span className="text-white text-2xl font-bold">+</span>
+            </button>
+          </div>
 
           {/* 대행서비스 */}
           <button
@@ -196,16 +202,6 @@ export default function MobileTabBar() {  // ← language prop 제거
           >
             <span className={`text-sm ${isActive('/proxy-service') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
               {t.proxy}
-            </span>
-          </button>
-
-          {/* 내렌탈 */}
-          <button
-            onClick={handleMyRentals}
-            className="flex flex-col items-center justify-center flex-1 py-2"
-          >
-            <span className={`text-sm ${isActive('/dashboard') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
-              {t.myRentals}
             </span>
           </button>
 
