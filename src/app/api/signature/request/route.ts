@@ -124,28 +124,91 @@ ${signUrl}
 
 ⏰ 유효기간: 3일`;
 
-    // 🔥 직접 솔라피 호출
-    if (method === 'sms' || method === 'kakao') {
-      try {
-        const { SolapiMessageService } = require('solapi');
-        
-        const messageService = new SolapiMessageService(
-          process.env.SOLAPI_API_KEY,
-          process.env.SOLAPI_API_SECRET
-        );
+   // 🔥 SMS/카카오톡 발송
+   if (method === 'sms' || method === 'kakao') {
+    try {
+      const { SolapiMessageService } = require('solapi');
+      
+      const messageService = new SolapiMessageService(
+        process.env.SOLAPI_API_KEY,
+        process.env.SOLAPI_API_SECRET
+      );
 
+      const cleanPhone = signerPhone.replace(/-/g, '');
+
+      // 📱 SMS 발송
+      if (method === 'sms') {
         await messageService.sendOne({
-          to: signerPhone.replace(/-/g, ''),  // 하이픈 제거
+          to: cleanPhone,
           from: process.env.SOLAPI_SENDER_PHONE,
           text: messageText,
         });
 
         console.log('✅ SMS 발송 성공');
-      } catch (smsError) {
-        console.error('❌ SMS 발송 실패:', smsError);
-        // SMS 실패해도 서명 요청은 생성됨
+      }
+      // 💬 카카오톡 발송
+      else if (method === 'kakao') {
+        // 렌탈 유형 한글 변환
+        const getRentalTypeName = (type: string) => {
+          const types: { [key: string]: string } = {
+            car: '렌터카',
+            house: '부동산',
+            goods: '물품',
+          };
+          return types[type] || '렌탈';
+        };
+
+        // 날짜 포맷팅 (2025.01.10 형식)
+        const formatDate = (timestamp: number) => {
+          const date = new Date(timestamp);
+          return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        };
+
+        await messageService.sendOne({
+          to: cleanPhone,
+          from: process.env.SOLAPI_SENDER_PHONE,
+          kakaoOptions: {
+            pfId: process.env.SOLAPI_KAKAO_PFID,
+            templateId: process.env.SOLAPI_KAKAO_TEMPLATE,
+            variables: {
+              requester_name: rentalData.creatorName || '요청자',
+              rental_type: getRentalTypeName(rentalData.type),
+              rental_title: rentalData.title,
+              start_date: formatDate(rentalData.startDate),
+              end_date: formatDate(rentalData.endDate),
+              signature_link: signUrl,
+            },
+          },
+        });
+
+        console.log('✅ 카카오톡 발송 성공');
+      }
+
+    } catch (error: any) {
+      console.error(`❌ ${method === 'kakao' ? '카카오톡' : 'SMS'} 발송 실패:`, error);
+      
+      // 🔥 카카오톡 실패 시 SMS로 폴백
+      if (method === 'kakao') {
+        try {
+          const { SolapiMessageService } = require('solapi');
+          const messageService = new SolapiMessageService(
+            process.env.SOLAPI_API_KEY,
+            process.env.SOLAPI_API_SECRET
+          );
+          
+          await messageService.sendOne({
+            to: signerPhone.replace(/-/g, ''),
+            from: process.env.SOLAPI_SENDER_PHONE,
+            text: messageText,
+          });
+          
+          console.log('✅ SMS 폴백 발송 성공');
+        } catch (fallbackError) {
+          console.error('❌ SMS 폴백도 실패:', fallbackError);
+        }
       }
     }
+  }
 
     return NextResponse.json({
       success: true,
