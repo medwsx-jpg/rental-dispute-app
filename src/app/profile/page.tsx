@@ -84,7 +84,12 @@ export default function ProfilePage() {
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">👤 닉네임 설정</h1>
-          <p className="text-sm text-gray-600">게시판에 사용할 닉네임을 설정하세요</p>
+          <p className="text-sm text-gray-600">
+            서명 요청 및 게시판에 사용할 닉네임을 설정하세요
+          </p>
+          <p className="text-xs text-orange-600 mt-2">
+            💼 계약 신뢰도를 위해 실명 사용을 권장합니다
+          </p>
         </div>
 
         <div className="mb-6">
@@ -95,7 +100,7 @@ export default function ProfilePage() {
             type="text"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            placeholder="2-10자 입력"
+            placeholder="실수"
             maxLength={10}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -104,11 +109,21 @@ export default function ProfilePage() {
           </p>
         </div>
 
+        {/* 🔥 경고 문구 추가 */}
+        <div className="bg-orange-50 border-l-4 border-orange-400 rounded-lg p-4 mb-4">
+          <p className="text-sm font-medium text-orange-800 mb-1">⚠️ 중요</p>
+          <p className="text-xs text-orange-700">
+            이 닉네임은 서명 요청 시 상대방에게 표시됩니다.<br />
+            장난스러운 닉네임은 계약 신뢰도를 낮출 수 있습니다.
+          </p>
+        </div>
+
         <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-800">💡 닉네임 규칙</p>
+          <p className="text-sm text-blue-800 font-medium">💡 닉네임 규칙</p>
           <ul className="text-xs text-blue-700 mt-2 space-y-1">
             <li>• 2-10자 사이</li>
             <li>• 게시판에서 다른 사용자에게 표시됩니다</li>
+            <li>• 계약 서명 요청 시 상대방에게 표시됩니다</li>
             <li>• 언제든 변경 가능합니다</li>
           </ul>
         </div>
