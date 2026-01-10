@@ -56,10 +56,7 @@ export default function MobileTabBar() {
       all: '전체',
       guide: '사용가이드',
       notice: '공지사항',
-      board: '게시판',
-      boardChat: '채팅',
-      boardRental: '렌탈 분쟁사례',
-      boardHouse: '부동산 분쟁사례',
+      board: '이야기',
       myInfo: '내정보',
       loginAccount: '로그인 계정',
       nickname: '닉네임',
@@ -75,10 +72,7 @@ export default function MobileTabBar() {
       all: 'All',
       guide: 'Guide',
       notice: 'Notice',
-      board: 'Board',
-      boardChat: 'Chat',
-      boardRental: 'Rental Cases',
-      boardHouse: 'Property Cases',
+      board: 'Stories',
       myInfo: 'My Info',
       loginAccount: 'Login Account',
       nickname: 'Nickname',
@@ -94,10 +88,7 @@ export default function MobileTabBar() {
       all: '全部',
       guide: '使用指南',
       notice: '公告',
-      board: '讨论区',
-      boardChat: '聊天',
-      boardRental: '租赁案例',
-      boardHouse: '房产案例',
+      board: '故事',
       myInfo: '我的信息',
       loginAccount: '登录账号',
       nickname: '昵称',
@@ -297,48 +288,16 @@ export default function MobileTabBar() {
                   <span className="text-gray-700">📢 {t.notice}</span>
                 </button>
 
-                {/* 게시판 */}
-                <div>
-                  <button
-                    onClick={() => setShowBoardSubmenu(!showBoardSubmenu)}
-                    className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center justify-between"
-                  >
-                    <span className="text-gray-700">💬 {t.board}</span>
-                    <span className="text-xs text-gray-500">{showBoardSubmenu ? '▲' : '▼'}</span>
-                  </button>
-                  
-                  {showBoardSubmenu && (
-                    <div className="ml-4 mt-1 space-y-1">
-                      <button
-                        onClick={() => {
-                          router.push('/board/chat');
-                          setShowAllMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm text-gray-600"
-                      >
-                        💬 {t.boardChat}
-                      </button>
-                      <button
-                        onClick={() => {
-                          router.push('/board/rentalcases');
-                          setShowAllMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm text-gray-600"
-                      >
-                        🚗 {t.boardRental}
-                      </button>
-                      <button
-                        onClick={() => {
-                          router.push('/board/housecases');
-                          setShowAllMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm text-gray-600"
-                      >
-                        🏠 {t.boardHouse}
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {/* 이야기 */}
+<button
+  onClick={() => {
+    router.push('/community');
+    setShowAllMenu(false);
+  }}
+  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
+>
+  <span className="text-gray-700">💬 {t.board}</span>
+</button>
 
                 {/* 내정보 */}
                 <div className="border-t border-gray-200 pt-2 mt-2">

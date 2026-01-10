@@ -389,10 +389,14 @@ export default function CommunityPage() {
 
         {/* 카테고리 탭 */}
 <div className="max-w-lg mx-auto">
-  <div 
-    className="flex gap-2 px-4 pb-3 overflow-x-auto"
-    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-  >
+<div 
+  className="flex gap-2 px-4 pb-3 overflow-x-auto touch-pan-x"
+  style={{ 
+    scrollbarWidth: 'none', 
+    msOverflowStyle: 'none',
+    WebkitOverflowScrolling: 'touch'
+  }}
+>
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
