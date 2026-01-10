@@ -52,6 +52,7 @@ export default function MobileTabBar() {
     ko: {
       language: '한국어',
       home: '홈',
+      myRental: '내렌탈',
       proxy: '대행서비스',
       all: '전체',
       guide: '사용가이드',
@@ -68,7 +69,8 @@ export default function MobileTabBar() {
     en: {
       language: 'English',
       home: 'Home',
-      proxy: 'Proxy',
+      myRental: 'My Rental',
+      proxy: 'Proxy Service',
       all: 'All',
       guide: 'Guide',
       notice: 'Notice',
@@ -84,7 +86,8 @@ export default function MobileTabBar() {
     zh: {
       language: '中文',
       home: '主页',
-      proxy: '代理',
+      myRental: '我的租赁',
+      proxy: '代理服务',
       all: '全部',
       guide: '使用指南',
       notice: '公告',
@@ -287,15 +290,15 @@ export default function MobileTabBar() {
                   <span className="text-gray-700">📢 {t.notice}</span>
                 </button>
 
-              {/* 이야기 */}
+          {/* 대행서비스 */}
 <button
   onClick={() => {
-    router.push('/community');
+    router.push(language === 'ko' ? '/proxy-service' : `/${language}/proxy-service`);
     setShowAllMenu(false);
   }}
   className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
 >
-  <span className="text-gray-700">💬 {t.board}</span>
+  <span className="text-gray-700">🤝 {t.proxy}</span>
 </button>
 
                 {/* 내정보 */}
