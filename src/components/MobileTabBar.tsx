@@ -188,15 +188,15 @@ export default function MobileTabBar() {
             </button>
           </div>
 
-          {/* 대행서비스 */}
-          <button
-            onClick={() => router.push(language === 'ko' ? '/proxy-service' : `/${language}/proxy-service`)}
-            className="flex flex-col items-center justify-center flex-1 py-2"
-          >
-            <span className={`text-sm ${isActive('/proxy-service') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
-              {t.proxy}
-            </span>
-          </button>
+          {/* 내렌탈 */}
+<button
+  onClick={() => router.push('/dashboard')}
+  className="flex flex-col items-center justify-center flex-1 py-2"
+>
+  <span className={`text-sm ${isActive('/dashboard') || isActive('/rental') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+    {t.myRental}
+  </span>
+</button>
 
           {/* 전체 */}
           <button
