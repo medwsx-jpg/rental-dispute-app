@@ -388,10 +388,11 @@ export default function CommunityPage() {
         </div>
 
         {/* 카테고리 탭 */}
-        <div 
-          className="flex gap-2 px-4 pb-3 overflow-x-auto"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
+<div className="max-w-lg mx-auto">
+  <div 
+    className="flex gap-2 px-4 pb-3 overflow-x-auto"
+    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+  >
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
@@ -405,6 +406,7 @@ export default function CommunityPage() {
               {cat.icon} {cat.label}
             </button>
           ))}
+        </div>
         </div>
       </header>
 
@@ -527,7 +529,7 @@ export default function CommunityPage() {
       {/* 글쓰기 FAB */}
       <button
         onClick={() => setShowNewPostModal(true)}
-        className="fixed right-4 bottom-6 bg-orange-500 text-white px-5 py-3 rounded-full shadow-lg hover:bg-orange-600 transition flex items-center gap-2 z-50"
+        className="fixed right-4 bottom-24 sm:bottom-6 bg-orange-500 text-white px-5 py-3 rounded-full shadow-lg hover:bg-orange-600 transition flex items-center gap-2 z-50"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
