@@ -394,12 +394,28 @@ export default function LandingV2Page() {
           
           {/* 메인 카피 */}
           <div className="text-center mb-6 lg:mb-8">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
-            没有记录， <span className="text-green-400">就无法证明</span>
-            </h1>
-            <p className="text-sm sm:text-base text-gray-400">
-            租车、租房、民宿 — 用记录解决所有租赁纠纷
-            </p>
+            {/* 타겟 메시지 추가 */}
+<div className="text-center mb-4 space-y-1">
+  <p className="text-xs sm:text-sm text-green-300">
+    • 不用去韩国，也能360度确认您的房产状态。
+  </p>
+  <p className="text-xs sm:text-sm text-green-300">
+    • 即使不懂韩国法律，数据和签名也能保护您的资产。
+  </p>
+  <p className="text-xs sm:text-sm text-green-300">
+    • 带有GPS和时间戳的记录，在韩国法庭也是有力证据。
+  </p>
+</div>
+
+{/* 메인 카피 */}
+<div className="text-center mb-6 lg:mb-8">
+  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
+    记录缺失，<span className="text-green-400">有理也说不清</span>
+  </h1>
+  <p className="text-sm sm:text-base text-gray-400">
+    租车、租房、民宿 — 用记录解决所有租赁纠纷
+  </p>
+</div>
           </div>
 
           {/* 영상 탭 버튼 */}
