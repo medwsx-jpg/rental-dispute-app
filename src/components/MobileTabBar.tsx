@@ -52,7 +52,7 @@ export default function MobileTabBar() {
     ko: {
       language: '한국어',
       home: '홈',
-      proxy: '대행',
+      proxy: '대행서비스',
       all: '전체',
       guide: '사용가이드',
       notice: '공지사항',
@@ -165,16 +165,15 @@ export default function MobileTabBar() {
               {t.language}
             </span>
           </button>
-
-          {/* 홈 */}
-          <button
-            onClick={() => router.push(language === 'ko' ? '/' : `/${language}`)}
-            className="flex flex-col items-center justify-center flex-1 py-2"
-          >
-            <span className={`text-sm ${isActive('/') && !pathname.includes('dashboard') && !pathname.includes('rental') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
-              {t.home}
-            </span>
-          </button>
+{/* 이야기 */}
+<button
+  onClick={() => router.push('/community')}
+  className="flex flex-col items-center justify-center flex-1 py-2"
+>
+  <span className={`text-sm ${pathname.includes('/community') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+    {t.board}
+  </span>
+</button>
 
           {/* 중앙 플로팅 + 버튼 */}
           <div className="flex-1 flex justify-center">
