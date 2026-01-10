@@ -57,7 +57,7 @@ export default function MobileTabBar() {
       all: '전체',
       guide: '사용가이드',
       notice: '공지사항',
-      board: '이야기',
+      board: '커뮤니티',
       myInfo: '내정보',
       loginAccount: '로그인 계정',
       nickname: '닉네임',
@@ -74,7 +74,7 @@ export default function MobileTabBar() {
       all: 'All',
       guide: 'Guide',
       notice: 'Notice',
-      board: 'Stories',
+      board: 'Community',
       myInfo: 'My Info',
       loginAccount: 'Login Account',
       nickname: 'Nickname',
@@ -91,7 +91,7 @@ export default function MobileTabBar() {
       all: '全部',
       guide: '使用指南',
       notice: '公告',
-      board: '故事',
+      board: '社区',
       myInfo: '我的信息',
       loginAccount: '登录账号',
       nickname: '昵称',
@@ -168,7 +168,7 @@ export default function MobileTabBar() {
               {t.language}
             </span>
           </button>
-{/* 이야기 */}
+{/* 커뮤니티 */}
 <button
   onClick={() => router.push('/community')}
   className="flex flex-col items-center justify-center flex-1 py-2"
