@@ -156,7 +156,7 @@ export default function MobileTabBar() {
     <>
       {/* 모바일 탭바 */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="relative flex items-center justify-around h-16 px-2">
+        <div className="relative flex items-center h-16 px-1">
           
           {/* 언어선택 */}
           <button

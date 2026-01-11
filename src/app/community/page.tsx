@@ -845,7 +845,7 @@ export default function CommunityPage() {
                 )}
 
                 {/* 댓글 입력 */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 pb-20 md:pb-0">
                   <input
                     type="text"
                     value={newComment}
