@@ -66,7 +66,7 @@ export default function CommunityPage() {
   
   // 모달 상태
   const [showNewPostModal, setShowNewPostModal] = useState(false);
-  const [showPostDetail, setShowPostDetail] = useState<Post | null>(null);
+  const [showPostDetailId, setShowPostDetailId] = useState<string | null>(null);
   const [showGuideDetail, setShowGuideDetail] = useState<number | null>(null);
   const [showImageViewer, setShowImageViewer] = useState<string | null>(null);
   
@@ -265,8 +265,8 @@ export default function CommunityPage() {
     if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
     
     try {
-      await deleteDoc(doc(db, 'community', postId));
-      setShowPostDetail(null);
+        await deleteDoc(doc(db, 'community', postId));
+        setShowPostDetailId(null);
       alert('게시글이 삭제되었습니다!');
     } catch (error) {
       console.error('게시글 삭제 실패:', error);
@@ -285,8 +285,8 @@ export default function CommunityPage() {
     } catch (error) {
       console.error('조회수 증가 실패:', error);
     }
-    setShowPostDetail(post);
-  };
+    setShowPostDetailId(post.id);
+};
 
  // 좋아요 토글 (로그인 필요)
  const handleLike = async (postId: string, e: React.MouseEvent) => {
@@ -723,22 +723,26 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* 글 상세보기 모달 */}
-      {showPostDetail && (
+     {/* 글 상세보기 모달 */}
+     {showPostDetailId && (() => {
+        const currentPost = posts.find(p => p.id === showPostDetailId);
+        if (!currentPost) return null;
+        
+        return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
           <div className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
             {/* 모달 헤더 */}
             <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10">
               <button 
-                onClick={() => setShowPostDetail(null)}
+                onClick={() => setShowPostDetailId(null)}
                 className="text-gray-600 p-1"
               >
                 ✕
               </button>
               <h2 className="font-bold">게시글</h2>
-              {canDelete(showPostDetail) && (
+              {canDelete(currentPost) && (
                 <button
-                  onClick={() => handleDeletePost(showPostDetail.id)}
+                  onClick={() => handleDeletePost(currentPost.id)}
                   className="text-red-500 text-sm"
                 >
                   삭제
@@ -750,12 +754,12 @@ export default function CommunityPage() {
               {/* 태그 */}
               <div className="flex items-center gap-2 mb-3">
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  showPostDetail.category === 'dispute' ? 'bg-red-100 text-red-600' :
-                  showPostDetail.category === 'review' ? 'bg-green-100 text-green-600' :
-                  showPostDetail.category === 'event' ? 'bg-purple-100 text-purple-600' :
+                  currentPost.category === 'dispute' ? 'bg-red-100 text-red-600' :
+                  currentPost.category === 'review' ? 'bg-green-100 text-green-600' :
+                  currentPost.category === 'event' ? 'bg-purple-100 text-purple-600' :
                   'bg-gray-100 text-gray-600'
                 }`}>
-                  {getCategoryInfo(showPostDetail.category).label}
+                  {getCategoryInfo(currentPost.category).label}
                 </span>
               </div>
 
@@ -765,26 +769,26 @@ export default function CommunityPage() {
                   <span>👤</span>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">{showPostDetail.userNickname}</p>
+                  <p className="font-medium text-gray-900">{currentPost.userNickname}</p>
                   <p className="text-xs text-gray-500">
-                    {formatDate(showPostDetail.timestamp)} · 조회 {showPostDetail.views}
+                    {formatDate(currentPost.timestamp)} · 조회 {currentPost.views}
                   </p>
                 </div>
               </div>
 
               {/* 제목 & 본문 */}
-              <h3 className="text-lg font-bold text-gray-900 mb-3">{showPostDetail.title}</h3>
-              <p className="text-gray-700 whitespace-pre-wrap mb-4">{showPostDetail.content}</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-3">{currentPost.title}</h3>
+              <p className="text-gray-700 whitespace-pre-wrap mb-4">{currentPost.content}</p>
 
               {/* 이미지 갤러리 */}
-              {showPostDetail.images && showPostDetail.images.length > 0 && (
+              {currentPost.images && currentPost.images.length > 0 && (
                 <div className="mb-6">
                   <div className={`grid gap-2 ${
-                    showPostDetail.images.length === 1 ? 'grid-cols-1' :
-                    showPostDetail.images.length === 2 ? 'grid-cols-2' :
+                    currentPost.images.length === 1 ? 'grid-cols-1' :
+                    currentPost.images.length === 2 ? 'grid-cols-2' :
                     'grid-cols-3'
                   }`}>
-                    {showPostDetail.images.map((img, index) => (
+                    {currentPost.images.map((img, index) => (
                       <button
                         key={index}
                         onClick={() => setShowImageViewer(img)}
@@ -803,24 +807,24 @@ export default function CommunityPage() {
 
               {/* 좋아요 버튼 */}
               <button
-                onClick={(e) => handleLike(showPostDetail.id, e)}
+                onClick={(e) => handleLike(currentPost.id, e)}
                 className={`w-full py-3 rounded-lg border ${
-                  showPostDetail.likes.includes(user?.uid || '')
+                  currentPost.likes.includes(user?.uid || '')
                     ? 'border-red-200 bg-red-50 text-red-500'
                     : 'border-gray-200 text-gray-600'
                 } font-medium mb-6`}
               >
-                {showPostDetail.likes.includes(user?.uid || '') ? '❤️' : '🤍'} 좋아요 {showPostDetail.likes.length}
+                {currentPost.likes.includes(user?.uid || '') ? '❤️' : '🤍'} 좋아요 {currentPost.likes.length}
               </button>
 
               {/* 댓글 영역 */}
               <div className="border-t border-gray-100 pt-4">
-                <h4 className="font-bold text-gray-900 mb-3">댓글 {showPostDetail.comments.length}</h4>
+                <h4 className="font-bold text-gray-900 mb-3">댓글 {currentPost.comments.length}</h4>
                 
                 {/* 댓글 목록 */}
-                {showPostDetail.comments.length > 0 && (
+                {currentPost.comments.length > 0 && (
                   <div className="space-y-3 mb-4">
-                    {showPostDetail.comments.map((comment, idx) => (
+                    {currentPost.comments.map((comment, idx) => (
                       <div key={idx} className="bg-gray-50 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-medium text-gray-900">{comment.userNickname}</span>
@@ -830,7 +834,7 @@ export default function CommunityPage() {
                             </span>
                             {canDeleteComment(comment) && (
                               <button
-                                onClick={() => handleDeleteComment(showPostDetail.id, comment)}
+                                onClick={() => handleDeleteComment(currentPost.id, comment)}
                                 className="text-xs text-red-500"
                               >
                                 삭제
@@ -850,13 +854,13 @@ export default function CommunityPage() {
                     type="text"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(showPostDetail.id)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddComment(currentPost.id)}
                     placeholder="댓글을 입력하세요..."
                     className="flex-1 px-4 py-3 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                     disabled={commenting}
                   />
                   <button
-                    onClick={() => handleAddComment(showPostDetail.id)}
+                    onClick={() => handleAddComment(currentPost.id)}
                     disabled={!newComment.trim() || commenting}
                     className="px-4 py-3 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 transition"
                   >
@@ -867,7 +871,8 @@ export default function CommunityPage() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* 이미지 뷰어 */}
       {showImageViewer && (
