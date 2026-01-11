@@ -751,10 +751,10 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                       <span className="text-blue-600">({ownerRentals.length}건)</span>
                     </h2>
                     <div className="space-y-4">
-                      {ownerRentals.map((rental) => {
+                    {ownerRentals.map((rental) => {
                         const progress = getProgressInfo(rental);
                         return (
-                          <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4">
+                          <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 overflow-hidden">
                            {/* 모바일: 기존 레이아웃 (절대 수정 금지) */}
 <div className="md:hidden">
   <div className="flex items-start justify-between mb-3">
@@ -903,8 +903,8 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                       <span className="text-green-600">({partnerRentals.length}건)</span>
                     </h2>
                     <div className="space-y-4">
-                      {partnerRentals.map((rental) => (
-                        <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
+                    {partnerRentals.map((rental) => (
+                        <div key={rental.id} className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 overflow-hidden">
                          {/* 모바일: 기존 레이아웃 (절대 수정 금지) */}
 <div className="md:hidden">
   <div className="flex items-start justify-between mb-3">
