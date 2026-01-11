@@ -604,7 +604,7 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                     <div>
                       <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
                       <p className="text-2xl font-bold text-purple-900">무기한 사용 중</p>
-                      <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
+                      <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 3개월</p>
                     </div>
                     <span className="text-4xl">⭐</span>
                   </div>
@@ -632,7 +632,7 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                         💰 추가 렌탈이 필요하신가요?
                       </p>
                       <p className="text-xs text-gray-600 mb-2">
-                        1회 9,800원 / 연간 49,000원
+                        1회 9,800원 / 10회 49,000원
                       </p>
                       <button
                         onClick={() => router.push('/payment')}
