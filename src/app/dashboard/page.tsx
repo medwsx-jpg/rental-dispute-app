@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, onSnapshot, orderBy, doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc, setDoc, updateDoc, arrayUnion, limit } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 import InAppBrowserGuide from '@/components/InAppBrowserGuide';
@@ -57,7 +57,8 @@ export default function DashboardPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [notificationDays, setNotificationDays] = useState(3);
-const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [hasNewCommunityPost, setHasNewCommunityPost] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -87,6 +88,32 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
       return () => clearInterval(interval);
     }
   }, [ownerRentals, partnerRentals, notificationEnabled, notificationDays]);
+
+  // 커뮤니티 새 글 감지
+  useEffect(() => {
+    const q = query(
+      collection(db, 'community'),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.docs.length > 0) {
+        const latestPost = snapshot.docs[0].data();
+        const latestTimestamp = latestPost.timestamp?.toMillis?.() || latestPost.timestamp;
+        
+        const lastVisited = localStorage.getItem('lastVisitedCommunity');
+        
+        if (lastVisited) {
+          setHasNewCommunityPost(latestTimestamp > parseInt(lastVisited));
+        } else {
+          setHasNewCommunityPost(true);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -440,10 +467,19 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   </button>
   
   <button 
-    onClick={() => router.push('/community')} 
-    className="text-sm text-gray-900 hover:text-green-600 font-semibold"
+    onClick={() => {
+      localStorage.setItem('lastVisitedCommunity', Date.now().toString());
+      setHasNewCommunityPost(false);
+      router.push('/community');
+    }} 
+    className="relative text-sm text-gray-900 hover:text-green-600 font-semibold"
   >
     커뮤니티
+    {hasNewCommunityPost && (
+      <span className="absolute -top-1 -right-3 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+        N
+      </span>
+    )}
   </button>
 
               <div className="relative user-menu-container">

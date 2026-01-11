@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 interface UserData {
   email: string;
@@ -22,8 +22,43 @@ export default function MobileTabBar() {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [hasNewPost, setHasNewPost] = useState(false);
 
   const language = pathname.startsWith('/en') ? 'en' : pathname.startsWith('/zh') ? 'zh' : 'ko';
+
+  // 커뮤니티 새 글 감지
+  useEffect(() => {
+    const q = query(
+      collection(db, 'community'),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.docs.length > 0) {
+        const latestPost = snapshot.docs[0].data();
+        const latestTimestamp = latestPost.timestamp?.toMillis?.() || latestPost.timestamp;
+        
+        const lastVisited = localStorage.getItem('lastVisitedCommunity');
+        
+        if (lastVisited) {
+          setHasNewPost(latestTimestamp > parseInt(lastVisited));
+        } else {
+          setHasNewPost(true); // 처음 방문이면 새 글로 표시
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 커뮤니티 페이지 방문 시 시간 저장
+  useEffect(() => {
+    if (pathname === '/community') {
+      localStorage.setItem('lastVisitedCommunity', Date.now().toString());
+      setHasNewPost(false);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -171,11 +206,16 @@ export default function MobileTabBar() {
 {/* 커뮤니티 */}
 <button
   onClick={() => router.push('/community')}
-  className="flex flex-col items-center justify-center flex-1 py-2"
+  className="relative flex flex-col items-center justify-center flex-1 py-2"
 >
   <span className={`text-sm ${pathname.includes('/community') ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
     {t.board}
   </span>
+  {hasNewPost && !pathname.includes('/community') && (
+    <span className="absolute top-1 right-1/4 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+      N
+    </span>
+  )}
 </button>
 
           {/* 중앙 플로팅 + 버튼 */}
