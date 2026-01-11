@@ -758,8 +758,8 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                            {/* 모바일: 기존 레이아웃 (절대 수정 금지) */}
 <div className="md:hidden">
   <div className="flex items-start justify-between mb-3">
-    <div className="flex items-center gap-3 flex-1">
-      {rental.checkIn.photos.length > 0 ? (
+  <div className="flex items-center gap-3 flex-1 min-w-0">
+  {rental.checkIn.photos.length > 0 ? (
         <img 
           src={rental.checkIn.photos[0].url} 
           alt={rental.title}
@@ -908,8 +908,8 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                          {/* 모바일: 기존 레이아웃 (절대 수정 금지) */}
 <div className="md:hidden">
   <div className="flex items-start justify-between mb-3">
-    <div className="flex items-center gap-3 flex-1">
-      {rental.checkIn.photos.length > 0 ? (
+  <div className="flex items-center gap-3 flex-1 min-w-0">
+  {rental.checkIn.photos.length > 0 ? (
         <img 
           src={rental.checkIn.photos[0].url} 
           alt={rental.title}
