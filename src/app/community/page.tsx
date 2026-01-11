@@ -50,8 +50,8 @@ interface Post {
 const ADMIN_EMAILS = ['medws1@naver.com'];
 
 export default function CommunityPage() {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
   
   // 사용자 상태
   const [user, setUser] = useState<any>(null);
@@ -85,20 +85,40 @@ export default function CommunityPage() {
   const [newComment, setNewComment] = useState('');
   const [commenting, setCommenting] = useState(false);
 
-  // 인증 체크
+  // 로그인 필요 체크 함수
+  const requireLogin = (callback?: () => void) => {
+    if (!user) {
+      if (confirm('로그인이 필요한 기능입니다. 로그인하시겠습니까?')) {
+        router.push('/login');
+      }
+      return false;
+    }
+    if (!nickname) {
+      if (confirm('닉네임 설정이 필요합니다. 설정하시겠습니까?')) {
+        router.push('/profile');
+      }
+      return false;
+    }
+    if (callback) callback();
+    return true;
+  };
+
+  // 인증 체크 - 비로그인도 목록 조회 가능
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setIsAdmin(ADMIN_EMAILS.includes(currentUser.email || ''));
         await checkNickname(currentUser.uid);
-        loadPosts();
       } else {
-        router.push('/login');
+        setUser(null);
+        setNickname('');
       }
+      loadPosts(); // 로그인 여부와 관계없이 게시글 로드
+      setLoading(false);
     });
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   // 카테고리 필터링
   useEffect(() => {
@@ -115,10 +135,8 @@ export default function CommunityPage() {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists() && docSnap.data().nickname) {
         setNickname(docSnap.data().nickname);
-      } else {
-        alert('닉네임을 먼저 설정해주세요.');
-        router.push('/profile');
       }
+      // 닉네임 없어도 리다이렉트하지 않음 (글쓰기 시점에 체크)
     } catch (error) {
       console.error('닉네임 확인 실패:', error);
     }
@@ -143,7 +161,6 @@ export default function CommunityPage() {
         } as Post);
       });
       setPosts(postList);
-      setLoading(false);
     });
 
     return unsubscribe;
@@ -257,8 +274,10 @@ export default function CommunityPage() {
     }
   };
 
-  // 조회수 증가 & 상세보기
-  const handlePostClick = async (post: Post) => {
+ // 조회수 증가 & 상세보기 (로그인 필요)
+ const handlePostClick = async (post: Post) => {
+    if (!requireLogin()) return;
+    
     try {
       await updateDoc(doc(db, 'community', post.id), {
         views: increment(1)
@@ -269,10 +288,10 @@ export default function CommunityPage() {
     setShowPostDetail(post);
   };
 
-  // 좋아요 토글
-  const handleLike = async (postId: string, e: React.MouseEvent) => {
+ // 좋아요 토글 (로그인 필요)
+ const handleLike = async (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
+    if (!requireLogin()) return;
 
     const post = posts.find(p => p.id === postId);
     if (!post) return;
@@ -427,10 +446,10 @@ export default function CommunityPage() {
             </div>
           </div>
           <button 
-            onClick={() => {
+            onClick={() => requireLogin(() => {
               setNewPost({ ...newPost, category: 'review' });
               setShowNewPostModal(true);
-            }}
+            })}
             className="bg-white text-orange-500 px-4 py-2 rounded-lg text-sm font-bold hover:bg-orange-50 transition"
           >
             인증하기
@@ -530,9 +549,9 @@ export default function CommunityPage() {
         </div>
       </main>
 
-      {/* 글쓰기 FAB */}
-      <button
-        onClick={() => setShowNewPostModal(true)}
+     {/* 글쓰기 FAB */}
+     <button
+        onClick={() => requireLogin(() => setShowNewPostModal(true))}
         className="fixed right-4 bottom-24 sm:bottom-6 bg-orange-500 text-white px-5 py-3 rounded-full shadow-lg hover:bg-orange-600 transition flex items-center gap-2 z-50"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
