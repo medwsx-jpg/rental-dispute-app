@@ -387,10 +387,10 @@ export default function CommunityPage() {
           </button>
         </div>
 
-        {/* 카테고리 탭 */}
-<div className="max-w-lg mx-auto">
+       {/* 카테고리 탭 */}
+<div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto">
 <div 
-  className="flex gap-2 px-4 pb-3 overflow-x-auto touch-pan-x"
+  className="flex gap-2 px-4 md:px-0 pb-3 overflow-x-auto md:overflow-visible touch-pan-x md:justify-center"
   style={{ 
     scrollbarWidth: 'none', 
     msOverflowStyle: 'none',
