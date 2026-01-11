@@ -286,7 +286,7 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const handleNewRental = () => {
     if (!userData?.isPremium && userData && userData.freeRentalsUsed >= FREE_RENTAL_LIMIT) {
       const confirmed = confirm(
-        `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 1회 이용권: 9,800원\n📅 연간 무제한: 49,000원 (5회 이상 이용 시 추천!)\n\n⚠️ 결제 시스템 준비중입니다.\n요금제 페이지로 이동하시겠습니까?`
+        `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 1회 이용권: 9,800원\n📅 10회 이용권: 49,000원 (5회 이상 이용 시 추천!)\n\n⚠️ 결제 시스템 준비중입니다.\n요금제 페이지로 이동하시겠습니까?`
       );
       if (confirmed) {
         router.push('/payment');
@@ -559,7 +559,7 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
         </h3>
         <div className="text-sm text-gray-700 space-y-2">
           <p>✅ 무료 체험: <strong>1건 무료</strong></p>
-          <p>⭐ 연간 무제한: <strong>49,000원</strong></p>
+          <p>⭐ 1회 이용권: <strong>9,800원</strong></p>
           <p>🏠 대행 서비스: <strong>50,000원/회</strong></p>
         </div>
         <button
@@ -603,7 +603,7 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
-                      <p className="text-2xl font-bold text-purple-900">무제한 사용 중</p>
+                      <p className="text-2xl font-bold text-purple-900">무기한 사용 중</p>
                       <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 1개월</p>
                     </div>
                     <span className="text-4xl">⭐</span>
