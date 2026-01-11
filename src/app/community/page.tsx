@@ -85,6 +85,36 @@ export default function CommunityPage() {
   const [newComment, setNewComment] = useState('');
   const [commenting, setCommenting] = useState(false);
 
+  // 뒤로가기로 팝업 닫기
+  useEffect(() => {
+    const handlePopState = () => {
+      // 열려있는 팝업 순서대로 닫기
+      if (showImageViewer) {
+        setShowImageViewer(null);
+      } else if (showPostDetailId) {
+        setShowPostDetailId(null);
+      } else if (showNewPostModal) {
+        setShowNewPostModal(false);
+        setSelectedImages([]);
+        setImagePreviewUrls([]);
+      } else if (showGuideDetail) {
+        setShowGuideDetail(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showImageViewer, showPostDetailId, showNewPostModal, showGuideDetail]);
+
+  // 팝업 열릴 때 히스토리 추가
+  useEffect(() => {
+    const isAnyModalOpen = showPostDetailId || showNewPostModal || showGuideDetail || showImageViewer;
+    
+    if (isAnyModalOpen) {
+      history.pushState({ modal: true }, '');
+    }
+  }, [showPostDetailId, showNewPostModal, showGuideDetail, showImageViewer]);
+
   // 로그인 필요 체크 함수
   const requireLogin = (callback?: () => void) => {
     if (!user) {
