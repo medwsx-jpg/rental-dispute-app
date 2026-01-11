@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
-  collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, 
-  doc, getDoc, updateDoc, arrayUnion, arrayRemove, increment, deleteDoc
-} from 'firebase/firestore';
+    collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, 
+    doc, getDoc, updateDoc, arrayUnion, arrayRemove, increment, deleteDoc,
+    limit, startAfter, getDocs
+  } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // 카테고리 정의
@@ -58,11 +59,17 @@ export default function CommunityPage() {
   const [nickname, setNickname] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // 게시판 상태
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('all');
+ // 게시판 상태
+ const [posts, setPosts] = useState<Post[]>([]);
+ const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+ const [loading, setLoading] = useState(true);
+ const [activeCategory, setActiveCategory] = useState('all');
+ 
+ // 무한 스크롤 상태
+ const [lastDoc, setLastDoc] = useState<any>(null);
+ const [hasMore, setHasMore] = useState(true);
+ const [loadingMore, setLoadingMore] = useState(false);
+ const POSTS_PER_PAGE = 20;
   
   // 모달 상태
   const [showNewPostModal, setShowNewPostModal] = useState(false);
@@ -150,14 +157,32 @@ export default function CommunityPage() {
     return () => unsubscribe();
   }, []);
 
-  // 카테고리 필터링
-  useEffect(() => {
+ // 카테고리 필터링
+ useEffect(() => {
     if (activeCategory === 'all') {
       setFilteredPosts(posts);
     } else {
       setFilteredPosts(posts.filter(post => post.category === activeCategory));
     }
   }, [activeCategory, posts]);
+
+  // 무한 스크롤 감지
+  useEffect(() => {
+    const handleScroll = () => {
+      // 페이지 하단에서 300px 위에 도달하면 로드
+      if (
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 300 &&
+        hasMore &&
+        !loadingMore &&
+        activeCategory === 'all' // 전체 카테고리일 때만 무한 스크롤
+      ) {
+        loadMorePosts();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadingMore, lastDoc, activeCategory]);
 
   const checkNickname = async (userId: string) => {
     try {
@@ -175,7 +200,8 @@ export default function CommunityPage() {
   const loadPosts = () => {
     const q = query(
       collection(db, 'community'),
-      orderBy('timestamp', 'desc')
+      orderBy('timestamp', 'desc'),
+      limit(POSTS_PER_PAGE)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -191,9 +217,49 @@ export default function CommunityPage() {
         } as Post);
       });
       setPosts(postList);
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === POSTS_PER_PAGE);
     });
 
     return unsubscribe;
+  };
+
+  // 추가 게시글 로드
+  const loadMorePosts = async () => {
+    if (!lastDoc || !hasMore || loadingMore) return;
+    
+    setLoadingMore(true);
+    
+    try {
+      const q = query(
+        collection(db, 'community'),
+        orderBy('timestamp', 'desc'),
+        startAfter(lastDoc),
+        limit(POSTS_PER_PAGE)
+      );
+
+      const snapshot = await getDocs(q);
+      const newPosts: Post[] = [];
+      
+      snapshot.forEach((doc) => {
+        newPosts.push({ 
+          id: doc.id, 
+          ...doc.data(),
+          comments: doc.data().comments || [],
+          views: doc.data().views || 0,
+          likes: doc.data().likes || [],
+          images: doc.data().images || [],
+        } as Post);
+      });
+
+      setPosts(prev => [...prev, ...newPosts]);
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === POSTS_PER_PAGE);
+    } catch (error) {
+      console.error('추가 게시글 로드 실패:', error);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   // 이미지 선택
@@ -572,12 +638,26 @@ export default function CommunityPage() {
                       )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
+           );
+        })}
+      </div>
+    )}
+    
+    {/* 무한 스크롤 로딩 표시 */}
+    {loadingMore && (
+      <div className="flex justify-center py-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      </div>
+    )}
+    
+    {/* 더 이상 게시글 없음 */}
+    {!hasMore && posts.length > 0 && activeCategory === 'all' && (
+      <div className="text-center py-6 text-gray-400 text-sm">
+        모든 게시글을 불러왔습니다
+      </div>
+    )}
+  </div>
+</main>
 
      {/* 글쓰기 FAB */}
      <button
