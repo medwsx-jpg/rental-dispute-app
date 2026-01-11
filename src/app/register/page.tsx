@@ -278,6 +278,21 @@ function RegisterContent() {
             <p className="text-sm text-gray-600">Step 1/3: 본인 인증</p>
           </div>
 
+           {/* 🔐 안심 문구 */}
+           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🔐</span>
+              <div>
+                <p className="font-semibold text-blue-900 mb-1">안심하세요, 번호는 보호됩니다</p>
+                <p className="text-sm text-blue-700 leading-relaxed">
+                  Record365는 양측 전자서명으로 법적 효력을 갖습니다.<br />
+                  서명 요청 알림을 위해 번호 인증이 필요하며,<br />
+                  <span className="font-medium">상대방에게 번호가 공개되지 않습니다.</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
               <p>{error}</p>
