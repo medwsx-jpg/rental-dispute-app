@@ -770,8 +770,8 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
           <span className="text-3xl">{getRentalIcon(rental.type)}</span>
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
+      <div className="flex-1 min-w-0 overflow-hidden">
+      <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
         <p className="text-sm text-gray-500">
           {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
         </p>
@@ -920,8 +920,8 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
           <span className="text-3xl">{getRentalIcon(rental.type)}</span>
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
+     <div className="flex-1 min-w-0 overflow-hidden">
+     <h3 className="font-medium text-gray-900 truncate">{rental.title}</h3>
         <p className="text-sm text-gray-500">
           {new Date(rental.startDate).toLocaleDateString('ko-KR')} ~ {new Date(rental.endDate).toLocaleDateString('ko-KR')}
         </p>
