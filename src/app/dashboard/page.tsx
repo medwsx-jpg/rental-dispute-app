@@ -429,22 +429,22 @@ const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
               Record365.co.kr
             </button>
             <div className="flex items-center gap-6">
-              <button onClick={() => router.push('/guide')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
-                사용가이드
-              </button>
-              <button onClick={() => router.push('/proxy-service')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
-                대행서비스
-              </button>
-              <button onClick={() => router.push('/')} className="text-sm text-gray-700 hover:text-green-600 font-medium">
-                홈
-              </button>
-              
-              <button 
-  onClick={() => router.push('/community')} 
-  className="text-sm text-gray-700 hover:text-green-600 font-medium"
->
-  이야기
-</button>
+  <button onClick={() => router.push('/guide')} className="text-sm text-gray-900 hover:text-green-600 font-semibold">
+    사용가이드
+  </button>
+  <button onClick={() => router.push('/proxy-service')} className="text-sm text-gray-900 hover:text-green-600 font-semibold">
+    대행서비스
+  </button>
+  <button onClick={() => router.push('/')} className="text-sm text-gray-900 hover:text-green-600 font-semibold">
+    홈
+  </button>
+  
+  <button 
+    onClick={() => router.push('/community')} 
+    className="text-sm text-gray-900 hover:text-green-600 font-semibold"
+  >
+    커뮤니티
+  </button>
 
               <div className="relative user-menu-container">
                 <button 
