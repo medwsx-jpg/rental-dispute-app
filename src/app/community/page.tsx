@@ -414,9 +414,9 @@ export default function CommunityPage() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto">
-        {/* 이벤트 배너 */}
-        <div className="mx-4 mt-4 bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl p-4 flex items-center justify-between">
+      <main className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto">
+       {/* 이벤트 배너 */}
+<div className="mx-4 md:mx-0 mt-4 bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl p-4 md:p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <span className="text-2xl">📸</span>
@@ -437,19 +437,19 @@ export default function CommunityPage() {
           </button>
         </div>
 
-        {/* 가이드 섹션 */}
-        <div className="mt-6 px-4">
+       {/* 가이드 섹션 */}
+<div className="mt-6 px-4 md:px-0">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-900">📚 기록 가이드</h2>
             <button className="text-sm text-gray-500 hover:text-gray-700">전체보기 &gt;</button>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-            {GUIDES.map((guide) => (
-              <button
-                key={guide.id}
-                onClick={() => setShowGuideDetail(guide.id)}
-                className="flex-shrink-0 w-40 bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition text-left"
-              >
+          <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto md:overflow-visible pb-2" style={{ scrollbarWidth: 'none' }}>
+  {GUIDES.map((guide) => (
+    <button
+      key={guide.id}
+      onClick={() => setShowGuideDetail(guide.id)}
+      className="flex-shrink-0 w-40 md:w-full bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition text-left"
+    >
                 <div className="text-3xl mb-2">{guide.emoji}</div>
                 <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-2">{guide.title}</p>
                 <p className="text-xs text-gray-500">조회 {guide.views}</p>
