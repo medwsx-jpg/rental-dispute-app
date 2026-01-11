@@ -331,25 +331,9 @@ export default function LandingV2Page() {
       My Rentals
     </button>
     
-    <div className="relative board-menu-container">
-      <button onClick={(e) => { e.stopPropagation(); setShowBoardMenu(!showBoardMenu); }} className="text-sm text-gray-700 hover:text-green-600 font-medium flex items-center gap-1">
-        Board
-        <span className="text-xs">{showBoardMenu ? '▲' : '▼'}</span>
-      </button>
-      {showBoardMenu && (
-        <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-50">
-          <button onClick={() => { router.push('/board/chat'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
-            💬 Chat
-          </button>
-          <button onClick={() => { router.push('/board/rentalcases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
-            🚗 Rental Cases
-          </button>
-          <button onClick={() => { router.push('/board/housecases'); setShowBoardMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50">
-            🏠 Property Cases
-          </button>
-        </div>
-      )}
-    </div>
+    <button onClick={() => router.push('/community')} className="text-sm text-gray-900 hover:text-green-600 font-semibold">
+  Community
+</button>
 
     {!user ? (
       <button onClick={handleLogin} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium">
