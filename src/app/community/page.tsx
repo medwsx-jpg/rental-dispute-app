@@ -384,24 +384,50 @@ export default function CommunityPage() {
     setShowPostDetailId(post.id);
 };
 
- // 좋아요 토글 (로그인 필요)
- const handleLike = async (postId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!requireLogin()) return;
+ // 좋아요 토글 (Optimistic Update)
+const handleLike = async (postId: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  if (!requireLogin()) return;
 
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
+  const post = posts.find(p => p.id === postId);
+  if (!post) return;
 
-    const isLiked = post.likes.includes(user.uid);
-    
-    try {
-      await updateDoc(doc(db, 'community', postId), {
-        likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
-      });
-    } catch (error) {
-      console.error('좋아요 실패:', error);
+  const isLiked = post.likes.includes(user.uid);
+  
+  // ✅ UI 먼저 업데이트 (Optimistic)
+  setPosts(prev => prev.map(p => {
+    if (p.id === postId) {
+      return {
+        ...p,
+        likes: isLiked 
+          ? p.likes.filter(uid => uid !== user.uid)
+          : [...p.likes, user.uid]
+      };
     }
-  };
+    return p;
+  }));
+
+  // Firestore 업데이트
+  try {
+    await updateDoc(doc(db, 'community', postId), {
+      likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    });
+  } catch (error) {
+    console.error('좋아요 실패:', error);
+    // 실패 시 롤백
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          likes: isLiked 
+            ? [...p.likes, user.uid]
+            : p.likes.filter(uid => uid !== user.uid)
+        };
+      }
+      return p;
+    }));
+  }
+};
 
   // 댓글 작성
   const handleAddComment = async (postId: string) => {
