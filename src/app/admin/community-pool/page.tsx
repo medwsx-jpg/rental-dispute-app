@@ -195,7 +195,30 @@ const generateComments = (postTime: number) => {
     setCurrentPostCount(0);
     setIsLoading(false);
   };
-
+// 시딩 게시글만 삭제 (user_로 시작하는 userId)
+const clearSeededOnly = async () => {
+    if (!confirm('시딩된 게시글만 삭제합니다. 실제 사용자 게시글은 유지됩니다.')) return;
+  
+    setIsLoading(true);
+    addLog('🗑️ 시딩 게시글 삭제 시작...');
+  
+    const snapshot = await getDocs(collection(db, 'community'));
+    let count = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      // user_로 시작하는 userId만 삭제
+      if (data.userId && data.userId.startsWith('user_')) {
+        await deleteDoc(doc(db, 'community', docSnap.id));
+        count++;
+        if (count % 10 === 0) addLog(`🗑️ ${count}개 삭제...`);
+      }
+    }
+  
+    addLog(`✅ 시딩 게시글 ${count}개 삭제 완료! (실제 사용자 게시글 유지)`);
+    setCurrentPostCount(prev => prev - count);
+    setIsLoading(false);
+  };
   // 미래 발행 날짜 목록
   const futureDates = Object.keys(FUTURE_POSTS_BY_DATE).sort();
 
@@ -274,17 +297,26 @@ const generateComments = (postTime: number) => {
           </div>
         </div>
 
-        {/* 위험 영역 */}
-        <div className="bg-red-50 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-bold text-red-700 mb-4">⚠️ 위험 영역</h2>
-          <button
-            onClick={clearAll}
-            disabled={isLoading}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
-          >
-            🗑️ 전체 삭제
-          </button>
-        </div>
+       {/* 위험 영역 */}
+<div className="bg-red-50 rounded-lg p-6 mb-6">
+  <h2 className="text-lg font-bold text-red-700 mb-4">⚠️ 위험 영역</h2>
+  <div className="flex gap-3">
+    <button
+      onClick={clearSeededOnly}
+      disabled={isLoading}
+      className="px-6 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50"
+    >
+      🧹 시딩만 삭제
+    </button>
+    <button
+      onClick={clearAll}
+      disabled={isLoading}
+      className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
+    >
+      🗑️ 전체 삭제
+    </button>
+  </div>
+</div>
 
         {/* 로그 */}
         {logs.length > 0 && (
