@@ -8,20 +8,9 @@ import { collection, query, where, onSnapshot, orderBy, doc, getDoc, setDoc, upd
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
 import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
 import InAppBrowserGuide from '@/components/InAppBrowserGuide';
+import { UserData } from '@/types/user';  // 🔥 추가
 
-interface UserData {
-  email: string;
-  nickname: string;
-  freeRentalsUsed: number;
-  isPremium: boolean;
-  createdAt: number;
-  notificationDays?: number;
-  userType?: 'individual' | 'business';
-  businessInfo?: {
-    businessType: 'car_rental' | 'real_estate' | 'goods_rental';
-    companyName: string;
-  };
-}
+
 
 interface Message {
   from: 'user' | 'admin';
@@ -137,8 +126,19 @@ export default function DashboardPage() {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const data = userDoc.data() as UserData;
-        setUserData(data);
-        setNotificationDays(data.notificationDays || 3);
+        
+        // 🔥 기존 사용자 호환성: 없는 필드에 기본값 설정
+        const userData: UserData = {
+          ...data,
+          userTier: data.userTier || (data.isPremium ? 'premium' : 'free'),
+          freeRentalsUsed: data.freeRentalsUsed || 0,
+          paidRentalsTotal: data.paidRentalsTotal || 0,
+          premiumRentalsUsed: data.premiumRentalsUsed || 0,
+          dataRetentionDays: data.dataRetentionDays || (data.isPremium ? 365 : 180),
+        };
+        
+        setUserData(userData);
+        setNotificationDays(userData.notificationDays || 3);
       }
     } catch (error) {
       console.error('사용자 정보 로드 실패:', error);
@@ -311,15 +311,39 @@ export default function DashboardPage() {
   };
 
   const handleNewRental = () => {
-    if (!userData?.isPremium && userData && userData.freeRentalsUsed >= FREE_RENTAL_LIMIT) {
-      const confirmed = confirm(
-        `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 1회 이용권: 9,800원\n📅 10회 이용권: 49,000원 (5회 이상 이용 시 추천!)\n\n⚠️ 결제 시스템 준비중입니다.\n요금제 페이지로 이동하시겠습니까?`
-      );
-      if (confirmed) {
-        router.push('/payment');
+    if (!userData) return;
+  
+    // 🔥 등급별 권한 체크
+    if (userData.userTier === 'free') {
+      // 무료 사용자: 1건 제한
+      if ((userData.freeRentalsUsed || 0) >= 1) {
+        const confirmed = confirm(
+          `🆓 무료 1건을 모두 사용하셨습니다!\n\n💰 1회 이용권: 9,800원\n⭐ 10회 이용권: 49,000원 (50% 할인!)\n\n⚠️ 결제 시스템 준비중입니다.\n요금제 페이지로 이동하시겠습니까?`
+        );
+        if (confirmed) {
+          router.push('/payment');
+        }
+        return;
       }
-      return;
+    } else if (userData.userTier === 'paid') {
+      // 1회 이용권 사용자: 결제 안내
+      const confirmed = confirm(
+        `💰 1회 이용권으로 렌탈을 등록하시겠습니까?\n\n요금: 9,800원\n\n⚠️ 현재 결제 시스템 준비중입니다.\n등록만 진행하시겠습니까?`
+      );
+      if (!confirmed) return;
+    } else if (userData.userTier === 'premium') {
+      // 프리미엄 사용자: 10건 제한
+      if ((userData.premiumRentalsUsed || 0) >= 10) {
+        const confirmed = confirm(
+          `⭐ 프리미엄 10건을 모두 사용하셨습니다!\n\n추가 이용권을 구매하시겠습니까?\n\n💰 1회: 9,800원\n⭐ 10회: 49,000원`
+        );
+        if (confirmed) {
+          router.push('/payment');
+        }
+        return;
+      }
     }
+  
     router.push('/rental/new');
   };
 
@@ -628,46 +652,101 @@ export default function DashboardPage() {
   <div className="flex-1 min-w-0">
             {/* 상단 요약 영역 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* 사용량 카드 */}
-              {isPremium ? (
+              {/* 🔥 사용량 카드 - 3단계 등급 */}
+              {userData.userTier === 'premium' ? (
+                // ⭐ 프리미엄 사용자 (10회 이용권)
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-purple-800 mb-1">✨ 프리미엄 사용자</p>
-                      <p className="text-2xl font-bold text-purple-900">무기한 사용 중</p>
-                      <p className="text-xs text-purple-600 mt-1">📅 데이터 보관: 렌탈 종료 후 3개월</p>
+                      <p className="text-sm text-purple-800 mb-1">⭐ 프리미엄 (10회 이용권)</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {userData.premiumRentalsUsed || 0} / 10건 사용
+                      </p>
+                      <p className="text-xs text-purple-600 mt-1">
+                        📅 데이터 보관: 렌탈 종료 후 12개월
+                      </p>
+                      {(userData.premiumRentalsUsed || 0) >= 10 && (
+                        <p className="text-xs text-orange-600 mt-2 font-medium">
+                          ⚠️ 모두 사용하셨습니다. 추가 이용권을 구매하세요.
+                        </p>
+                      )}
+                      {(userData.premiumRentalsUsed || 0) >= 7 && (userData.premiumRentalsUsed || 0) < 10 && (
+                        <p className="text-xs text-orange-600 mt-2">
+                          💡 {10 - (userData.premiumRentalsUsed || 0)}건 남았습니다
+                        </p>
+                      )}
                     </div>
                     <span className="text-4xl">⭐</span>
                   </div>
                 </div>
+              ) : userData.userTier === 'paid' ? (
+                // 💰 1회 이용권 사용자
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-green-800 mb-1">💰 1회 이용권 사용자</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {userData.paidRentalsTotal || 0}건 결제 사용
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        📅 데이터 보관: 렌탈 종료 후 6개월
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        💡 건당 9,800원씩 결제하여 사용
+                      </p>
+                    </div>
+                    <span className="text-4xl">💰</span>
+                  </div>
+                  
+                  {/* 프리미엄 전환 권유 (3건 이상 결제 시) */}
+                  {(userData.paidRentalsTotal || 0) >= 3 && (
+                    <div className="mt-3 bg-white rounded-lg p-3 border border-green-200">
+                      <p className="text-sm font-medium text-gray-900 mb-1">
+                        💡 프리미엄으로 전환하시겠어요?
+                      </p>
+                      <p className="text-xs text-gray-600 mb-2">
+                        10회 49,000원 = 회당 4,900원 (50% 할인!)
+                      </p>
+                      <button
+                        onClick={() => router.push('/payment?recommend=premium')}
+                        className="w-full py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition"
+                      >
+                        프리미엄 구매하기 <span className="text-purple-200 text-xs">(준비중)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
+                // 🆓 무료 사용자
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-sm text-blue-800">🆓 무료 사용량</p>
+                      <p className="text-sm text-blue-800">🆓 무료 사용자</p>
                       <p className="text-2xl font-bold text-blue-900">
-                        {freeUsed} / {FREE_RENTAL_LIMIT}건 사용
+                        {userData.freeRentalsUsed || 0} / 1건 사용
                       </p>
-                      <p className="text-xs text-blue-600 mt-1">📅 데이터 보관: 렌탈 종료 후 6일</p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        📅 데이터 보관: 렌탈 종료 후 6개월
+                      </p>
                     </div>
-                    {freeUsed >= FREE_RENTAL_LIMIT && (
+                    {(userData.freeRentalsUsed || 0) >= 1 && (
                       <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
                         무료 1건 완료
                       </span>
                     )}
                   </div>
                   
-                  {freeUsed >= FREE_RENTAL_LIMIT && (
+                  {(userData.freeRentalsUsed || 0) >= 1 && (
                     <div className="bg-white rounded-lg p-3 border border-blue-200">
                       <p className="text-sm font-medium text-gray-900 mb-1">
                         💰 추가 렌탈이 필요하신가요?
                       </p>
                       <p className="text-xs text-gray-600 mb-2">
-                        1회 9,800원 / 10회 49,000원
+                        1회 9,800원 / 10회 49,000원 (50% 할인)
                       </p>
                       <button
                         onClick={() => router.push('/payment')}
-                        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
                       >
                         요금제 보기 <span className="text-green-200 text-xs">(준비중)</span>
                       </button>

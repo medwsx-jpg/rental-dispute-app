@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { UserData } from '@/types/user';  // 🔥 추가
 import { CAR_AREAS, HOUSE_AREAS } from '@/types/rental';
 
 export default function NewRentalPage() {
@@ -97,31 +98,32 @@ export default function NewRentalPage() {
     setLoading(true);
   
     try {
-      // 사용자 정보 확인
+      // 🔥 사용자 정보 확인
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
+      const userData = userDoc.data() as UserData;
   
-      // 무료 사용자 체크
-      if (!userData?.isPremium) {
-        const freeRentalsUsed = userData?.freeRentalsUsed || 0;
-        
-        if (freeRentalsUsed >= 1) {
-          // 무료 사용량 초과
-          const confirmed = confirm(
-            '🆓 무료 1건을 모두 사용하셨습니다!\n\n' +
-            '추가 렌탈이 필요하시면 관리자에게 문의해주세요.\n\n' +
-            '안내 페이지로 이동하시겠습니까?'
-          );
-          
-          if (confirmed) {
-            router.push('/upgrade');
-          }
-          
-          setLoading(false);
-          return;
-        }
+      // 🔥 기존 사용자 호환성: 기본값 설정
+      const userTier = userData?.userTier || (userData?.isPremium ? 'premium' : 'free');
+      const freeRentalsUsed = userData?.freeRentalsUsed || 0;
+      const paidRentalsTotal = userData?.paidRentalsTotal || 0;
+      const premiumRentalsUsed = userData?.premiumRentalsUsed || 0;
+
+      // 🔥 등급별 권한 체크 (대시보드와 동일한 로직 - 이중 체크)
+      if (userTier === 'free' && freeRentalsUsed >= 1) {
+        alert('🆓 무료 1건을 모두 사용하셨습니다!\n\n대시보드로 돌아가서 요금제를 확인해주세요.');
+        router.push('/dashboard');
+        setLoading(false);
+        return;
+      }
+
+      if (userTier === 'premium' && premiumRentalsUsed >= 10) {
+        alert('⭐ 프리미엄 10건을 모두 사용하셨습니다!\n\n대시보드로 돌아가서 추가 이용권을 구매해주세요.');
+        router.push('/dashboard');
+        setLoading(false);
+        return;
       }
   
+      // 🔥 렌탈 데이터 생성
       const rentalData: any = {
         userId: user.uid,
         type,
@@ -145,7 +147,7 @@ export default function NewRentalPage() {
         rentalData.carModel = carModel.trim();
       }
 
-      // 🔥 추가: 월세인 경우 집주소 추가
+      // 월세인 경우 집주소 추가
       if (type === 'house' && rentalAddress.trim()) {
         rentalData.rentalAddress = rentalAddress.trim();
       }
@@ -155,19 +157,37 @@ export default function NewRentalPage() {
         rentalData.customAreas = customAreas;
       }
   
+      // 🔥 Firestore에 렌탈 생성
       const docRef = await addDoc(collection(db, 'rentals'), rentalData);
   
-      // 무료 사용자인 경우 카운팅 증가
-      if (!userData?.isPremium) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          freeRentalsUsed: (userData?.freeRentalsUsed || 0) + 1
+      // 🔥 등급별 사용 횟수 증가
+      const userRef = doc(db, 'users', user.uid);
+      
+      if (userTier === 'free') {
+        await updateDoc(userRef, {
+          freeRentalsUsed: increment(1),
+          updatedAt: Date.now(),
         });
-        
-        console.log('✅ 무료 사용 횟수 증가:', (userData?.freeRentalsUsed || 0) + 1);
+        console.log('✅ 무료 사용 횟수 증가:', freeRentalsUsed + 1);
+      } else if (userTier === 'paid') {
+        await updateDoc(userRef, {
+          paidRentalsTotal: increment(1),
+          updatedAt: Date.now(),
+        });
+        console.log('✅ 1회권 사용 횟수 증가:', paidRentalsTotal + 1);
+      } else if (userTier === 'premium') {
+        await updateDoc(userRef, {
+          premiumRentalsUsed: increment(1),
+          updatedAt: Date.now(),
+        });
+        console.log('✅ 프리미엄 사용 횟수 증가:', premiumRentalsUsed + 1);
       }
   
+      // Before 촬영 페이지로 이동
       router.push(`/rental/${docRef.id}/checkin`);
-    } catch (error) {
+    }
+    
+    catch (error) {
       console.error('렌탈 생성 실패:', error);
       alert('렌탈 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
