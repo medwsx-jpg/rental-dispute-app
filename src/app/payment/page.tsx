@@ -21,16 +21,29 @@ const selfPlans = [
     name: '1회 이용권',
     price: 9800,
     description: '렌탈 1건 등록',
-    features: ['렌탈 1건 등록','렌탈 종료후 1개월까지 자료보관', '사진 기록 및 비교', '전자 서명', 'PDF 리포트'],
+    features: [
+      '렌탈 1건 등록',
+      '렌탈 종료후 6개월까지 자료보관',  // 🔥 1개월 → 6개월
+      '사진 기록 및 비교',
+      '전자 서명',
+      'PDF 리포트'
+    ],
   },
   {
     id: 'yearly',
     name: '10회 이용권',
     price: 49000,
     period: '년',
-    description: '무기한 이용',
+    description: '10건 패키지',
     badge: '5회 이상이면 이득!',
-    features: ['무기한 렌탈 등록','렌탈 종료후 3개월까지 자료보관', '사진 기록 및 비교', '전자 서명', 'PDF 리포트', '우선 고객지원'],
+    features: [
+      '렌탈 10건 등록',  // 🔥 "무기한" → "10건"
+      '렌탈 종료후 12개월까지 자료보관',  // 🔥 3개월 → 12개월
+      '사진 기록 및 비교',
+      '전자 서명',
+      'PDF 리포트',
+      '우선 고객지원'
+    ],
   },
 ];
 
@@ -200,9 +213,9 @@ function PaymentContent() {
           <div className="space-y-6">
             {/* 비교 안내 */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-              <p className="text-blue-800 text-sm">
-                💡 <strong>5회 이상</strong> 이용하신다면 <strong>연간 무제한</strong>이 더 유리해요!
-              </p>
+            <p className="text-blue-800 text-sm">
+  💡 <strong>5회 이상</strong> 이용하신다면 10회 이용권(49,000원)이 <strong>50% 이상 할인</strong>!
+</p>
             </div>
 
             {/* 요금제 카드 */}
