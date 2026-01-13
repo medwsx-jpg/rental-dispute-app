@@ -9,16 +9,23 @@ import { collection, getDocs, doc, updateDoc, query, orderBy, deleteDoc, getDoc,
 interface User {
   id: string;
   email?: string;
-  userId?: string;            // 🔥 추가
+  userId?: string;
   nickname?: string;
   phoneNumber?: string;
+  
+  // 🔥 등급 시스템
+  userTier: 'free' | 'paid' | 'premium';
   freeRentalsUsed: number;
-  isPremium: boolean;
+  paidRentalsTotal: number;
+  premiumRentalsUsed: number;
+  dataRetentionDays: number;
+  
+  isPremium: boolean;  // 호환성 유지
   createdAt: number;
   provider?: string;
-  userType?: 'individual' | 'business';  // 🔥 추가
-  marketingAgreed?: boolean;   // 🔥 추가
-  marketingAgreedAt?: number;  // 🔥 추가
+  userType?: 'individual' | 'business';
+  marketingAgreed?: boolean;
+  marketingAgreedAt?: number;
 }
 
 interface Message {
@@ -168,17 +175,30 @@ useEffect(() => {
   return () => unsubscribe();
 }, [isAdmin]);
 
-  const loadData = async () => {
-    try {
-      // 사용자 데이터 로드
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const userList: User[] = [];
-      usersSnapshot.forEach((doc) => {
-        userList.push({ id: doc.id, ...doc.data() } as User);
-      });
+const loadData = async () => {
+  try {
+    // 사용자 데이터 로드
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    const userList: User[] = [];
+    usersSnapshot.forEach((doc) => {
+      const data = doc.data();
       
-      userList.sort((a, b) => b.createdAt - a.createdAt);
-      setUsers(userList);
+      // 🔥 기존 사용자 호환성 처리
+      const user: User = {
+        id: doc.id,
+        ...data,
+        userTier: data.userTier || (data.isPremium ? 'premium' : 'free'),
+        freeRentalsUsed: data.freeRentalsUsed || 0,
+        paidRentalsTotal: data.paidRentalsTotal || 0,
+        premiumRentalsUsed: data.premiumRentalsUsed || 0,
+        dataRetentionDays: data.dataRetentionDays || (data.isPremium ? 365 : 180),
+      } as User;
+      
+      userList.push(user);
+    });
+    
+    userList.sort((a, b) => b.createdAt - a.createdAt);
+    setUsers(userList);
 
       // 🔥 렌탈 데이터 로드 (deleted 제외)
       const rentalsSnapshot = await getDocs(collection(db, 'rentals'));
@@ -428,38 +448,57 @@ useEffect(() => {
     alert(`${exportRentals.length}건의 렌탈 데이터를 다운로드했습니다.`);
   };
 
-  const togglePremium = async (userId: string, currentStatus: boolean) => {
+  const changeUserTier = async (userId: string, newTier: 'free' | 'paid' | 'premium') => {
+    const tierNames = {
+      free: '🆓 무료',
+      paid: '💰 1회 이용권',
+      premium: '⭐ 프리미엄',
+    };
+  
     const confirmed = confirm(
-      currentStatus 
-        ? '이 사용자를 무료로 전환하시겠습니까?' 
-        : '이 사용자를 프리미엄으로 전환하시겠습니까?'
+      `이 사용자를 ${tierNames[newTier]} 등급으로 전환하시겠습니까?`
     );
     
     if (!confirmed) return;
-
+  
     try {
-      await updateDoc(doc(db, 'users', userId), {
-        isPremium: !currentStatus,
-      });
+      // 등급에 따른 데이터 설정
+      const updates: any = {
+        userTier: newTier,
+        isPremium: newTier === 'premium',
+        dataRetentionDays: newTier === 'premium' ? 365 : 180,
+        updatedAt: Date.now(),
+      };
+  
+      await updateDoc(doc(db, 'users', userId), updates);
       
-      alert('변경되었습니다!');
+      alert(`✅ ${tierNames[newTier]} 등급으로 변경되었습니다!`);
       await loadData();
     } catch (error) {
-      console.error('업데이트 실패:', error);
-      alert('업데이트에 실패했습니다.');
+      console.error('등급 변경 실패:', error);
+      alert('등급 변경에 실패했습니다.');
     }
   };
 
-  const resetFreeRentals = async (userId: string) => {
-    const confirmed = confirm('이 사용자의 무료 사용 횟수를 0으로 초기화하시겠습니까?');
+  const resetRentalCount = async (userId: string, user: User) => {
+    const confirmed = confirm(
+      '이 사용자의 렌탈 사용 횟수를 초기화하시겠습니까?\n\n' +
+      `현재 사용량:\n` +
+      `- 무료: ${user.freeRentalsUsed || 0}/1\n` +
+      `- 1회권: ${user.paidRentalsTotal || 0}건\n` +
+      `- 프리미엄: ${user.premiumRentalsUsed || 0}/10`
+    );
+    
     if (!confirmed) return;
-
+  
     try {
       await updateDoc(doc(db, 'users', userId), {
         freeRentalsUsed: 0,
+        paidRentalsTotal: 0,
+        premiumRentalsUsed: 0,
       });
       
-      alert('초기화되었습니다!');
+      alert('✅ 모든 사용 횟수가 초기화되었습니다!');
       await loadData();
     } catch (error) {
       console.error('초기화 실패:', error);
@@ -910,7 +949,7 @@ useEffect(() => {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">타입</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">마케팅</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상태</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">무료 사용</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">사용량</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">메시지</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">가입일</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">관리</th>
@@ -968,19 +1007,33 @@ useEffect(() => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {user.isPremium ? (
-                          <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                            ⭐ 프리미엄
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                            🆓 무료
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm text-gray-600">
-                        {user.freeRentalsUsed} / 1
-                      </td>
+  {user.userTier === 'premium' ? (
+    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+      ⭐ 프리미엄
+    </span>
+  ) : user.userTier === 'paid' ? (
+    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+      💰 1회권
+    </span>
+  ) : (
+    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+      🆓 무료
+    </span>
+  )}
+</td>
+<td className="px-4 py-3 text-center">
+  <div className="text-xs text-gray-600 space-y-0.5">
+    {user.userTier === 'free' && (
+      <div>무료: {user.freeRentalsUsed || 0}/1</div>
+    )}
+    {user.userTier === 'paid' && (
+      <div>1회권: {user.paidRentalsTotal || 0}건</div>
+    )}
+    {user.userTier === 'premium' && (
+      <div>프리미엄: {user.premiumRentalsUsed || 0}/10</div>
+    )}
+  </div>
+</td>
                       <td className="px-4 py-3 text-center">
                         {thread ? (
                           <button
@@ -1002,27 +1055,59 @@ useEffect(() => {
                         {new Date(user.createdAt).toLocaleDateString('ko-KR')}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => togglePremium(user.id, user.isPremium)}
-                            className={`px-3 py-1 text-xs rounded-lg font-medium transition ${
-                              user.isPremium
-                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
-                            }`}
-                          >
-                            {user.isPremium ? '무료로' : '프리미엄'}
-                          </button>
-                          {!user.isPremium && user.freeRentalsUsed > 0 && (
-                            <button
-                              onClick={() => resetFreeRentals(user.id)}
-                              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition"
-                            >
-                              초기화
-                            </button>
-                          )}
-                        </div>
-                      </td>
+  <div className="flex items-center justify-center gap-1">
+    {/* 무료 버튼 */}
+    <button
+      onClick={() => changeUserTier(user.id, 'free')}
+      disabled={user.userTier === 'free'}
+      className={`px-2 py-1 text-xs rounded-lg font-medium transition ${
+        user.userTier === 'free'
+          ? 'bg-blue-100 text-blue-700 cursor-not-allowed'
+          : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+      }`}
+      title="무료로 전환"
+    >
+      🆓
+    </button>
+    
+    {/* 1회권 버튼 */}
+    <button
+      onClick={() => changeUserTier(user.id, 'paid')}
+      disabled={user.userTier === 'paid'}
+      className={`px-2 py-1 text-xs rounded-lg font-medium transition ${
+        user.userTier === 'paid'
+          ? 'bg-green-100 text-green-700 cursor-not-allowed'
+          : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+      }`}
+      title="1회 이용권으로 전환"
+    >
+      💰
+    </button>
+    
+    {/* 프리미엄 버튼 */}
+    <button
+      onClick={() => changeUserTier(user.id, 'premium')}
+      disabled={user.userTier === 'premium'}
+      className={`px-2 py-1 text-xs rounded-lg font-medium transition ${
+        user.userTier === 'premium'
+          ? 'bg-purple-100 text-purple-700 cursor-not-allowed'
+          : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200'
+      }`}
+      title="프리미엄으로 전환"
+    >
+      ⭐
+    </button>
+    
+    {/* 초기화 버튼 */}
+    <button
+      onClick={() => resetRentalCount(user.id, user)}
+      className="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded-lg font-medium hover:bg-gray-100 border border-gray-200 transition"
+      title="사용 횟수 초기화"
+    >
+      🔄
+    </button>
+  </div>
+</td>
                     </tr>
                   );
                 })}
@@ -1039,15 +1124,16 @@ useEffect(() => {
 
         {/* 안내 */}
         <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="font-medium text-yellow-800 mb-2">⚠️ 관리자 안내</h3>
-          <ul className="text-sm text-yellow-700 space-y-1">
-            <li>• 프리미엄 전환: 사용자를 무료 ↔ 프리미엄으로 전환</li>
-            <li>• 초기화: 무료 사용 횟수를 0으로 재설정 (테스트용)</li>
-            <li>• 메시지: 💬 아이콘 클릭하여 사용자와 대화</li>
-            <li>• CSV 다운로드: 엑셀에서 열어서 확인 가능 (한글 지원)</li>
-            <li>• 통계는 실시간으로 업데이트됩니다</li>
-          </ul>
-        </div>
+  <h3 className="font-medium text-yellow-800 mb-2">⚠️ 관리자 안내</h3>
+  <ul className="text-sm text-yellow-700 space-y-1">
+    <li>• 등급 전환: 🆓 무료 / 💰 1회권 / ⭐ 프리미엄 버튼 클릭</li>
+    <li>• 현재 등급은 진하게 표시되며 클릭 불가</li>
+    <li>• 초기화 (🔄): 모든 등급의 사용 횟수를 0으로 재설정</li>
+    <li>• 메시지: 💬 아이콘 클릭하여 사용자와 대화</li>
+    <li>• CSV 다운로드: 엑셀에서 열어서 확인 가능 (한글 지원)</li>
+    <li>• 통계는 실시간으로 업데이트됩니다</li>
+  </ul>
+</div>
       </main>
 
       {/* 메시지 모달 (기존과 동일) */}
