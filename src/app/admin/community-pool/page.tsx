@@ -31,24 +31,33 @@ export default function CommunityPoolPage() {
     return shuffled.slice(0, count).map(u => u.id);
   };
 
-  // 랜덤 댓글 생성 (10~20개)
-  const generateComments = () => {
+  // 랜덤 댓글 생성 (10~20개) - postTime: 게시글 작성 시간 (밀리초)
+const generateComments = (postTime: number) => {
     const count = Math.floor(Math.random() * 11) + 10; // 10~20
     const comments = [];
     const shuffledUsers = [...FAKE_USERS].sort(() => Math.random() - 0.5);
     const shuffledComments = [...COMMENT_POOL].sort(() => Math.random() - 0.5);
     
+    const now = Date.now();
+    
     for (let i = 0; i < count; i++) {
       const user = shuffledUsers[i % shuffledUsers.length];
-      const content = shuffledComments[i % shuffledComments.length];
+      const commentText = shuffledComments[i % shuffledComments.length];
+      
+      // 댓글 시간: 게시글 작성 후 ~ 현재 사이 랜덤
+      const randomCommentTime = postTime + Math.random() * (now - postTime);
+      
       comments.push({
-        id: `comment_${Date.now()}_${i}`,
         userId: user.id,
         userNickname: user.nickname,
-        content: content,
-        timestamp: Timestamp.now(),
+        comment: commentText,  // ✅ 필드명 수정
+        timestamp: randomCommentTime,  // ✅ 숫자 (밀리초)
       });
     }
+    
+    // 시간순 정렬
+    comments.sort((a, b) => a.timestamp - b.timestamp);
+    
     return comments;
   };
 
@@ -83,7 +92,7 @@ export default function CommunityPoolPage() {
           content: post.content,
           images: [],
           timestamp: Timestamp.fromMillis(randomTime),
-          comments: generateComments(),
+          comments: generateComments(randomTime),
           views: Math.floor(Math.random() * 500) + 50,
           likes: generateLikes(),
         };
@@ -145,7 +154,7 @@ export default function CommunityPoolPage() {
           content: post.content,
           images: [],
           timestamp: Timestamp.fromMillis(randomTime),
-          comments: generateComments(),
+          comments: generateComments(randomTime),
           views: Math.floor(Math.random() * 100) + 10,
           likes: generateLikes(),
         };
