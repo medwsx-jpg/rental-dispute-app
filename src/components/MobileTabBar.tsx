@@ -341,6 +341,17 @@ export default function MobileTabBar() {
   <span className="text-gray-700">🤝 {t.proxy}</span>
 </button>
 
+{/* 🔥 보증금 미반환 조회하기 */}
+<button
+  onClick={() => {
+    window.open('https://www.khug.or.kr/jeonse/web/s01/s010321.jsp', '_blank');
+    setShowAllMenu(false);
+  }}
+  className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition"
+>
+  <span className="text-gray-700">🔍 보증금 미반환 조회</span>
+</button>
+
                 {/* 내정보 */}
                 <div className="border-t border-gray-200 pt-2 mt-2">
                   {!user ? (
