@@ -615,15 +615,10 @@ export default function DashboardPage() {
           문제가 있거나 제안사항이 있으신가요?
         </p>
         <button
-          onClick={handleOpenMessages}
-          className="relative w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+          onClick={() => window.open('http://pf.kakao.com/_ezNQn/chat', '_blank')}
+          className="w-full py-2 bg-yellow-400 text-yellow-900 rounded-lg text-sm font-medium hover:bg-yellow-500 transition"
         >
-          메시지 보내기
-          {unreadCount > 0 && (
-            <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-              {unreadCount}
-            </span>
-          )}
+          💬 카카오톡으로 문의하기
         </button>
       </div>
     </div>
@@ -1064,15 +1059,10 @@ export default function DashboardPage() {
                 앱 사용 중 문제가 있거나 제안사항이 있으신가요?
               </p>
               <button
-                onClick={handleOpenMessages}
-                className="relative w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                onClick={() => window.open('http://pf.kakao.com/_ezNQn/chat', '_blank')}
+                className="w-full py-3 bg-yellow-400 text-yellow-900 rounded-lg font-medium hover:bg-yellow-500 transition"
               >
-                💬 메시지 보내기
-                {unreadCount > 0 && (
-                  <span className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
+                💬 카카오톡으로 문의하기
               </button>
             </div>
           </div>
