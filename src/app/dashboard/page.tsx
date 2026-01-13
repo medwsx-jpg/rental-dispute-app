@@ -612,6 +612,23 @@ export default function DashboardPage() {
         </ul>
       </div>
 
+{/* 🔍 보증금 미반환 조회하기 */}
+<div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg shadow-sm p-5 border border-yellow-100">
+  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+    <span>🔍</span> 보증금 미반환 조회
+  </h3>
+  <p className="text-sm text-gray-700 mb-3">
+    전세보증금이 제때 반환되지 않았나요?<br />
+    HUG에서 미반환 내역을 조회하세요.
+  </p>
+  <button
+    onClick={() => window.open('https://www.khug.or.kr/jeonse/web/s01/s010321.jsp', '_blank')}
+    className="w-full py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 transition"
+  >
+    🏦 HUG 보증금 조회하기
+  </button>
+</div>
+
       {/* 📢 안내 */}
       <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-sm p-5 border border-green-100">
         <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
