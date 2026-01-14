@@ -520,7 +520,7 @@ const handleLike = async (postId: string, e: React.MouseEvent) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-bold text-gray-900">커뮤니티</h1>
+          <h1 className="text-lg font-bold text-gray-900">커뮤니티(베타테스트중)</h1>
           <button onClick={() => router.push('/profile')} className="p-1">
             <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
