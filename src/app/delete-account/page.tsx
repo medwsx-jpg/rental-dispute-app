@@ -11,7 +11,7 @@ export default function DeleteAccountPage() {
           <div className="bg-gray-100 rounded p-4 mb-4">
             <p className="font-semibold mb-2">삭제 요청 방법</p>
             <p className="text-sm text-gray-600">
-              이메일: <a href="mailto:support@record365.co.kr" className="text-blue-600">support@record365.co.kr</a>
+              이메일: <a href="mailto:support@record365.co.kr" className="text-blue-600">medwsx@gmail.com</a>
             </p>
           </div>
           
