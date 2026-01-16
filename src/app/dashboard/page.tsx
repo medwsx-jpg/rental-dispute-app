@@ -6,9 +6,10 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy, doc, getDoc, setDoc, updateDoc, arrayUnion, limit } from 'firebase/firestore';
 import { Rental, FREE_RENTAL_LIMIT, PRICE_PER_RENTAL } from '@/types/rental';
-import { requestNotificationPermission, checkExpirationsDaily } from '@/lib/notifications';
+import { checkExpirationsDaily } from '@/lib/notifications'; // 🔥 requestNotificationPermission 제거
+import { requestPushPermission, isPushSubscribed } from '@/lib/onesignal'; // 🔥 OneSignal 추가
 import InAppBrowserGuide from '@/components/InAppBrowserGuide';
-import { UserData } from '@/types/user';  // 🔥 추가
+import { UserData } from '@/types/user';
 
 
 
@@ -56,7 +57,7 @@ export default function DashboardPage() {
         await loadUserData(currentUser.uid);
         loadRentals(currentUser.uid);
         loadMessageThread(currentUser.uid);
-        checkNotificationPermission();
+        checkNotificationPermission(); // 🔥 OneSignal 구독 상태 확인
       } else {
         router.push('/login');
       }
@@ -159,22 +160,23 @@ export default function DashboardPage() {
     return unsubscribe;
   };
 
+  // 🔥 OneSignal 구독 상태 확인 (수정됨)
   const checkNotificationPermission = async () => {
-    if ('Notification' in window) {
-      setNotificationEnabled(Notification.permission === 'granted');
-    }
+    const subscribed = await isPushSubscribed();
+    setNotificationEnabled(subscribed);
   };
 
+  // 🔥 OneSignal 알림 권한 요청 (수정됨)
   const handleEnableNotifications = async () => {
-    const granted = await requestNotificationPermission();
+    const granted = await requestPushPermission();
     setNotificationEnabled(granted);
     
     if (granted) {
-      alert('알림이 활성화되었습니다! 계약 만료 전에 알림을 받을 수 있습니다.');
+      alert('🔔 알림이 활성화되었습니다!\n계약 만료 전에 푸시 알림을 받을 수 있습니다.');
       const allRentals = [...ownerRentals, ...partnerRentals];
       checkExpirationsDaily(allRentals, notificationDays);
     } else {
-      alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+      alert('알림 권한이 거부되었습니다.\n브라우저 설정에서 알림을 허용해주세요.');
     }
   };
 

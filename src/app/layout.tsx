@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import PWAInstall from "@/components/PWAInstall";
-import MobileTabBar from "@/components/MobileTabBar";  // 🔥 추가
+import MobileTabBar from "@/components/MobileTabBar";
+import OneSignalProvider from "@/components/OneSignalProvider"; // 🔥 추가
 
 export const metadata: Metadata = {
   title: "Record 365 - 렌탈 분쟁 해결",
@@ -61,6 +62,12 @@ export default function RootLayout({
         <script src="https://cdn.iamport.kr/v1/iamport.js" async></script>
       </head>
       <body className="antialiased">
+        {/* 🔥 OneSignal SDK 추가 */}
+        <Script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          strategy="afterInteractive"
+        />
+        
         <Script id="kakao-init" strategy="afterInteractive">
           {`
             function initKakao() {
@@ -87,12 +94,16 @@ export default function RootLayout({
             }
           `}
         </Script>
-  <div className="pb-20 md:pb-0">
-    {children}
-  </div>
-  <MobileTabBar />
-  <PWAInstall />
-</body>
+        
+        {/* 🔥 OneSignal Provider로 감싸기 */}
+        <OneSignalProvider>
+          <div className="pb-20 md:pb-0">
+            {children}
+          </div>
+          <MobileTabBar />
+          <PWAInstall />
+        </OneSignalProvider>
+      </body>
     </html>
   );
 }
