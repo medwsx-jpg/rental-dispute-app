@@ -7,7 +7,7 @@ export default function CleanIntroPage() {
   const router = useRouter();
 
   const handleStart = () => {
-    window.location.href = 'https://record365-clean-6q7o.vercel.app';
+    window.location.href = 'https://record365-clean-6q7o.vercel.app/clean';
   };
 
   return (
